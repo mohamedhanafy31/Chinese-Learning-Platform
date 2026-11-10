@@ -1,12 +1,19 @@
 import 'server-only';
 
+import { cache } from 'react';
+
 import {
   levelAccessResponseSchema,
   myLevelDetailSchema,
   myLevelsResponseSchema,
+  playbackDeniedSchema,
+  playbackNoVideoSchema,
+  playbackResponseSchema,
   type LevelAccessResponse,
   type MyLevel,
   type MyLevelDetail,
+  type PlaybackNoVideo,
+  type PlaybackResponse,
 } from '@app/shared';
 
 import { apiServerFetch } from '@/lib/api-server';
@@ -66,3 +73,50 @@ export async function getMyLevels(): Promise<MyLevelsResult> {
     ? { status: 'ok', levels: parsed.data.levels }
     : { status: 'error' };
 }
+
+export type PlaybackResult =
+  | { status: 'ok'; data: PlaybackResponse }
+  | { status: 'no-video'; data: PlaybackNoVideo }
+  | { status: 'login-required' }
+  | { status: 'not-enrolled'; levelSlug: string | null }
+  | { status: 'not-found' }
+  | { status: 'error' };
+
+/**
+ * One lesson's playback descriptor for the current viewer, or the reason it is
+ * not available. Per request with the viewer's cookies, never cached; wrapped
+ * in `cache` so `generateMetadata` and the page share a single API call.
+ */
+export const getPlayback = cache(
+  async (lessonId: string): Promise<PlaybackResult> => {
+    const response = await getJson(
+      `/api/v1/lessons/${encodeURIComponent(lessonId)}/playback`,
+    );
+    if (!response) return { status: 'error' };
+    const body: unknown = await response.json().catch(() => null);
+
+    if (response.ok) {
+      const parsed = playbackResponseSchema.safeParse(body);
+      return parsed.success
+        ? { status: 'ok', data: parsed.data }
+        : { status: 'error' };
+    }
+    if (response.status === 401) return { status: 'login-required' };
+    if (response.status === 403) {
+      const parsed = playbackDeniedSchema.safeParse(body);
+      return {
+        status: 'not-enrolled',
+        levelSlug: parsed.success ? (parsed.data.levelSlug ?? null) : null,
+      };
+    }
+    if (response.status === 404) {
+      const parsed = playbackNoVideoSchema.safeParse(body);
+      return parsed.success
+        ? { status: 'no-video', data: parsed.data }
+        : { status: 'not-found' };
+    }
+    // A malformed id is a 400: there is no such lesson.
+    if (response.status === 400) return { status: 'not-found' };
+    return { status: 'error' };
+  },
+);

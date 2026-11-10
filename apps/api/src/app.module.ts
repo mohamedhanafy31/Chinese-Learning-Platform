@@ -15,6 +15,7 @@ import { HealthModule } from './health/health.module';
 import { IdentityModule } from './identity/identity.module';
 import { LearningModule } from './learning/learning.module';
 import { MediaModule } from './media/media.module';
+import { VideoModule } from './media/video/video.module';
 import { PrismaModule } from './prisma/prisma.module';
 
 @Module({
@@ -67,6 +68,7 @@ import { PrismaModule } from './prisma/prisma.module';
     MediaModule,
     CatalogModule,
     LearningModule,
+    VideoModule,
     HealthModule,
   ],
   providers: [

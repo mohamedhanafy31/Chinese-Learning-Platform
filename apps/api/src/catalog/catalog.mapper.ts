@@ -10,15 +10,27 @@ import {
   type PublicLevel,
 } from '@app/shared';
 
-import type { Lesson, Level, MediaAsset } from '../generated/prisma/client';
+import type {
+  Lesson,
+  Level,
+  MediaAsset,
+  VideoAsset,
+} from '../generated/prisma/client';
 import { toImageRef } from '../media/media-url';
+import { toAdminVideo } from '../media/video/video-mapper';
 
 export type LevelRow = Level & { coverImage: MediaAsset | null };
 export type LessonRow = Lesson & { thumbnail: MediaAsset | null };
+export type AdminLessonRow = LessonRow & { activeVideo: VideoAsset | null };
 
 /** Prisma `include` fragments that keep rows compatible with the mappers. */
 export const levelImageInclude = { coverImage: true } as const;
 export const lessonImageInclude = { thumbnail: true } as const;
+/** The admin also sees each lesson's active video. */
+export const lessonAdminInclude = {
+  thumbnail: true,
+  activeVideo: true,
+} as const;
 
 /** DB JSON is never trusted: it is parsed again on the way out. */
 export function parseLocalizedText(value: unknown): LocalizedText {
@@ -37,7 +49,7 @@ export function parseTopics(value: unknown): LocalizedText[] {
   return levelTopicsSchema.parse(value);
 }
 
-export function toAdminLesson(row: LessonRow): AdminLesson {
+export function toAdminLesson(row: AdminLessonRow): AdminLesson {
   return adminLessonSchema.parse({
     id: row.id,
     levelId: row.levelId,
@@ -49,6 +61,7 @@ export function toAdminLesson(row: LessonRow): AdminLesson {
     isFreePreview: row.isFreePreview,
     thumbnailId: row.thumbnailId,
     thumbnail: toImageRef(row.thumbnail),
+    video: row.activeVideo ? toAdminVideo(row.activeVideo) : null,
     firstPublishedAt: row.firstPublishedAt?.toISOString() ?? null,
     archivedAt: row.archivedAt?.toISOString() ?? null,
     createdAt: row.createdAt.toISOString(),

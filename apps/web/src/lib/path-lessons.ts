@@ -42,6 +42,8 @@ export async function toCatalogPathLessons(
   lessons: RealLessonInput[],
   locale: Locale,
   access: Map<string, LessonAccess> = new Map(),
+  /** Where an open or preview lesson goes; locked lessons never link. */
+  hrefFor?: (lessonId: string) => string,
 ): Promise<PathLesson[]> {
   const t = await getTranslations({ locale, namespace: 'Path' });
   const nf = numberFormat(locale);
@@ -52,5 +54,6 @@ export async function toCatalogPathLessons(
     title: pick(lesson.title, locale),
     hanzi: lesson.hanzi ?? '',
     state: pathStateFor(lesson, access.get(lesson.id)),
+    href: hrefFor?.(lesson.id),
   }));
 }

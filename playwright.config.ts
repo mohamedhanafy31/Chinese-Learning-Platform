@@ -71,6 +71,9 @@ export default defineConfig({
         INTERNAL_API_URL: apiUrl,
         APP_URL: webUrl,
         E2E_NEXT_START: '1',
+        // Video uploads go straight to the API (the dev/e2e /api rewrite
+        // would buffer them); the API allows CORS from APP_URL for that route.
+        API_PUBLIC_ORIGIN: `http://localhost:${apiPort}`,
       },
       url: `${webUrl}/ar/login`,
       reuseExistingServer: false,

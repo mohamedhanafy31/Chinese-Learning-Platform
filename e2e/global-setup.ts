@@ -1,5 +1,7 @@
+import { execFileSync } from 'node:child_process';
 import { randomBytes } from 'node:crypto';
-import { rm } from 'node:fs/promises';
+import { mkdtemp, rm } from 'node:fs/promises';
+import os from 'node:os';
 import { createRequire } from 'node:module';
 import path from 'node:path';
 
@@ -62,8 +64,37 @@ export default async function globalSetup(
   process.env.E2E_ADMIN_EMAIL = email;
   process.env.E2E_ADMIN_PASSWORD = password;
 
+  // A tiny real MP4 for the video specs. Without ffmpeg those specs skip.
+  let videoDir: string | undefined;
+  try {
+    videoDir = await mkdtemp(path.join(os.tmpdir(), 'cl-e2e-video-'));
+    const fixture = path.join(videoDir, 'e2e-lesson.mp4');
+    execFileSync(
+      'ffmpeg',
+      [
+        '-v',
+        'error',
+        '-y',
+        '-f',
+        'lavfi',
+        '-i',
+        'testsrc=size=160x90:rate=10',
+        '-t',
+        '2',
+        '-pix_fmt',
+        'yuv420p',
+        fixture,
+      ],
+      { stdio: 'ignore' },
+    );
+    process.env.E2E_VIDEO_FIXTURE = fixture;
+  } catch {
+    console.warn('ffmpeg is unavailable: the video e2e specs will be skipped.');
+  }
+
   const uploadsDir = process.env.E2E_UPLOADS_DIR;
   return async () => {
     if (uploadsDir) await rm(uploadsDir, { recursive: true, force: true });
+    if (videoDir) await rm(videoDir, { recursive: true, force: true });
   };
 }

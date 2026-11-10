@@ -105,24 +105,56 @@ model Level {
 }
 
 model Lesson {
-  id               String      @id @default(uuid()) @db.Uuid
-  levelId          String      @db.Uuid
+  id               String       @id @default(uuid()) @db.Uuid
+  levelId          String       @db.Uuid
   title            Json
   description      Json?
   hanzi            String?
   sortOrder        Int
-  isPublished      Boolean     @default(false)
-  isFreePreview    Boolean     @default(false)
+  isPublished      Boolean      @default(false)
+  isFreePreview    Boolean      @default(false)
   firstPublishedAt DateTime?
   archivedAt       DateTime?
-  thumbnailId      String?     @db.Uuid
-  createdAt        DateTime    @default(now())
-  updatedAt        DateTime    @updatedAt
-  level            Level       @relation(fields: [levelId], references: [id], onDelete: Restrict)
-  thumbnail        MediaAsset? @relation(fields: [thumbnailId], references: [id], onDelete: SetNull)
+  thumbnailId      String?      @db.Uuid
+  activeVideoId    String?      @unique @db.Uuid
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
+  level            Level        @relation(fields: [levelId], references: [id], onDelete: Restrict)
+  thumbnail        MediaAsset?  @relation(fields: [thumbnailId], references: [id], onDelete: SetNull)
+  activeVideo      VideoAsset?  @relation("ActiveVideo", fields: [activeVideoId], references: [id], onDelete: SetNull)
+  videos           VideoAsset[] @relation("LessonVideos")
 
   @@unique([levelId, sortOrder])
   @@index([levelId, isPublished, archivedAt, sortOrder])
+}
+
+enum VideoProvider {
+  LOCAL
+}
+
+enum VideoStatus {
+  UPLOADING
+  PROCESSING
+  READY
+  FAILED
+}
+
+model VideoAsset {
+  id           String        @id @default(uuid()) @db.Uuid
+  lessonId     String        @db.Uuid
+  provider     VideoProvider
+  status       VideoStatus
+  localKey     String?       @unique
+  mime         String?
+  durationSec  Int?
+  sizeBytes    BigInt?
+  originalName String        @db.VarChar(255)
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  lesson       Lesson        @relation("LessonVideos", fields: [lessonId], references: [id], onDelete: Cascade)
+  activeFor    Lesson?       @relation("ActiveVideo")
+
+  @@index([lessonId])
 }
 
 enum EnrollmentSource {

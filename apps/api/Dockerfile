@@ -30,7 +30,7 @@ WORKDIR /app
 COPY --from=build --chown=node:node /prod/api ./
 # The compose volume mounts here; owning the directory lets the non-root user
 # write to a freshly created volume.
-RUN mkdir -p /app/uploads/images && chown -R node:node /app/uploads
+RUN mkdir -p /app/uploads/images /app/uploads/videos && chown -R node:node /app/uploads
 
 USER node
 EXPOSE 4000

@@ -59,7 +59,8 @@
     "sealedBy": "已完成，马赞盖章",
     "lessonNumber": "第{n}课",
     "minutes": "{count} 分钟",
-    "open": "可学习"
+    "open": "可学习",
+    "current": "正在播放"
   },
   "Level": {
     "back": "全部级别",
@@ -75,6 +76,27 @@
     "enrolled": "你已加入本级别",
     "enrolledNote": "所有课程都已为你开放。",
     "archivedNote": "本级别已归档，你仍可继续学习。"
+  },
+  "Watch": {
+    "backToLevel": "返回该级别",
+    "playerLabel": "课程视频",
+    "comingSoonTitle": "视频即将上线",
+    "comingSoonBody": "马赞还在准备这节课的视频。课程文字见下方。",
+    "navLabel": "上一课与下一课",
+    "previous": "上一课",
+    "next": "下一课",
+    "signInTitle": "登录后观看这节课",
+    "signInBody": "这节课仅向已加入该级别的学员开放。请登录继续，或先创建账号。",
+    "signIn": "登录",
+    "register": "创建账号",
+    "levelTitle": "这节课属于“{level}”",
+    "levelTitleGeneric": "这节课属于你尚未开通的级别",
+    "levelBody": "开通该级别即可观看其中的所有课程。",
+    "viewLevel": "查看该级别",
+    "errorTitle": "无法加载这节课",
+    "errorBody": "请稍后再试。",
+    "unsupported": "你的浏览器无法播放此视频。",
+    "restoring": "正在检查你的登录状态…"
   },
   "Auth": {
     "loginTitle": "欢迎回来",
@@ -204,6 +226,46 @@
       "newIntro": "向“{level}”添加课程。发布之前，课程保持为草稿。",
       "editIntro": "属于“{level}”。",
       "visibilityTitle": "可见性"
+    },
+    "video": {
+      "title": "视频",
+      "intro": "每节课一个视频。上传新视频会替换当前视频。",
+      "none": "还没有视频。",
+      "fileName": "文件",
+      "fileSize": "大小",
+      "fileLength": "时长",
+      "fileStatus": "状态",
+      "status": {
+        "READY": "就绪",
+        "PROCESSING": "处理中",
+        "UPLOADING": "上传中",
+        "FAILED": "失败"
+      },
+      "previewLabel": "课程视频预览",
+      "choose": "上传视频",
+      "replace": "替换视频",
+      "fileLabel": "视频文件",
+      "helper": "MP4 或 WebM。大文件可能需要几分钟。",
+      "uploading": "正在上传…",
+      "finishing": "正在完成…",
+      "progressLabel": "上传进度",
+      "cancel": "取消上传",
+      "cancelled": "已取消上传。",
+      "done": "视频已上传。",
+      "remove": "删除视频",
+      "removeTitle": "删除这个视频？",
+      "removeBody": "在你上传新视频之前，学员将看不到“{title}”的视频。文件会被删除且无法恢复。",
+      "confirmRemove": "删除视频",
+      "removing": "正在删除…",
+      "keep": "保留视频",
+      "removed": "视频已删除。",
+      "devNotice": "视频保存在本地。这仅用于开发：上线前请配置 Bunny Stream。",
+      "devOnlyUploaded": "该视频保存在服务器本机磁盘上，仅用于开发。上线前请配置 Bunny Stream。",
+      "errors": {
+        "tooLarge": "视频超过了服务器允许的大小。",
+        "type": "只接受 MP4 或 WebM 视频。",
+        "network": "上传中断。请检查网络后重试。"
+      }
     },
     "form": {
       "createLevel": "创建级别",
@@ -381,7 +443,9 @@
     "adminLessonEdit": "编辑课程 · 管理后台 · 马赞中文",
     "levelDescriptionFallback": "马赞为阿拉伯语使用者开设的中文课程中的一个级别。",
     "adminStudents": "学员 · 管理后台 · 马赞中文",
-    "adminStudent": "学员详情 · 管理后台 · 马赞中文"
+    "adminStudent": "学员详情 · 管理后台 · 马赞中文",
+    "lesson": "课程 · 马赞中文",
+    "lessonNamed": "{lesson} · {level} · 马赞中文"
   },
   "NotFound": {
     "title": "页面未找到",

@@ -15,6 +15,8 @@ import type { Environment } from '../config/environment';
 export class MediaStorage implements OnModuleInit {
   readonly root: string;
   readonly imagesDir: string;
+  /** Private: never served statically. Streamed only through the access-checked route. */
+  readonly videosDir: string;
 
   constructor(
     @Inject(ConfigService)
@@ -23,12 +25,15 @@ export class MediaStorage implements OnModuleInit {
     const configured = config.get('UPLOADS_DIR', { infer: true });
     this.root = path.resolve(configured ?? path.join(process.cwd(), 'uploads'));
     this.imagesDir = path.join(this.root, 'images');
+    this.videosDir = path.join(this.root, 'videos');
   }
 
   async onModuleInit(): Promise<void> {
     try {
-      await mkdir(this.imagesDir, { recursive: true });
-      await access(this.imagesDir, constants.R_OK | constants.W_OK);
+      for (const directory of [this.imagesDir, this.videosDir]) {
+        await mkdir(directory, { recursive: true });
+        await access(directory, constants.R_OK | constants.W_OK);
+      }
     } catch (error) {
       throw new Error(
         `UPLOADS_DIR (${this.root}) must be a writable directory: ${

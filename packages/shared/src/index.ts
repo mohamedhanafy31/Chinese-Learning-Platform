@@ -204,6 +204,124 @@ export const reorderRequestSchema = z.object({
 
 const timestampSchema = z.string();
 
+// ---------------------------------------------------------------------------
+// Video
+// ---------------------------------------------------------------------------
+
+export const MAX_VIDEO_DURATION_SEC = 36_000;
+/** Default and documented ceiling for one local video upload (2 GiB). */
+export const DEFAULT_VIDEO_MAX_BYTES = 2 * 1024 * 1024 * 1024;
+
+export const VideoProvider = {
+  LOCAL: 'LOCAL',
+} as const;
+
+export type VideoProvider = (typeof VideoProvider)[keyof typeof VideoProvider];
+
+export const VideoStatus = {
+  UPLOADING: 'UPLOADING',
+  PROCESSING: 'PROCESSING',
+  READY: 'READY',
+  FAILED: 'FAILED',
+} as const;
+
+export type VideoStatus = (typeof VideoStatus)[keyof typeof VideoStatus];
+
+/** The admin's view of a lesson's current video. */
+export const adminVideoSchema = z.object({
+  id: z.uuid(),
+  provider: z.enum(VideoProvider),
+  status: z.enum(VideoStatus),
+  mime: z.string().nullable(),
+  sizeBytes: z.number().int().min(0).nullable(),
+  durationSec: z.number().int().min(0).nullable(),
+  originalName: z.string(),
+  createdAt: z.string(),
+});
+
+/** Upload response: the descriptor plus whether local storage is dev-only. */
+export const uploadedVideoSchema = adminVideoSchema.extend({
+  devOnly: z.boolean(),
+});
+
+export const providerReadinessSchema = z.object({
+  bunny: z.object({
+    configured: z.boolean(),
+    missing: z.array(z.string()),
+  }),
+  active: z.enum(['LOCAL', 'BUNNY']),
+});
+
+export const videoDiagnosticsSchema = providerReadinessSchema.extend({
+  devOnly: z.boolean(),
+});
+
+export const uploadVideoFieldsSchema = z.object({
+  durationSec: z.preprocess(
+    (value) => (value === '' || value === null ? undefined : value),
+    z.coerce.number().int().min(1).max(MAX_VIDEO_DURATION_SEC).optional(),
+  ),
+});
+
+export const playbackLessonSchema = z.object({
+  id: z.uuid(),
+  number: z.number().int().min(1),
+  title: localizedTextSchema,
+  description: localizedTextSchema.nullable(),
+  hanzi: z.string().nullable(),
+});
+
+export const playbackLevelSchema = z.object({
+  slug: slugSchema,
+  hanzi: z.string(),
+  title: localizedTextSchema,
+});
+
+export const playbackSiblingSchema = z.object({
+  id: z.uuid(),
+  number: z.number().int().min(1),
+  title: localizedTextSchema,
+  hanzi: z.string().nullable(),
+  access: z.enum(['open', 'preview', 'locked']),
+});
+
+const playbackContextShape = {
+  lesson: playbackLessonSchema,
+  level: playbackLevelSchema,
+  poster: z.string().startsWith('/media/').nullable(),
+  siblings: z.array(playbackSiblingSchema),
+};
+
+export const playbackResponseSchema = z.object({
+  ...playbackContextShape,
+  video: z.object({
+    provider: z.enum(VideoProvider),
+    src: z.string().startsWith('/'),
+    mime: z.string().nullable(),
+    durationSec: z.number().int().min(0).nullable(),
+  }),
+});
+
+/** The 404 body when the lesson is open to the viewer but has no video yet. */
+export const playbackNoVideoSchema = z.object({
+  reason: z.literal('no-video'),
+  ...playbackContextShape,
+});
+
+/** The 401/403 body: why the viewer is refused, and the level to offer. */
+export const playbackDeniedSchema = z.object({
+  reason: z.enum(['login-required', 'not-enrolled']),
+  levelSlug: slugSchema.optional(),
+});
+
+export type AdminVideo = z.infer<typeof adminVideoSchema>;
+export type UploadedVideo = z.infer<typeof uploadedVideoSchema>;
+export type ProviderReadiness = z.infer<typeof providerReadinessSchema>;
+export type VideoDiagnostics = z.infer<typeof videoDiagnosticsSchema>;
+export type PlaybackResponse = z.infer<typeof playbackResponseSchema>;
+export type PlaybackNoVideo = z.infer<typeof playbackNoVideoSchema>;
+export type PlaybackDenied = z.infer<typeof playbackDeniedSchema>;
+
 export const adminLessonSchema = z.object({
   id: z.uuid(),
   levelId: z.uuid(),
@@ -215,6 +333,7 @@ export const adminLessonSchema = z.object({
   isFreePreview: z.boolean(),
   thumbnailId: z.uuid().nullable(),
   thumbnail: imageRefSchema.nullable(),
+  video: adminVideoSchema.nullable(),
   firstPublishedAt: timestampSchema.nullable(),
   archivedAt: timestampSchema.nullable(),
   createdAt: timestampSchema,

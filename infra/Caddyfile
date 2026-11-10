@@ -1,6 +1,15 @@
 {$APP_DOMAIN} {
-	# Local video upload is development-only. Production API uploads are limited
-	# to the image-sized request bodies used by later milestones.
+	# Local video storage is development-only (see PLAN.md decision 10), but an
+	# upload that reaches production before Bunny is configured must still work,
+	# so this one route accepts a video-sized body. /srv/uploads/videos is never
+	# served by Caddy: videos are streamed only by the API after an access check.
+	handle /api/v1/admin/lessons/*/videos/local {
+		request_body {
+			max_size 3GB
+		}
+		reverse_proxy api:4000
+	}
+
 	handle /api/* {
 		request_body {
 			max_size 20MB

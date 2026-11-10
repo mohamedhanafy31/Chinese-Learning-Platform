@@ -6,9 +6,15 @@ import type { Locale } from '@app/shared';
 
 import { LessonForm } from '@/components/admin/lesson-form';
 import { LifecycleActions } from '@/components/admin/lifecycle-actions';
-import { getAdminLesson, getAdminLevel } from '@/lib/admin-api';
+import { VideoPanel } from '@/components/admin/video-panel';
+import {
+  getAdminLesson,
+  getAdminLevel,
+  getVideoDiagnostics,
+} from '@/lib/admin-api';
 import { pick } from '@/lib/localized';
 import { requireUser } from '@/lib/protected-session';
+import { videoUploadOrigin } from '@/lib/video-origin';
 
 export async function generateMetadata({
   params,
@@ -33,7 +39,10 @@ export default async function EditLessonPage({
   await requireUser(locale, `/${locale}/admin/lessons/${id}`, true);
   const t = await getTranslations('Admin.lessons');
   const lesson = await getAdminLesson(id);
-  const level = await getAdminLevel(lesson.levelId);
+  const [level, diagnostics] = await Promise.all([
+    getAdminLevel(lesson.levelId),
+    getVideoDiagnostics(),
+  ]);
   const title = pick(lesson.title, locale);
 
   return (
@@ -64,6 +73,16 @@ export default async function EditLessonPage({
           archivedAt={lesson.archivedAt}
           firstPublishedAt={lesson.firstPublishedAt}
           afterDeleteHref={`/${locale}/admin/levels/${level.id}`}
+        />
+      </div>
+
+      <div className="mt-10">
+        <VideoPanel
+          lessonId={lesson.id}
+          lessonTitle={title}
+          video={lesson.video}
+          uploadOrigin={videoUploadOrigin()}
+          bunnyConfigured={diagnostics ? diagnostics.bunny.configured : null}
         />
       </div>
 

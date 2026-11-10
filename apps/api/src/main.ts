@@ -11,6 +11,7 @@ import { AppModule } from './app.module';
 import { ZodValidationPipe } from './common/validation/zod-validation.pipe';
 import type { Environment } from './config/environment';
 import { serveUploadedImages } from './media/serve-media';
+import { enableDevVideoUploadCors } from './media/video/dev-cors';
 
 async function bootstrap(): Promise<void> {
   const app = await NestFactory.create<NestExpressApplication>(AppModule, {
@@ -24,6 +25,7 @@ async function bootstrap(): Promise<void> {
   app.use(helmet());
   app.use(cookieParser());
   serveUploadedImages(app);
+  enableDevVideoUploadCors(app, config.get('APP_URL', { infer: true }));
   app.useGlobalPipes(new ZodValidationPipe());
   app.setGlobalPrefix('api/v1');
   app.enableShutdownHooks();

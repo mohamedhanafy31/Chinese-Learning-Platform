@@ -18,12 +18,14 @@ import type {
 
 import { assertCompleteOrder } from './catalog-order';
 import {
-  lessonImageInclude,
+  lessonAdminInclude,
   levelImageInclude,
   toAdminLesson,
   toAdminLevel,
 } from './catalog.mapper';
 import { Prisma } from '../generated/prisma/client';
+import { MediaStorage } from '../media/media-storage';
+import { removeVideoFile } from '../media/video/video-files';
 import { PrismaService } from '../prisma/prisma.service';
 
 type Tx = Prisma.TransactionClient;
@@ -64,7 +66,10 @@ const SLUG_TAKEN = 'A level with this slug already exists';
 
 @Injectable()
 export class CatalogAdminService {
-  constructor(@Inject(PrismaService) private readonly prisma: PrismaService) {}
+  constructor(
+    @Inject(PrismaService) private readonly prisma: PrismaService,
+    @Inject(MediaStorage) private readonly storage: MediaStorage,
+  ) {}
 
   // ----- levels ------------------------------------------------------------
 
@@ -87,7 +92,7 @@ export class CatalogAdminService {
         ...levelImageInclude,
         lessons: {
           orderBy: { sortOrder: 'asc' },
-          include: lessonImageInclude,
+          include: lessonAdminInclude,
         },
       },
     });
@@ -271,7 +276,7 @@ export class CatalogAdminService {
           thumbnailId: input.thumbnailId,
           sortOrder: (_max.sortOrder ?? 0) + 1,
         },
-        include: lessonImageInclude,
+        include: lessonAdminInclude,
       });
       return toAdminLesson(row);
     });
@@ -280,7 +285,7 @@ export class CatalogAdminService {
   async getLesson(id: string): Promise<AdminLesson> {
     const row = await this.prisma.lesson.findUnique({
       where: { id },
-      include: lessonImageInclude,
+      include: lessonAdminInclude,
     });
     if (!row) throw new NotFoundException('Lesson not found');
     return toAdminLesson(row);
@@ -306,13 +311,13 @@ export class CatalogAdminService {
         isFreePreview: input.isFreePreview,
         thumbnailId: input.thumbnailId,
       },
-      include: lessonImageInclude,
+      include: lessonAdminInclude,
     });
     return toAdminLesson(row);
   }
 
   async deleteLesson(id: string): Promise<void> {
-    await this.prisma.$transaction(async (tx) => {
+    const videoKeys = await this.prisma.$transaction(async (tx) => {
       const lesson = await this.findLessonOrThrow(tx, id);
       await lockScope(tx, lessonsLockKey(lesson.levelId));
       const current = await this.findLessonOrThrow(tx, id);
@@ -321,8 +326,18 @@ export class CatalogAdminService {
           'A published lesson cannot be deleted. Archive it instead.',
         );
       }
+      // Video rows go with the lesson (cascade); their files are removed
+      // once the delete has committed.
+      const videos = await tx.videoAsset.findMany({
+        where: { lessonId: id },
+        select: { localKey: true },
+      });
       await tx.lesson.delete({ where: { id } });
+      return videos.map((video) => video.localKey);
     });
+    for (const key of videoKeys) {
+      await removeVideoFile(this.storage.videosDir, key);
+    }
   }
 
   publishLesson(id: string): Promise<AdminLesson> {
@@ -439,7 +454,7 @@ export class CatalogAdminService {
       const row = await tx.lesson.update({
         where: { id },
         data: data(current),
-        include: lessonImageInclude,
+        include: lessonAdminInclude,
       });
       return toAdminLesson(row);
     });

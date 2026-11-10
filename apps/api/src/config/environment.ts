@@ -1,3 +1,4 @@
+import { DEFAULT_VIDEO_MAX_BYTES } from '@app/shared';
 import { z } from 'zod';
 
 const optionalString = z.preprocess(
@@ -15,6 +16,15 @@ export const environmentSchema = z
     APP_URL: z.url(),
     INTERNAL_API_URL: z.url(),
     UPLOADS_DIR: optionalString,
+    VIDEO_MAX_BYTES: z.preprocess(
+      (value) => (value === '' || value === undefined ? undefined : value),
+      z.coerce
+        .number()
+        .int()
+        .min(1)
+        .max(Number.MAX_SAFE_INTEGER)
+        .default(DEFAULT_VIDEO_MAX_BYTES),
+    ),
     JWT_ACCESS_SECRET: z.string().min(32),
     JWT_REFRESH_SECRET: z.string().min(32),
     BUNNY_LIBRARY_ID: optionalString,

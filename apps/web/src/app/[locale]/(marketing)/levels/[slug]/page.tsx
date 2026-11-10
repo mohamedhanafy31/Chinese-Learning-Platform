@@ -152,6 +152,7 @@ export default async function LevelPage({
     level.lessons,
     locale,
     lessonAccess,
+    (lessonId) => `/${locale}/learn/${slug}/${lessonId}`,
   );
   const price =
     level.priceMinor === null
@@ -280,7 +281,9 @@ export default async function LevelPage({
         <section className="bg-glaze-shade">
           <div className="mx-auto grid max-w-[1100px] gap-12 px-4 py-14 sm:px-8 lg:grid-cols-[minmax(0,1fr)_18rem]">
             <div>
-              <h2 className="text-xl font-semibold text-deep">{t('lessons')}</h2>
+              <h2 className="text-xl font-semibold text-deep">
+                {t('lessons')}
+              </h2>
               <div className="mt-6">
                 {lessons.length > 0 ? (
                   <LessonPath
@@ -304,11 +307,16 @@ export default async function LevelPage({
               </div>
             </div>
             <aside>
-              <h2 className="text-xl font-semibold text-deep">{t('includes')}</h2>
+              <h2 className="text-xl font-semibold text-deep">
+                {t('includes')}
+              </h2>
               {level.topics.length > 0 ? (
                 <ul className="mt-6 space-y-3 text-cobalt">
                   {level.topics.map((topic, index) => (
-                    <li key={`${index}-${topic.en}`} className="flex items-center gap-3">
+                    <li
+                      key={`${index}-${topic.en}`}
+                      className="flex items-center gap-3"
+                    >
                       <span
                         aria-hidden="true"
                         className="size-2 shrink-0 rotate-45 bg-cobalt"

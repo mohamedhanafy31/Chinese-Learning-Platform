@@ -7,11 +7,13 @@ import {
   adminLevelsResponseSchema,
   adminStudentDetailSchema,
   adminStudentsResponseSchema,
+  videoDiagnosticsSchema,
   type AdminLesson,
   type AdminLevel,
   type AdminLevelDetail,
   type AdminStudentDetail,
   type AdminStudentsResponse,
+  type VideoDiagnostics,
   type z,
 } from '@app/shared';
 
@@ -57,4 +59,16 @@ export function getAdminStudents(params: {
 
 export function getAdminStudent(id: string): Promise<AdminStudentDetail> {
   return adminGet(`/api/v1/admin/students/${id}`, adminStudentDetailSchema);
+}
+
+/** Provider readiness for the video panel; null when it cannot be read. */
+export async function getVideoDiagnostics(): Promise<VideoDiagnostics | null> {
+  try {
+    return await adminGet(
+      '/api/v1/admin/diagnostics/video',
+      videoDiagnosticsSchema,
+    );
+  } catch {
+    return null;
+  }
 }

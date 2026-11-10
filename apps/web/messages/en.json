@@ -59,7 +59,8 @@
     "sealedBy": "Completed, sealed by Mazen",
     "lessonNumber": "Lesson {n}",
     "minutes": "{count} min",
-    "open": "Open"
+    "open": "Open",
+    "current": "Playing now"
   },
   "Level": {
     "back": "All levels",
@@ -75,6 +76,27 @@
     "enrolled": "You are enrolled in this level",
     "enrolledNote": "Every lesson is open for you.",
     "archivedNote": "This level is archived, and you keep your access."
+  },
+  "Watch": {
+    "backToLevel": "Back to the level",
+    "playerLabel": "Lesson video",
+    "comingSoonTitle": "The video is coming soon",
+    "comingSoonBody": "Mazen is still preparing this lesson's video. Its text is below.",
+    "navLabel": "Previous and next lesson",
+    "previous": "Previous lesson",
+    "next": "Next lesson",
+    "signInTitle": "Sign in to watch this lesson",
+    "signInBody": "This lesson is for learners who own its level. Sign in to continue, or create an account first.",
+    "signIn": "Sign in",
+    "register": "Create an account",
+    "levelTitle": "This lesson is part of {level}",
+    "levelTitleGeneric": "This lesson is part of a level you have not unlocked",
+    "levelBody": "Unlock the level to watch every lesson in it.",
+    "viewLevel": "View the level",
+    "errorTitle": "This lesson could not be loaded",
+    "errorBody": "Please try again in a moment.",
+    "unsupported": "Your browser cannot play this video.",
+    "restoring": "Checking your session…"
   },
   "Auth": {
     "loginTitle": "Welcome back",
@@ -204,6 +226,46 @@
       "newIntro": "Add a lesson to “{level}”. It stays a draft until you publish it.",
       "editIntro": "Part of “{level}”.",
       "visibilityTitle": "Visibility"
+    },
+    "video": {
+      "title": "Video",
+      "intro": "One video per lesson. Uploading a new one replaces the current video.",
+      "none": "No video yet.",
+      "fileName": "File",
+      "fileSize": "Size",
+      "fileLength": "Length",
+      "fileStatus": "Status",
+      "status": {
+        "READY": "Ready",
+        "PROCESSING": "Processing",
+        "UPLOADING": "Uploading",
+        "FAILED": "Failed"
+      },
+      "previewLabel": "Preview of the lesson video",
+      "choose": "Upload a video",
+      "replace": "Replace video",
+      "fileLabel": "Video file",
+      "helper": "MP4 or WebM. Large files can take a few minutes.",
+      "uploading": "Uploading…",
+      "finishing": "Finishing…",
+      "progressLabel": "Upload progress",
+      "cancel": "Cancel upload",
+      "cancelled": "Upload cancelled.",
+      "done": "Video uploaded.",
+      "remove": "Remove video",
+      "removeTitle": "Remove this video?",
+      "removeBody": "Learners will not see a video in “{title}” until you upload another. The file is deleted and cannot be restored.",
+      "confirmRemove": "Remove video",
+      "removing": "Removing…",
+      "keep": "Keep video",
+      "removed": "Video removed.",
+      "devNotice": "Videos are stored locally. This is for development only: configure Bunny Stream before going live.",
+      "devOnlyUploaded": "This video is stored on the server's own disk, which is for development only. Configure Bunny Stream before going live.",
+      "errors": {
+        "tooLarge": "The video is larger than the server allows.",
+        "type": "Only MP4 or WebM videos are accepted.",
+        "network": "The upload was interrupted. Check your connection and try again."
+      }
     },
     "form": {
       "createLevel": "Create level",
@@ -381,7 +443,9 @@
     "adminLessonEdit": "Edit lesson · Admin · Mazen Chinese",
     "levelDescriptionFallback": "A level of Mazen's Chinese course for Arabic speakers.",
     "adminStudents": "Students · Admin · Mazen Chinese",
-    "adminStudent": "Student · Admin · Mazen Chinese"
+    "adminStudent": "Student · Admin · Mazen Chinese",
+    "lesson": "Lesson · Mazen Chinese",
+    "lessonNamed": "{lesson} · {level} · Mazen Chinese"
   },
   "NotFound": {
     "title": "Page not found",

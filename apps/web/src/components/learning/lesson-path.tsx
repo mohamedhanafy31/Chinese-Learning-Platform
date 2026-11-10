@@ -13,6 +13,8 @@ export interface PathLesson {
   meta?: string;
   state: PathState;
   href?: string;
+  /** The lesson on screen right now (the lesson page's side list). */
+  current?: boolean;
 }
 
 export interface PathLabels {
@@ -23,6 +25,8 @@ export interface PathLabels {
   open: string;
   start: string;
   sealedBy: string;
+  /** Label for the lesson being played; required when a row is `current`. */
+  current?: string;
 }
 
 interface LessonPathProps {
@@ -51,12 +55,16 @@ export function LessonPath({
         const fired = lesson.state === 'done';
         const next = lesson.state === 'next';
         const locked = lesson.state === 'locked';
-        const stateLabel = labels[lesson.state];
+        const current = lesson.current === true;
+        const stateLabel =
+          current && labels.current ? labels.current : labels[lesson.state];
 
         const row = (
           <div
             className={`relative flex items-center gap-4 rounded-2xl py-4 pe-4 ps-0 sm:gap-6 ${
-              next ? 'bg-white shadow-[0_18px_40px_-24px_rgb(14_35_102/0.45)]' : ''
+              next || current
+                ? 'bg-white shadow-[0_18px_40px_-24px_rgb(14_35_102/0.45)]'
+                : ''
             }`}
           >
             <span
@@ -68,15 +76,25 @@ export function LessonPath({
                     ? 'bg-seal text-glaze ring-4 ring-glaze'
                     : locked
                       ? 'border-2 border-dashed border-unfired bg-glaze text-unfired-ink'
-                      : 'border-2 border-cobalt bg-glaze text-cobalt'
+                      : current
+                        ? 'border-2 border-cobalt bg-cobalt text-glaze'
+                        : 'border-2 border-cobalt bg-glaze text-cobalt'
               }`}
             >
               {fired ? (
-                <Check aria-hidden="true" className="size-5" strokeWidth={2.5} />
+                <Check
+                  aria-hidden="true"
+                  className="size-5"
+                  strokeWidth={2.5}
+                />
               ) : locked ? (
                 <Lock aria-hidden="true" className="size-5" strokeWidth={2} />
               ) : (
-                <Play aria-hidden="true" className="size-5 rtl:-scale-x-100" strokeWidth={2.25} />
+                <Play
+                  aria-hidden="true"
+                  className="size-5 rtl:-scale-x-100"
+                  strokeWidth={2.25}
+                />
               )}
             </span>
 
@@ -91,7 +109,9 @@ export function LessonPath({
               <p
                 className={`mt-0.5 text-sm tabular ${locked ? 'text-unfired-ink' : 'text-cobalt'}`}
               >
-                {lesson.meta ? `${lesson.number} · ${lesson.meta}` : lesson.number}
+                {lesson.meta
+                  ? `${lesson.number} · ${lesson.meta}`
+                  : lesson.number}
               </p>
             </div>
 
@@ -100,7 +120,11 @@ export function LessonPath({
                 lang="zh"
                 aria-hidden="true"
                 className={`font-brush hidden text-3xl sm:block ${
-                  locked ? 'text-unfired/70' : fired ? 'text-deep' : 'text-cobalt'
+                  locked
+                    ? 'text-unfired/70'
+                    : fired
+                      ? 'text-deep'
+                      : 'text-cobalt'
                 }`}
               >
                 {lesson.hanzi}
@@ -116,7 +140,7 @@ export function LessonPath({
                 </span>
               ) : (
                 <span
-                  className={`text-sm ${locked ? 'text-unfired-ink' : 'text-cobalt'}`}
+                  className={`text-sm ${locked ? 'text-unfired-ink' : current ? 'font-semibold text-deep' : 'text-cobalt'}`}
                 >
                   {stateLabel}
                 </span>
@@ -131,10 +155,11 @@ export function LessonPath({
             key={lesson.id}
             id={lesson.id}
             data-path-row=""
+            aria-current={current ? 'page' : undefined}
             style={{ '--reveal-i': index } as React.CSSProperties}
             className="scroll-mt-24"
           >
-            {lesson.href && !locked ? (
+            {lesson.href && !locked && !current ? (
               <Link
                 href={lesson.href}
                 className="block rounded-2xl transition-colors hover:bg-white/70"
