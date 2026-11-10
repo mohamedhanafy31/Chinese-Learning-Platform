@@ -1,7 +1,12 @@
 import { Inject, Injectable, NotFoundException } from '@nestjs/common';
 import type { PublicLevelDetail, PublicLevelsResponse } from '@app/shared';
 
-import { toPublicLesson, toPublicLevel } from './catalog.mapper';
+import {
+  lessonImageInclude,
+  levelImageInclude,
+  toPublicLesson,
+  toPublicLevel,
+} from './catalog.mapper';
 import { PrismaService } from '../prisma/prisma.service';
 
 const visibleLessons = {
@@ -18,6 +23,7 @@ export class CatalogPublicService {
       where: { isPublished: true, archivedAt: null },
       orderBy: { sortOrder: 'asc' },
       include: {
+        ...levelImageInclude,
         _count: {
           select: { lessons: { where: visibleLessons.where } },
         },
@@ -40,7 +46,10 @@ export class CatalogPublicService {
     if (index === -1) throw new NotFoundException('Level not found');
     const row = await this.prisma.level.findFirst({
       where: { slug, isPublished: true, archivedAt: null },
-      include: { lessons: visibleLessons },
+      include: {
+        ...levelImageInclude,
+        lessons: { ...visibleLessons, include: lessonImageInclude },
+      },
     });
     if (!row) throw new NotFoundException('Level not found');
     const { lessons, ...level } = row;

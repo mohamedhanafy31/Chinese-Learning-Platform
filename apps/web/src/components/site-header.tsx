@@ -11,11 +11,17 @@ import { Seal } from '@/components/porcelain/seal';
 interface SiteHeaderProps {
   locale: Locale;
   tone: 'on-cobalt' | 'on-glaze';
+  /** Replaces the public navigation (used by the admin area). */
+  navItems?: Array<{ href: string; label: string }>;
+  /** Accessible name of the navigation landmark when `navItems` is set. */
+  navLabel?: string;
 }
 
 export async function SiteHeader({
   locale,
   tone,
+  navItems,
+  navLabel,
 }: SiteHeaderProps): Promise<React.JSX.Element> {
   const t = await getTranslations('Nav');
   const brand = await getTranslations('Brand');
@@ -24,10 +30,11 @@ export async function SiteHeader({
     ? 'text-wash hover:text-glaze'
     : 'text-cobalt hover:text-deep';
 
-  const items = [
+  const items = navItems ?? [
     { href: `/${locale}#levels`, label: t('levels') },
     { href: `/${locale}#mazen`, label: t('about') },
   ];
+  const navigationLabel = navLabel ?? t('label');
   const account = (
     <AccountLink
       locale={locale}
@@ -53,7 +60,7 @@ export async function SiteHeader({
           <span className="text-lg font-semibold">{brand('name')}</span>
         </Link>
 
-        <nav aria-label={t('label')} className="hidden md:block">
+        <nav aria-label={navigationLabel} className="hidden md:block">
           <ul className="flex items-center gap-1 text-base">
             {items.map((item) => (
               <li key={item.href}>
@@ -82,7 +89,7 @@ export async function SiteHeader({
           closeLabel={t('closeMenu')}
           tone={tone}
         >
-          <nav aria-label={t('label')}>
+          <nav aria-label={navigationLabel}>
             <ul className="text-lg">
               {items.map((item) => (
                 <li key={item.href}>

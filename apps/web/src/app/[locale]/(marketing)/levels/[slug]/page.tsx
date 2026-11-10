@@ -1,25 +1,72 @@
+import type { Metadata } from 'next';
+import Image from 'next/image';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 
-import { Locale } from '@app/shared';
+import { Locale, type PublicLevelDetail } from '@app/shared';
 
 import { LessonPath } from '@/components/learning/lesson-path';
 import { Band } from '@/components/porcelain/band';
 import { SiteFooter } from '@/components/site-footer';
 import { SiteHeader } from '@/components/site-header';
-import { pick, sampleLevels } from '@/content/sample-course';
+import { getPublicLevel } from '@/lib/catalog';
+import { pick } from '@/lib/localized';
 import { numberFormat } from '@/lib/numbers';
-import { toPathLessons } from '@/lib/path-lessons';
+import { toCatalogPathLessons } from '@/lib/path-lessons';
+import { formatEgp } from '@/lib/price';
+import { absoluteUrl } from '@/lib/site-url';
 
 interface LevelPageProps {
   params: Promise<{ locale: Locale; slug: string }>;
 }
 
-export function generateStaticParams(): Array<{ locale: string; slug: string }> {
-  return Object.values(Locale).flatMap((locale) =>
-    sampleLevels.map((level) => ({ locale, slug: level.slug })),
-  );
+function localeAlternates(slug: string): Record<string, string> {
+  return {
+    ...Object.fromEntries(
+      Object.values(Locale).map((locale) => [
+        locale,
+        absoluteUrl(`/${locale}/levels/${slug}`),
+      ]),
+    ),
+    'x-default': absoluteUrl(`/${Locale.AR}/levels/${slug}`),
+  };
+}
+
+export async function generateMetadata({
+  params,
+}: LevelPageProps): Promise<Metadata> {
+  const { locale, slug } = await params;
+  const result = await getPublicLevel(slug);
+  if (result.status !== 'ok') return {};
+
+  const level: PublicLevelDetail = result.data;
+  const t = await getTranslations({ locale, namespace: 'Brand' });
+  const title = `${pick(level.title, locale)} · ${t('name')}`;
+  const description = pick(level.summary, locale);
+  const url = absoluteUrl(`/${locale}/levels/${slug}`);
+
+  return {
+    title,
+    description,
+    alternates: { canonical: url, languages: localeAlternates(slug) },
+    openGraph: {
+      type: 'website',
+      title,
+      description,
+      url,
+      locale,
+      images: level.coverImage
+        ? [
+            {
+              url: absoluteUrl(level.coverImage.url),
+              width: level.coverImage.width,
+              height: level.coverImage.height,
+            },
+          ]
+        : undefined,
+    },
+  };
 }
 
 export default async function LevelPage({
@@ -27,20 +74,44 @@ export default async function LevelPage({
 }: LevelPageProps): Promise<React.JSX.Element> {
   const { locale, slug } = await params;
   setRequestLocale(locale);
-  const level = sampleLevels.find((item) => item.slug === slug);
-  if (!level) notFound();
+  const result = await getPublicLevel(slug);
+  if (result.status === 'not-found') notFound();
 
   const t = await getTranslations('Level');
+
+  if (result.status === 'unavailable') {
+    return (
+      <>
+        <SiteHeader locale={locale} tone="on-glaze" />
+        <main className="mx-auto max-w-[1100px] px-4 py-20 text-center sm:px-8 lg:py-24">
+          <h1 className="font-display text-[clamp(2.25rem,4.5vw,3.5rem)] leading-[1.1] text-deep">
+            {t('unavailableTitle')}
+          </h1>
+          <p className="mx-auto mt-5 max-w-[34rem] text-lg leading-[1.8] text-cobalt">
+            {t('unavailableBody')}
+          </p>
+          <Link
+            href={`/${locale}#levels`}
+            className="mt-8 inline-flex min-h-11 items-center text-cobalt underline decoration-wash-strong underline-offset-8 hover:text-deep"
+          >
+            {t('back')}
+          </Link>
+        </main>
+        <SiteFooter locale={locale} />
+      </>
+    );
+  }
+
+  const level = result.data;
   const tHome = await getTranslations('Home');
   const tPath = await getTranslations('Path');
   const nf = numberFormat(locale);
-  const lessons = await toPathLessons(level, locale);
-  const done = level.lessons.filter((lesson) => lesson.state === 'done').length;
-  const total = level.lessons.length;
+  const lessons = await toCatalogPathLessons(level.lessons, locale);
   const price =
     level.priceMinor === null
       ? tHome('pricePending')
-      : tHome('priceLabel', { price: nf.format(level.priceMinor / 100) });
+      : tHome('priceLabel', { price: formatEgp(level.priceMinor, locale) });
+  const cover = level.coverImage;
 
   return (
     <>
@@ -54,61 +125,74 @@ export default async function LevelPage({
             >
               {t('back')}
             </Link>
-            <div className="mt-6 grid items-end gap-8 md:grid-cols-[auto_minmax(0,1fr)_auto]">
-              <span
-                lang="zh"
-                aria-hidden="true"
-                className="font-brush text-[clamp(5rem,12vw,8.5rem)] leading-[0.9] text-cobalt"
+            <div
+              className={`mt-6 grid items-end gap-8 ${
+                cover ? 'lg:grid-cols-[minmax(0,1fr)_15rem]' : ''
+              }`}
+            >
+              <div
+                className={`grid items-end gap-8 md:grid-cols-[auto_minmax(0,1fr)_auto] ${
+                  cover ? 'lg:grid-cols-[auto_minmax(0,1fr)]' : ''
+                }`}
               >
-                {level.hanzi}
-              </span>
-              <div className="min-w-0">
-                <h1 className="font-display text-[clamp(2.5rem,5vw,4rem)] leading-[1.05] text-deep">
-                  {pick(level.title, locale)}
-                </h1>
-                <p className="mt-2 text-cobalt">
-                  {tHome('levelWord')} {nf.format(level.number)} ·{' '}
-                  {t('lessonsCount', { count: nf.format(total) })}
-                </p>
-                <p className="mt-3 max-w-[40rem] text-lg leading-[1.8] text-cobalt">
-                  {pick(level.summary, locale)}
-                </p>
-              </div>
-              <div className="flex flex-col items-start gap-2 md:items-end">
-                <button
-                  type="button"
-                  disabled={level.priceMinor === null}
-                  className="inline-flex min-h-14 items-center rounded-full bg-deep px-8 text-lg font-semibold text-glaze transition-colors hover:bg-cobalt disabled:cursor-not-allowed disabled:bg-wash disabled:text-cobalt"
+                <span
+                  lang="zh"
+                  aria-hidden="true"
+                  className="font-brush text-[clamp(5rem,12vw,8.5rem)] leading-[0.9] text-cobalt"
                 >
-                  {t('buy')}
-                </button>
-                <span className="text-sm text-cobalt">{price}</span>
-              </div>
-            </div>
-
-            {total > 0 ? (
-              <div className="mt-10">
-                <p className="text-sm text-cobalt tabular">
-                  {t('progress', { done: nf.format(done), total: nf.format(total) })}
-                </p>
-                <div aria-hidden="true" className="mt-3 flex gap-1.5">
-                  {level.lessons.map((lesson) => (
-                    <span
-                      key={lesson.id}
-                      className={`h-2.5 flex-1 rounded-full ${
-                        lesson.state === 'done'
-                          ? 'bg-deep'
-                          : lesson.state === 'next'
-                            ? 'bg-seal'
-                            : lesson.state === 'preview'
-                              ? 'bg-cobalt-mid'
-                              : 'border border-dashed border-unfired'
-                      }`}
-                    />
-                  ))}
+                  {level.hanzi}
+                </span>
+                <div className="min-w-0">
+                  <h1 className="font-display text-[clamp(2.5rem,5vw,4rem)] leading-[1.05] text-deep">
+                    {pick(level.title, locale)}
+                  </h1>
+                  <p className="mt-2 text-cobalt">
+                    {tHome('levelWord')} {nf.format(level.number)} ·{' '}
+                    {t('lessonsCount', {
+                      count: nf.format(level.lessonCount),
+                    })}
+                  </p>
+                  <p className="mt-3 max-w-[40rem] text-lg leading-[1.8] text-cobalt">
+                    {pick(level.summary, locale)}
+                  </p>
+                </div>
+                <div
+                  className={`flex flex-col items-start gap-2 md:items-end ${
+                    cover ? 'lg:col-span-2 lg:items-start' : ''
+                  }`}
+                >
+                  <button
+                    type="button"
+                    disabled
+                    className="inline-flex min-h-14 items-center rounded-full bg-deep px-8 text-lg font-semibold text-glaze transition-colors hover:bg-cobalt disabled:cursor-not-allowed disabled:bg-wash disabled:text-cobalt"
+                  >
+                    {t('buy')}
+                  </button>
+                  <span className="text-sm text-cobalt">{price}</span>
+                  {level.priceMinor !== null ? (
+                    <span className="text-sm text-cobalt">
+                      {t('comingSoon')}
+                    </span>
+                  ) : null}
                 </div>
               </div>
-            ) : null}
+
+              {cover ? (
+                <div
+                  data-testid="level-cover"
+                  className="relative hidden aspect-[4/5] w-full overflow-hidden rounded-t-full border-4 border-glaze bg-cobalt lg:block"
+                >
+                  <Image
+                    src={cover.url}
+                    alt=""
+                    width={cover.width}
+                    height={cover.height}
+                    unoptimized
+                    className="size-full object-cover opacity-90 mix-blend-luminosity"
+                  />
+                </div>
+              ) : null}
+            </div>
           </div>
           <Band kind="lotus" ink="var(--color-cobalt)" />
         </section>
@@ -140,17 +224,21 @@ export default async function LevelPage({
             </div>
             <aside>
               <h2 className="text-xl font-semibold text-deep">{t('includes')}</h2>
-              <ul className="mt-6 space-y-3 text-cobalt">
-                {level.topics.map((topic) => (
-                  <li key={topic.en} className="flex items-center gap-3">
-                    <span aria-hidden="true" className="size-2 rotate-45 bg-cobalt" />
-                    {pick(topic, locale)}
-                  </li>
-                ))}
-              </ul>
-              <p className="mt-8 inline-block rounded-full border border-dashed border-unfired px-3 py-1 text-xs text-cobalt">
-                {tHome('sample')}
-              </p>
+              {level.topics.length > 0 ? (
+                <ul className="mt-6 space-y-3 text-cobalt">
+                  {level.topics.map((topic, index) => (
+                    <li key={`${index}-${topic.en}`} className="flex items-center gap-3">
+                      <span
+                        aria-hidden="true"
+                        className="size-2 shrink-0 rotate-45 bg-cobalt"
+                      />
+                      {pick(topic, locale)}
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="mt-6 text-cobalt">{t('includesEmpty')}</p>
+              )}
             </aside>
           </div>
         </section>

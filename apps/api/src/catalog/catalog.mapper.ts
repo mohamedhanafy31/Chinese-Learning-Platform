@@ -10,7 +10,15 @@ import {
   type PublicLevel,
 } from '@app/shared';
 
-import type { Lesson, Level } from '../generated/prisma/client';
+import type { Lesson, Level, MediaAsset } from '../generated/prisma/client';
+import { toImageRef } from '../media/media-url';
+
+export type LevelRow = Level & { coverImage: MediaAsset | null };
+export type LessonRow = Lesson & { thumbnail: MediaAsset | null };
+
+/** Prisma `include` fragments that keep rows compatible with the mappers. */
+export const levelImageInclude = { coverImage: true } as const;
+export const lessonImageInclude = { thumbnail: true } as const;
 
 /** DB JSON is never trusted: it is parsed again on the way out. */
 export function parseLocalizedText(value: unknown): LocalizedText {
@@ -29,7 +37,7 @@ export function parseTopics(value: unknown): LocalizedText[] {
   return levelTopicsSchema.parse(value);
 }
 
-export function toAdminLesson(row: Lesson): AdminLesson {
+export function toAdminLesson(row: LessonRow): AdminLesson {
   return adminLessonSchema.parse({
     id: row.id,
     levelId: row.levelId,
@@ -39,6 +47,8 @@ export function toAdminLesson(row: Lesson): AdminLesson {
     sortOrder: row.sortOrder,
     isPublished: row.isPublished,
     isFreePreview: row.isFreePreview,
+    thumbnailId: row.thumbnailId,
+    thumbnail: toImageRef(row.thumbnail),
     firstPublishedAt: row.firstPublishedAt?.toISOString() ?? null,
     archivedAt: row.archivedAt?.toISOString() ?? null,
     createdAt: row.createdAt.toISOString(),
@@ -46,7 +56,7 @@ export function toAdminLesson(row: Lesson): AdminLesson {
   });
 }
 
-export function toAdminLevel(row: Level, lessonCount: number): AdminLevel {
+export function toAdminLevel(row: LevelRow, lessonCount: number): AdminLevel {
   return adminLevelSchema.parse({
     id: row.id,
     slug: row.slug,
@@ -56,6 +66,8 @@ export function toAdminLevel(row: Level, lessonCount: number): AdminLevel {
     topics: parseTopics(row.topics),
     priceMinor: row.priceMinor,
     currency: row.currency,
+    coverImageId: row.coverImageId,
+    coverImage: toImageRef(row.coverImage),
     sortOrder: row.sortOrder,
     isPublished: row.isPublished,
     firstPublishedAt: row.firstPublishedAt?.toISOString() ?? null,
@@ -68,7 +80,7 @@ export function toAdminLevel(row: Level, lessonCount: number): AdminLevel {
 
 /** Builds the explicit public shape; internal flags are never copied over. */
 export function toPublicLevel(
-  row: Level,
+  row: LevelRow,
   number: number,
   lessonCount: number,
 ): PublicLevel {
@@ -81,11 +93,12 @@ export function toPublicLevel(
     topics: parseTopics(row.topics),
     priceMinor: row.priceMinor,
     currency: row.currency,
+    coverImage: toImageRef(row.coverImage),
     lessonCount,
   };
 }
 
-export function toPublicLesson(row: Lesson, number: number): PublicLesson {
+export function toPublicLesson(row: LessonRow, number: number): PublicLesson {
   return {
     id: row.id,
     number,
@@ -93,5 +106,6 @@ export function toPublicLesson(row: Lesson, number: number): PublicLesson {
     description: parseOptionalLocalizedText(row.description),
     hanzi: row.hanzi,
     isFreePreview: row.isFreePreview,
+    thumbnail: toImageRef(row.thumbnail),
   };
 }

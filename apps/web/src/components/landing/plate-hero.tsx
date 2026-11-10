@@ -33,6 +33,7 @@ export interface PlateHeroCopy {
   levelsLabel: string;
   levelWord: string;
   viewLevel: string;
+  emptyReadout: string;
   portraitPlaceholder: string;
   portraitAlt: string;
 }
@@ -61,6 +62,7 @@ export function PlateHero({
   const current = levels[selected];
 
   function onKey(event: React.KeyboardEvent<HTMLDivElement>): void {
+    if (levels.length === 0) return;
     const forward = direction === 'rtl' ? 'ArrowLeft' : 'ArrowRight';
     const back = direction === 'rtl' ? 'ArrowRight' : 'ArrowLeft';
     if (event.key === forward || event.key === back) {
@@ -107,21 +109,33 @@ export function PlateHero({
             </Link>
           </div>
 
-          {current ? (
+          {!current ? (
+            <p
+              aria-live="polite"
+              className="mt-10 max-w-[34rem] border-t border-cobalt-mid pt-6 text-wash lg:mt-12"
+            >
+              {copy.emptyReadout}
+            </p>
+          ) : (
             <div
               aria-live="polite"
               className="mt-10 max-w-[34rem] border-t border-cobalt-mid pt-6 lg:mt-12"
             >
               <p className="text-2xl font-semibold">
                 {current.title}{' '}
-                <span lang="zh" className="font-brush ms-2 text-xl font-normal text-wash">
+                <span
+                  lang="zh"
+                  className="font-brush ms-2 text-xl font-normal text-wash"
+                >
                   {current.hanzi}
                 </span>
               </p>
               <p className="mt-1 text-sm text-wash-strong">
                 {copy.levelWord} {current.number} · {current.price}
               </p>
-              <p className="mt-3 leading-relaxed text-wash">{current.summary}</p>
+              <p className="mt-3 leading-relaxed text-wash">
+                {current.summary}
+              </p>
               <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
                 <p className="text-wash-strong">{current.topics.join(' · ')}</p>
                 <Link
@@ -132,7 +146,7 @@ export function PlateHero({
                 </Link>
               </div>
             </div>
-          ) : null}
+          )}
         </div>
 
         <div className="order-1 flex justify-center lg:order-2">
@@ -142,46 +156,58 @@ export function PlateHero({
               className="absolute inset-0 transition-transform duration-[1100ms] ease-glaze"
               style={{ transform: `rotate(${rotation}deg)` }}
             >
-              <PlateArt panels={levels.length} activeIndex={selected} sign={sign} />
-              <div
-                role="radiogroup"
-                aria-label={copy.levelsLabel}
-                onKeyDown={onKey}
-                className="absolute inset-0 grid place-items-center"
-              >
-                {levels.map((level, index) => {
-                  const angle = index * step * sign;
-                  const active = index === selected;
-                  return (
-                    <button
-                      key={level.slug}
-                      type="button"
-                      role="radio"
-                      aria-checked={active}
-                      aria-label={`${copy.levelWord} ${level.number}: ${level.title}`}
-                      tabIndex={active ? 0 : -1}
-                      onClick={() => setSelected(index)}
-                      className={`relative flex h-[12cqw] w-[18cqw] flex-col items-center justify-center rounded-[40%] text-center transition-[transform,color] duration-[1100ms] ease-glaze [grid-area:1/1] ${
-                        active ? 'text-glaze' : 'text-deep hover:text-cobalt-mid'
-                      }`}
-                      style={{
-                        transform: `rotate(${angle}deg) translateY(-${panelOffset}) rotate(${-angle - rotation}deg)`,
-                      }}
-                    >
-                      <span className="whitespace-nowrap text-[max(0.7rem,2.2cqw)] font-semibold leading-tight">
-                        <span className="@max-[28rem]:hidden">{copy.levelWord} </span>
-                        <span className="tabular @max-[28rem]:text-base">{level.number}</span>
-                      </span>
-                      <span
-                        lang="zh"
-                        className="font-brush text-[max(0.85rem,3.1cqw)] leading-tight"
+              <PlateArt
+                panels={levels.length}
+                activeIndex={current ? selected : -1}
+                sign={sign}
+              />
+              {levels.length > 0 ? (
+                <div
+                  role="radiogroup"
+                  aria-label={copy.levelsLabel}
+                  onKeyDown={onKey}
+                  className="absolute inset-0 grid place-items-center"
+                >
+                  {levels.map((level, index) => {
+                    const angle = index * step * sign;
+                    const active = index === selected;
+                    return (
+                      <button
+                        key={level.slug}
+                        type="button"
+                        role="radio"
+                        aria-checked={active}
+                        aria-label={`${copy.levelWord} ${level.number}: ${level.title}`}
+                        tabIndex={active ? 0 : -1}
+                        onClick={() => setSelected(index)}
+                        className={`relative flex h-[12cqw] w-[18cqw] flex-col items-center justify-center rounded-[40%] text-center transition-[transform,color] duration-[1100ms] ease-glaze [grid-area:1/1] ${
+                          active
+                            ? 'text-glaze'
+                            : 'text-deep hover:text-cobalt-mid'
+                        }`}
+                        style={{
+                          transform: `rotate(${angle}deg) translateY(-${panelOffset}) rotate(${-angle - rotation}deg)`,
+                        }}
                       >
-                        {level.hanzi}
-                      </span>
-                    </button>
-                  );
-                })}
-              </div>
+                        <span className="whitespace-nowrap text-[max(0.7rem,2.2cqw)] font-semibold leading-tight">
+                          <span className="@max-[28rem]:hidden">
+                            {copy.levelWord}{' '}
+                          </span>
+                          <span className="tabular @max-[28rem]:text-base">
+                            {level.number}
+                          </span>
+                        </span>
+                        <span
+                          lang="zh"
+                          className="font-brush text-[max(0.85rem,3.1cqw)] leading-tight"
+                        >
+                          {level.hanzi}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+              ) : null}
             </div>
 
             {/* the well stays upright: the teacher at the centre */}

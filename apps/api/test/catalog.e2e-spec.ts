@@ -161,6 +161,7 @@ describe('catalog API (e2e)', () => {
       ['put', '/api/v1/admin/levels/order'],
       ['post', `/api/v1/admin/levels/${id}/lessons`],
       ['put', `/api/v1/admin/levels/${id}/lessons/order`],
+      ['get', `/api/v1/admin/lessons/${id}`],
       ['patch', `/api/v1/admin/lessons/${id}`],
       ['delete', `/api/v1/admin/lessons/${id}`],
       ['post', `/api/v1/admin/lessons/${id}/archive`],
@@ -225,6 +226,12 @@ describe('catalog API (e2e)', () => {
       slug: 'level-1',
     });
 
+    await call(admin, 'get', `/api/v1/admin/lessons/${lesson.id as string}`)
+      .expect(200)
+      .expect('Cache-Control', 'private, no-store')
+      .expect(({ body }: Response) =>
+        expect(body).toMatchObject({ id: lesson.id, levelId, hanzi: '声调' }),
+      );
     const patchedLesson = await call(
       admin,
       'patch',
@@ -262,8 +269,10 @@ describe('catalog API (e2e)', () => {
 
     await call(admin, 'get', '/api/v1/admin/levels/not-a-uuid').expect(400);
     await call(admin, 'delete', '/api/v1/admin/lessons/not-a-uuid').expect(400);
+    await call(admin, 'get', '/api/v1/admin/lessons/not-a-uuid').expect(400);
     const missing = '99999999-9999-4999-8999-999999999999';
     await call(admin, 'get', `/api/v1/admin/levels/${missing}`).expect(404);
+    await call(admin, 'get', `/api/v1/admin/lessons/${missing}`).expect(404);
     await call(admin, 'patch', `/api/v1/admin/lessons/${missing}`)
       .send({})
       .expect(404);
@@ -549,6 +558,7 @@ describe('catalog API (e2e)', () => {
     expect(Object.keys(list.body)).toEqual(['levels']);
     expect(Object.keys(list.body.levels[0]).sort()).toEqual(
       [
+        'coverImage',
         'currency',
         'hanzi',
         'lessonCount',
@@ -576,6 +586,7 @@ describe('catalog API (e2e)', () => {
       .expect('Cache-Control', 'public, max-age=60');
     expect(Object.keys(detail.body).sort()).toEqual(
       [
+        'coverImage',
         'currency',
         'hanzi',
         'lessonCount',
@@ -590,13 +601,23 @@ describe('catalog API (e2e)', () => {
     );
     expect(detail.body.lessons).toHaveLength(1);
     expect(Object.keys(detail.body.lessons[0]).sort()).toEqual(
-      ['description', 'hanzi', 'id', 'isFreePreview', 'number', 'title'].sort(),
+      [
+        'description',
+        'hanzi',
+        'id',
+        'isFreePreview',
+        'number',
+        'thumbnail',
+        'title',
+      ].sort(),
     );
     expect(detail.body.lessons[0]).toMatchObject({
       number: 1,
       description: null,
       isFreePreview: true,
+      thumbnail: null,
     });
+    expect(detail.body.coverImage).toBeNull();
   });
 
   it('seeds the sample catalog idempotently and refuses production', async () => {

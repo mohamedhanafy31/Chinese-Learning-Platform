@@ -14,6 +14,7 @@ export const environmentSchema = z
     DATABASE_URL: z.url(),
     APP_URL: z.url(),
     INTERNAL_API_URL: z.url(),
+    UPLOADS_DIR: optionalString,
     JWT_ACCESS_SECRET: z.string().min(32),
     JWT_REFRESH_SECRET: z.string().min(32),
     BUNNY_LIBRARY_ID: optionalString,

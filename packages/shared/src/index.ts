@@ -138,6 +138,30 @@ export const levelTopicsSchema = z
   .array(localizedTextSchema)
   .max(MAX_LEVEL_TOPICS);
 
+// ---------------------------------------------------------------------------
+// Images
+// ---------------------------------------------------------------------------
+
+export const MAX_IMAGE_UPLOAD_BYTES = 10 * 1024 * 1024;
+export const MAX_IMAGE_SIDE = 2000;
+export const MAX_IMAGE_INPUT_SIDE = 12_000;
+
+/** What public and admin catalog payloads carry for an attached image. */
+export const imageRefSchema = z.object({
+  url: z.string().startsWith('/media/'),
+  width: z.number().int().min(1),
+  height: z.number().int().min(1),
+});
+
+export const uploadedImageSchema = imageRefSchema.extend({
+  id: z.uuid(),
+  mime: z.string(),
+  sizeBytes: z.number().int().min(0),
+});
+
+export type ImageRef = z.infer<typeof imageRefSchema>;
+export type UploadedImage = z.infer<typeof uploadedImageSchema>;
+
 export const createLevelRequestSchema = z.object({
   slug: slugSchema,
   hanzi: hanziSchema,
@@ -145,6 +169,7 @@ export const createLevelRequestSchema = z.object({
   summary: localizedTextSchema,
   topics: levelTopicsSchema.default([]),
   priceMinor: priceMinorSchema.default(null),
+  coverImageId: z.uuid().nullable().default(null),
 });
 
 export const updateLevelRequestSchema = z.object({
@@ -154,6 +179,7 @@ export const updateLevelRequestSchema = z.object({
   summary: localizedTextSchema.optional(),
   topics: levelTopicsSchema.optional(),
   priceMinor: priceMinorSchema.optional(),
+  coverImageId: z.uuid().nullable().optional(),
 });
 
 export const createLessonRequestSchema = z.object({
@@ -161,6 +187,7 @@ export const createLessonRequestSchema = z.object({
   description: localizedTextSchema.nullable().default(null),
   hanzi: hanziSchema.nullable().default(null),
   isFreePreview: z.boolean().default(false),
+  thumbnailId: z.uuid().nullable().default(null),
 });
 
 export const updateLessonRequestSchema = z.object({
@@ -168,6 +195,7 @@ export const updateLessonRequestSchema = z.object({
   description: localizedTextSchema.nullable().optional(),
   hanzi: hanziSchema.nullable().optional(),
   isFreePreview: z.boolean().optional(),
+  thumbnailId: z.uuid().nullable().optional(),
 });
 
 export const reorderRequestSchema = z.object({
@@ -185,6 +213,8 @@ export const adminLessonSchema = z.object({
   sortOrder: z.number().int(),
   isPublished: z.boolean(),
   isFreePreview: z.boolean(),
+  thumbnailId: z.uuid().nullable(),
+  thumbnail: imageRefSchema.nullable(),
   firstPublishedAt: timestampSchema.nullable(),
   archivedAt: timestampSchema.nullable(),
   createdAt: timestampSchema,
@@ -200,6 +230,8 @@ export const adminLevelSchema = z.object({
   topics: levelTopicsSchema,
   priceMinor: priceMinorSchema,
   currency: z.string(),
+  coverImageId: z.uuid().nullable(),
+  coverImage: imageRefSchema.nullable(),
   sortOrder: z.number().int(),
   isPublished: z.boolean(),
   firstPublishedAt: timestampSchema.nullable(),
@@ -224,6 +256,7 @@ export const publicLessonSchema = z.object({
   description: localizedTextSchema.nullable(),
   hanzi: z.string().nullable(),
   isFreePreview: z.boolean(),
+  thumbnail: imageRefSchema.nullable(),
 });
 
 export const publicLevelSchema = z.object({
@@ -235,6 +268,7 @@ export const publicLevelSchema = z.object({
   topics: levelTopicsSchema,
   priceMinor: priceMinorSchema,
   currency: z.string(),
+  coverImage: imageRefSchema.nullable(),
   lessonCount: z.number().int().min(0),
 });
 

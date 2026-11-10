@@ -13,6 +13,7 @@ import { CatalogModule } from './catalog/catalog.module';
 import { ConfigModule } from './config/config.module';
 import { HealthModule } from './health/health.module';
 import { IdentityModule } from './identity/identity.module';
+import { MediaModule } from './media/media.module';
 import { PrismaModule } from './prisma/prisma.module';
 
 @Module({
@@ -62,6 +63,7 @@ import { PrismaModule } from './prisma/prisma.module';
     ]),
     PrismaModule,
     IdentityModule,
+    MediaModule,
     CatalogModule,
     HealthModule,
   ],

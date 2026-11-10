@@ -60,6 +60,7 @@ services:
       DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?schema=public
       INTERNAL_API_URL: http://api:4000
       PORT: 4000
+      UPLOADS_DIR: /app/uploads
     volumes:
       - uploads:/app/uploads
     depends_on:

@@ -2,6 +2,7 @@ import {
   Body,
   Controller,
   Delete,
+  Get,
   HttpCode,
   HttpStatus,
   Inject,
@@ -29,6 +30,11 @@ export class AdminLessonsController {
   constructor(
     @Inject(CatalogAdminService) private readonly catalog: CatalogAdminService,
   ) {}
+
+  @Get(':id')
+  get(@Param('id', new ParseUUIDPipe()) id: string): Promise<AdminLesson> {
+    return this.catalog.getLesson(id);
+  }
 
   @Patch(':id')
   update(

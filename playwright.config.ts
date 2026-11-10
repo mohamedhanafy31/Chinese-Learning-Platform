@@ -1,3 +1,6 @@
+import os from 'node:os';
+import path from 'node:path';
+
 import { defineConfig, devices } from '@playwright/test';
 
 function port(value: string | undefined, fallback: number): number {
@@ -12,12 +15,18 @@ const apiPort = port(process.env.E2E_API_PORT, 4210);
 const webPort = port(process.env.E2E_WEB_PORT, 3210);
 const apiUrl = `http://127.0.0.1:${apiPort}`;
 const webUrl = `http://localhost:${webPort}`;
+// Uploads go to a throwaway directory that global setup removes afterwards.
+const uploadsDir =
+  process.env.E2E_UPLOADS_DIR ??
+  path.join(os.tmpdir(), `cl-e2e-uploads-${apiPort}`);
+process.env.E2E_UPLOADS_DIR = uploadsDir;
 const databaseUrl =
   process.env.DATABASE_URL_TEST ??
   'postgresql://postgres:postgres@localhost:5433/app_test?schema=public';
 
 export default defineConfig({
   testDir: './e2e',
+  globalSetup: './e2e/global-setup.ts',
   fullyParallel: false,
   forbidOnly: Boolean(process.env.CI),
   retries: process.env.CI ? 1 : 0,
@@ -43,6 +52,7 @@ export default defineConfig({
         DATABASE_URL_TEST: databaseUrl,
         APP_URL: webUrl,
         INTERNAL_API_URL: apiUrl,
+        UPLOADS_DIR: uploadsDir,
         JWT_ACCESS_SECRET:
           'e2e-only-access-secret-at-least-thirty-two-characters',
         JWT_REFRESH_SECRET:
@@ -59,6 +69,7 @@ export default defineConfig({
       cwd: '.',
       env: {
         INTERNAL_API_URL: apiUrl,
+        APP_URL: webUrl,
         E2E_NEXT_START: '1',
       },
       url: `${webUrl}/ar/login`,

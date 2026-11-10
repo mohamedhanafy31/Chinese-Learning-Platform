@@ -4,7 +4,7 @@ import { CircleAlert, Eye, EyeOff } from 'lucide-react';
 import { useState } from 'react';
 import type { FieldError, UseFormRegisterReturn } from 'react-hook-form';
 
-const baseInput =
+export const baseInput =
   'min-h-14 w-full rounded-2xl bg-glaze-bright px-4 text-lg text-deep placeholder:text-unfired-ink hover:border-cobalt';
 
 interface FieldProps extends React.InputHTMLAttributes<HTMLInputElement> {
@@ -146,7 +146,7 @@ export function SubmitButton({
 export const secondaryLink =
   'inline-flex min-h-11 items-center text-cobalt underline decoration-wash-strong underline-offset-8 hover:text-deep';
 
-function FieldErrorMessage({
+export function FieldErrorMessage({
   id,
   message,
 }: {

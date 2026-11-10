@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import Link from 'next/link';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 
 import type { Locale } from '@app/shared';
@@ -31,10 +32,16 @@ export default async function AdminPage({
       <h1 className="font-display text-balance text-[clamp(2.5rem,5vw,4rem)] leading-[1.05] text-deep">
         {t('greeting', { name: user.name })}
       </h1>
-      <div className="mt-12 rounded-2xl border-2 border-dashed border-unfired px-6 py-14 text-center">
-        <p className="text-lg leading-[1.8] text-unfired-ink">{t('empty')}</p>
-      </div>
-      <div className="mt-10">
+      <p className="mt-5 max-w-[34rem] text-lg leading-[1.8] text-cobalt">
+        {t('intro')}
+      </p>
+      <Link
+        href={`/${locale}/admin/levels`}
+        className="mt-8 inline-flex min-h-14 items-center rounded-full bg-deep px-8 text-lg font-semibold text-glaze transition-colors hover:bg-cobalt"
+      >
+        {t('manageLevels')}
+      </Link>
+      <div className="mt-12">
         <LogoutButton
           locale={locale}
           label={t('logout')}

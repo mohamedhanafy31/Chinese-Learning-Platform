@@ -9,9 +9,11 @@ import { Band } from '@/components/porcelain/band';
 import { Seal } from '@/components/porcelain/seal';
 import { SiteFooter } from '@/components/site-footer';
 import { SiteHeader } from '@/components/site-header';
-import { pick, sampleLevels } from '@/content/sample-course';
+import { getPublicLevels } from '@/lib/catalog';
+import { pick } from '@/lib/localized';
 import { numberFormat } from '@/lib/numbers';
-import { toPathLessons } from '@/lib/path-lessons';
+import { toSamplePathLessons } from '@/lib/path-lessons';
+import { formatEgp } from '@/lib/price';
 
 interface HomePageProps {
   params: Promise<{ locale: Locale }>;
@@ -32,9 +34,13 @@ export default async function HomePage({
   const priceText = (priceMinor: number | null): string =>
     priceMinor === null
       ? t('pricePending')
-      : t('priceLabel', { price: nf.format(priceMinor / 100) });
+      : t('priceLabel', { price: formatEgp(priceMinor, locale) });
 
-  const plateLevels: PlateLevel[] = sampleLevels.map((level) => ({
+  // A failing API degrades to an honest message; it never breaks the page.
+  const catalog = await getPublicLevels();
+  const levels = catalog.status === 'ok' ? catalog.data : [];
+
+  const plateLevels: PlateLevel[] = levels.map((level) => ({
     slug: level.slug,
     number: nf.format(level.number),
     hanzi: level.hanzi,
@@ -45,10 +51,11 @@ export default async function HomePage({
     href: `/${locale}/levels/${level.slug}`,
   }));
 
-  const firstLevel = sampleLevels[0];
-  const exampleLessons = firstLevel
-    ? await toPathLessons(firstLevel, locale)
-    : [];
+  const firstLevel = levels[0];
+  const startHref = firstLevel
+    ? `/${locale}/levels/${firstLevel.slug}`
+    : `/${locale}#levels`;
+  const exampleLessons = await toSamplePathLessons(locale);
 
   const steps = [
     { glyph: '一', title: t('step1Title'), body: t('step1Body') },
@@ -69,12 +76,16 @@ export default async function HomePage({
             headline: t('headline'),
             lede: t('lede'),
             primary: t('primary'),
-            primaryHref: `/${locale}/levels/${firstLevel?.slug ?? ''}`,
+            primaryHref: startHref,
             secondary: t('secondary'),
             secondaryHref: '#levels',
             levelsLabel: t('levelsLabel'),
             levelWord: t('levelWord'),
             viewLevel: t('viewLevel'),
+            emptyReadout:
+              catalog.status === 'unavailable'
+                ? t('levelsUnavailable')
+                : t('emptyReadout'),
             portraitPlaceholder: t('portraitPlaceholder'),
             portraitAlt: t('portraitAlt'),
           }}
@@ -156,8 +167,14 @@ export default async function HomePage({
             <h2 className="font-display text-[clamp(2rem,4vw,3.25rem)] leading-tight text-deep">
               {t('levelsLabel')}
             </h2>
-            <SampleTag label={t('sample')} />
           </div>
+          {plateLevels.length === 0 ? (
+            <p className="mt-10 rounded-2xl border-2 border-dashed border-unfired px-6 py-12 text-center text-lg leading-[1.8] text-unfired-ink">
+              {catalog.status === 'unavailable'
+                ? t('levelsUnavailable')
+                : t('levelsEmpty')}
+            </p>
+          ) : (
           <ul className="mt-10 border-t-2 border-cobalt">
             {plateLevels.map((level) => (
               <li key={level.slug} className="border-b border-wash">
@@ -193,6 +210,7 @@ export default async function HomePage({
               </li>
             ))}
           </ul>
+          )}
         </section>
 
         {/* about Mazen */}
@@ -239,7 +257,7 @@ export default async function HomePage({
               </p>
             </div>
             <Link
-              href={`/${locale}/levels/${firstLevel?.slug ?? ''}`}
+              href={startHref}
               className="inline-flex min-h-14 items-center rounded-full bg-glaze px-8 text-lg font-semibold text-deep transition-[transform,background-color] duration-300 ease-glaze hover:-translate-y-0.5 hover:bg-white"
             >
               {t('primary')}

@@ -10,6 +10,7 @@ import { Logger } from 'nestjs-pino';
 import { AppModule } from './app.module';
 import { ZodValidationPipe } from './common/validation/zod-validation.pipe';
 import type { Environment } from './config/environment';
+import { serveUploadedImages } from './media/serve-media';
 
 async function bootstrap(): Promise<void> {
   const app = await NestFactory.create<NestExpressApplication>(AppModule, {
@@ -22,6 +23,7 @@ async function bootstrap(): Promise<void> {
   app.set('trust proxy', 1);
   app.use(helmet());
   app.use(cookieParser());
+  serveUploadedImages(app);
   app.useGlobalPipes(new ZodValidationPipe());
   app.setGlobalPrefix('api/v1');
   app.enableShutdownHooks();

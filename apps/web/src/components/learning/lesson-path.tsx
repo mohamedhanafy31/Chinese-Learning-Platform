@@ -9,8 +9,8 @@ export interface PathLesson {
   id: string;
   number: string;
   title: string;
-  hanzi: string;
-  meta: string;
+  hanzi?: string;
+  meta?: string;
   state: PathState;
   href?: string;
 }
@@ -88,19 +88,21 @@ export function LessonPath({
               <p
                 className={`mt-0.5 text-sm tabular ${locked ? 'text-unfired-ink' : 'text-cobalt'}`}
               >
-                {lesson.number} · {lesson.meta}
+                {lesson.meta ? `${lesson.number} · ${lesson.meta}` : lesson.number}
               </p>
             </div>
 
-            <span
-              lang="zh"
-              aria-hidden="true"
-              className={`font-brush hidden text-3xl sm:block ${
-                locked ? 'text-unfired/70' : fired ? 'text-deep' : 'text-cobalt'
-              }`}
-            >
-              {lesson.hanzi}
-            </span>
+            {lesson.hanzi ? (
+              <span
+                lang="zh"
+                aria-hidden="true"
+                className={`font-brush hidden text-3xl sm:block ${
+                  locked ? 'text-unfired/70' : fired ? 'text-deep' : 'text-cobalt'
+                }`}
+              >
+                {lesson.hanzi}
+              </span>
+            ) : null}
 
             <span className="flex shrink-0 items-center gap-2">
               {fired ? (

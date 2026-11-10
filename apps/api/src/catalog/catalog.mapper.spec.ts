@@ -3,8 +3,8 @@ import {
   parseOptionalLocalizedText,
   parseTopics,
   toPublicLevel,
+  type LevelRow,
 } from './catalog.mapper';
-import type { Level } from '../generated/prisma/client';
 
 describe('parsing DB JSON', () => {
   it('parses and trims valid localized text', () => {
@@ -50,9 +50,11 @@ describe('parsing DB JSON', () => {
       isPublished: true,
       firstPublishedAt: new Date(),
       archivedAt: null,
+      coverImageId: null,
+      coverImage: null,
       createdAt: new Date(),
       updatedAt: new Date(),
-    } satisfies Level;
+    } satisfies LevelRow;
     expect(() => toPublicLevel(row, 1, 0)).toThrow();
   });
 });

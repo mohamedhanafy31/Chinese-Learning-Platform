@@ -1,4 +1,12 @@
+import { tmpdir } from 'node:os';
+import path from 'node:path';
+
 process.env.NODE_ENV = 'test';
+// Never write uploads into the working tree during tests.
+process.env.UPLOADS_DIR ??= path.join(
+  tmpdir(),
+  `cl-api-uploads-${process.pid}`,
+);
 process.env.PORT = '4001';
 process.env.APP_URL = 'http://localhost:3000';
 process.env.INTERNAL_API_URL = 'http://localhost:4001';

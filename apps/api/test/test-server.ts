@@ -13,6 +13,7 @@ import { IdentityClockService } from '../src/identity/identity-clock.service';
 import { MAIL_SERVICE } from '../src/identity/identity.constants';
 import { IdentityService } from '../src/identity/identity.service';
 import { InMemoryMailService } from '../src/identity/mail.service';
+import { serveUploadedImages } from '../src/media/serve-media';
 
 @Controller('test/roles')
 class TestRolesController {
@@ -47,6 +48,7 @@ async function bootstrap(): Promise<void> {
   });
   app.set('trust proxy', 1);
   app.use(cookieParser());
+  serveUploadedImages(app);
   app.useGlobalPipes(new ZodValidationPipe());
   app.setGlobalPrefix('api/v1');
   await app.listen(0, '127.0.0.1');

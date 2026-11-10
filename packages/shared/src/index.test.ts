@@ -80,7 +80,25 @@ describe('catalog request schemas', () => {
       ...level,
       topics: [],
       priceMinor: null,
+      coverImageId: null,
     });
+  });
+
+  it('accepts a uuid or null for image references and rejects other values', () => {
+    const id = '11111111-1111-4111-8111-111111111111';
+    expect(
+      createLevelRequestSchema.parse({ ...level, coverImageId: id })
+        .coverImageId,
+    ).toBe(id);
+    expect(() =>
+      createLevelRequestSchema.parse({ ...level, coverImageId: 'nope' }),
+    ).toThrow();
+    expect(
+      createLessonRequestSchema.parse({
+        title: { en: 'Tones' },
+        thumbnailId: null,
+      }).thumbnailId,
+    ).toBeNull();
   });
 
   it.each([
@@ -140,6 +158,7 @@ describe('catalog request schemas', () => {
         description: null,
         hanzi: null,
         isFreePreview: false,
+        thumbnailId: null,
       },
     );
   });

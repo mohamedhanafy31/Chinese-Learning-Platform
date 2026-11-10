@@ -2,7 +2,7 @@ import Link from 'next/link';
 
 import { Locale, type Locale as LocaleCode } from '@app/shared';
 
-const localeLabels: Record<LocaleCode, string> = {
+export const localeLabels: Record<LocaleCode, string> = {
   [Locale.AR]: 'العربية',
   [Locale.EN]: 'English',
   [Locale.ZH]: '中文',

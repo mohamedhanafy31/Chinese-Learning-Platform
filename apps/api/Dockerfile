@@ -25,8 +25,12 @@ CMD ["apps/api/node_modules/.bin/prisma", "migrate", "deploy"]
 FROM node:22-alpine AS runtime
 
 ENV NODE_ENV=production
+ENV UPLOADS_DIR=/app/uploads
 WORKDIR /app
 COPY --from=build --chown=node:node /prod/api ./
+# The compose volume mounts here; owning the directory lets the non-root user
+# write to a freshly created volume.
+RUN mkdir -p /app/uploads/images && chown -R node:node /app/uploads
 
 USER node
 EXPOSE 4000

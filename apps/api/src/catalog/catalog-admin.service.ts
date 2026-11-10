@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   ConflictException,
   Inject,
   Injectable,
@@ -16,7 +17,12 @@ import type {
 } from '@app/shared';
 
 import { assertCompleteOrder } from './catalog-order';
-import { toAdminLesson, toAdminLevel } from './catalog.mapper';
+import {
+  lessonImageInclude,
+  levelImageInclude,
+  toAdminLesson,
+  toAdminLevel,
+} from './catalog.mapper';
 import { Prisma } from '../generated/prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 
@@ -65,7 +71,7 @@ export class CatalogAdminService {
   async listLevels(): Promise<AdminLevelsResponse> {
     const rows = await this.prisma.level.findMany({
       orderBy: { sortOrder: 'asc' },
-      include: { _count: { select: { lessons: true } } },
+      include: { ...levelImageInclude, _count: { select: { lessons: true } } },
     });
     return {
       levels: rows.map(({ _count, ...row }) =>
@@ -77,7 +83,13 @@ export class CatalogAdminService {
   async getLevel(id: string): Promise<AdminLevelDetail> {
     const row = await this.prisma.level.findUnique({
       where: { id },
-      include: { lessons: { orderBy: { sortOrder: 'asc' } } },
+      include: {
+        ...levelImageInclude,
+        lessons: {
+          orderBy: { sortOrder: 'asc' },
+          include: lessonImageInclude,
+        },
+      },
     });
     if (!row) throw new NotFoundException('Level not found');
     const { lessons, ...level } = row;
@@ -96,6 +108,7 @@ export class CatalogAdminService {
           select: { id: true },
         });
         if (existing) throw new ConflictException(SLUG_TAKEN);
+        await this.assertImageExists(tx, input.coverImageId);
         const { _max } = await tx.level.aggregate({
           _max: { sortOrder: true },
         });
@@ -107,8 +120,10 @@ export class CatalogAdminService {
             summary: toJson(input.summary),
             topics: toJson(input.topics),
             priceMinor: input.priceMinor,
+            coverImageId: input.coverImageId,
             sortOrder: (_max.sortOrder ?? 0) + 1,
           },
+          include: levelImageInclude,
         });
         return toAdminLevel(row, 0);
       });
@@ -135,6 +150,7 @@ export class CatalogAdminService {
             'The slug cannot change once the level has been published',
           );
         }
+        await this.assertImageExists(tx, input.coverImageId);
         const row = await tx.level.update({
           where: { id },
           data: {
@@ -144,8 +160,12 @@ export class CatalogAdminService {
             summary: input.summary ? toJson(input.summary) : undefined,
             topics: input.topics ? toJson(input.topics) : undefined,
             priceMinor: input.priceMinor,
+            coverImageId: input.coverImageId,
           },
-          include: { _count: { select: { lessons: true } } },
+          include: {
+            ...levelImageInclude,
+            _count: { select: { lessons: true } },
+          },
         });
         const { _count, ...level } = row;
         return toAdminLevel(level, _count.lessons);
@@ -234,6 +254,7 @@ export class CatalogAdminService {
     return this.prisma.$transaction(async (tx) => {
       await lockScope(tx, lessonsLockKey(levelId));
       await this.findLevelOrThrow(tx, levelId);
+      await this.assertImageExists(tx, input.thumbnailId);
       const { _max } = await tx.lesson.aggregate({
         where: { levelId },
         _max: { sortOrder: true },
@@ -247,11 +268,22 @@ export class CatalogAdminService {
             : Prisma.DbNull,
           hanzi: input.hanzi,
           isFreePreview: input.isFreePreview,
+          thumbnailId: input.thumbnailId,
           sortOrder: (_max.sortOrder ?? 0) + 1,
         },
+        include: lessonImageInclude,
       });
       return toAdminLesson(row);
     });
+  }
+
+  async getLesson(id: string): Promise<AdminLesson> {
+    const row = await this.prisma.lesson.findUnique({
+      where: { id },
+      include: lessonImageInclude,
+    });
+    if (!row) throw new NotFoundException('Lesson not found');
+    return toAdminLesson(row);
   }
 
   async updateLesson(
@@ -259,6 +291,7 @@ export class CatalogAdminService {
     input: UpdateLessonRequest,
   ): Promise<AdminLesson> {
     await this.findLessonOrThrow(this.prisma, id);
+    await this.assertImageExists(this.prisma, input.thumbnailId);
     const row = await this.prisma.lesson.update({
       where: { id },
       data: {
@@ -271,7 +304,9 @@ export class CatalogAdminService {
               : toJson(input.description),
         hanzi: input.hanzi,
         isFreePreview: input.isFreePreview,
+        thumbnailId: input.thumbnailId,
       },
+      include: lessonImageInclude,
     });
     return toAdminLesson(row);
   }
@@ -344,6 +379,18 @@ export class CatalogAdminService {
 
   // ----- helpers -----------------------------------------------------------
 
+  private async assertImageExists(
+    tx: Tx | PrismaService,
+    id: string | null | undefined,
+  ): Promise<void> {
+    if (!id) return;
+    const asset = await tx.mediaAsset.findUnique({
+      where: { id },
+      select: { id: true },
+    });
+    if (!asset) throw new BadRequestException('Unknown image');
+  }
+
   private async findLevelOrThrow(tx: Tx | PrismaService, id: string) {
     const level = await tx.level.findUnique({ where: { id } });
     if (!level) throw new NotFoundException('Level not found');
@@ -369,7 +416,10 @@ export class CatalogAdminService {
       const row = await tx.level.update({
         where: { id },
         data: data(current),
-        include: { _count: { select: { lessons: true } } },
+        include: {
+          ...levelImageInclude,
+          _count: { select: { lessons: true } },
+        },
       });
       const { _count, ...level } = row;
       return toAdminLevel(level, _count.lessons);
@@ -389,6 +439,7 @@ export class CatalogAdminService {
       const row = await tx.lesson.update({
         where: { id },
         data: data(current),
+        include: lessonImageInclude,
       });
       return toAdminLesson(row);
     });

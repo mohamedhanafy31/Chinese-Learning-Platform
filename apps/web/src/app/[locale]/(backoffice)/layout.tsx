@@ -1,3 +1,5 @@
+import { getTranslations } from 'next-intl/server';
+
 import type { Locale } from '@app/shared';
 
 import { SiteFooter } from '@/components/site-footer';
@@ -14,10 +16,16 @@ export default async function BackofficeLayout({
   const { locale: localeValue } = await params;
   const locale = localeValue as Locale;
   await requireUser(locale, `/${locale}/admin`, true);
+  const t = await getTranslations({ locale, namespace: 'Admin.nav' });
 
   return (
     <div className="flex min-h-dvh flex-col bg-glaze">
-      <SiteHeader locale={locale} tone="on-glaze" />
+      <SiteHeader
+        locale={locale}
+        tone="on-glaze"
+        navLabel={t('label')}
+        navItems={[{ href: `/${locale}/admin/levels`, label: t('levels') }]}
+      />
       <main className="flex-1">{children}</main>
       <SiteFooter locale={locale} />
     </div>
