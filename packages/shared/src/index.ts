@@ -39,7 +39,21 @@ const passwordSchema = z.string().min(8).max(128);
 
 export const phoneSchema = z
   .string()
-  .transform((value) => value.replace(/[\s-]/g, ''))
+  .transform((value) => {
+    const asciiDigits = value.replace(/[٠-٩۰-۹]/g, (digit) => {
+      const codePoint = digit.codePointAt(0) ?? 0;
+      const zero = codePoint >= 0x06f0 ? 0x06f0 : 0x0660;
+      return String(codePoint - zero);
+    });
+    const compact = asciiDigits.replace(/[\s\-()]/g, '');
+    const international = compact.startsWith('00')
+      ? `+${compact.slice(2)}`
+      : compact;
+
+    return /^01[0125]\d{8}$/.test(international)
+      ? `+20${international.slice(1)}`
+      : international;
+  })
   .pipe(z.string().regex(/^\+[1-9]\d{7,14}$/));
 
 export const registerRequestSchema = z.object({

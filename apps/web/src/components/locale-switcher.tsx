@@ -47,6 +47,7 @@ export function LocaleSwitcher({
                 href={`/${locale}`}
                 hrefLang={locale}
                 lang={locale}
+                prefetch={false}
                 className={`inline-flex min-h-11 items-center px-2 transition-colors ${idle}`}
               >
                 {localeLabels[locale]}

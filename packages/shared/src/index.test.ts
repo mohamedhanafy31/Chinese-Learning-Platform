@@ -24,6 +24,18 @@ describe('localizedTextSchema', () => {
 describe('identity contracts', () => {
   it('normalises valid international phone input', () => {
     expect(phoneSchema.parse('+20 100-123-4567')).toBe('+201001234567');
+    expect(phoneSchema.parse('0020 (100) 123-4567')).toBe('+201001234567');
+  });
+
+  it('normalises Egyptian local mobiles and Arabic digits', () => {
+    expect(phoneSchema.parse('0100 123 4567')).toBe('+201001234567');
+    expect(phoneSchema.parse('٠١١٢-٣٤٥-٦٧٨٩')).toBe('+201123456789');
+    expect(phoneSchema.parse('۰۱۵۵ ۱۲۳ ۴۵۶۷')).toBe('+201551234567');
+  });
+
+  it('rejects invalid Egyptian and non-E.164 values', () => {
+    expect(() => phoneSchema.parse('0130 123 4567')).toThrow();
+    expect(() => phoneSchema.parse('0100')).toThrow();
   });
 
   it('normalises registration transport fields', () => {

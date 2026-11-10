@@ -48,3 +48,5 @@ jobs:
       - run: pnpm build
       - run: docker build -f apps/api/Dockerfile -t cl-api:ci .
       - run: docker build -f apps/web/Dockerfile -t cl-web:ci .
+      - run: pnpm exec playwright install --with-deps chromium
+      - run: pnpm test:e2e

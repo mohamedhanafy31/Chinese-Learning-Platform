@@ -11,6 +11,8 @@
     "lint": "pnpm -r --if-present lint",
     "typecheck": "pnpm --filter @app/shared build && pnpm -r --if-present typecheck",
     "test": "pnpm -r --if-present test",
+    "pretest:e2e": "pnpm --filter @app/shared build",
+    "test:e2e": "playwright test",
     "test:integration": "pnpm --filter @app/api test:integration",
     "build": "pnpm -r --if-present build",
     "format": "prettier --write .",
@@ -23,6 +25,7 @@
   },
   "devDependencies": {
     "@eslint/js": "10.0.1",
+    "@playwright/test": "1.65.0",
     "@types/node": "26.6.6",
     "concurrently": "10.0.7",
     "eslint": "10.14.0",
