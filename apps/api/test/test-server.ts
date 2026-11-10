@@ -13,6 +13,7 @@ import { IdentityClockService } from '../src/identity/identity-clock.service';
 import { MAIL_SERVICE } from '../src/identity/identity.constants';
 import { IdentityService } from '../src/identity/identity.service';
 import { InMemoryMailService } from '../src/identity/mail.service';
+import { BunnyVideoService } from '../src/media/video/bunny/bunny-video.service';
 import { serveUploadedImages } from '../src/media/serve-media';
 import { enableDevVideoUploadCors } from '../src/media/video/dev-cors';
 
@@ -39,7 +40,8 @@ interface TestMessage {
     | 'clock:set'
     | 'identity:deactivate'
     | 'mail:clear'
-    | 'mail:get';
+    | 'mail:get'
+    | 'video:reconcile';
   userId?: string;
 }
 
@@ -63,6 +65,7 @@ async function bootstrap(): Promise<void> {
   }
   const clock = app.get(IdentityClockService);
   const identity = app.get(IdentityService);
+  const bunnyVideos = app.get(BunnyVideoService);
   const systemNow = IdentityClockService.prototype.now.bind(clock);
 
   process.on('message', (message: TestMessage) => {
@@ -89,6 +92,13 @@ async function bootstrap(): Promise<void> {
         case 'clock:reset':
           clock.now = systemNow;
           process.send?.({ type: 'ok', requestId: message.requestId });
+          break;
+        case 'video:reconcile':
+          process.send?.({
+            type: 'video:reconciled',
+            requestId: message.requestId,
+            result: await bunnyVideos.reconcileOnce(),
+          });
           break;
         case 'identity:deactivate':
           if (!message.userId) {

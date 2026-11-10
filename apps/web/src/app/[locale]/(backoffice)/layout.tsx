@@ -27,6 +27,10 @@ export default async function BackofficeLayout({
         navItems={[
           { href: `/${locale}/admin/levels`, label: t('levels') },
           { href: `/${locale}/admin/students`, label: t('students') },
+          {
+            href: `/${locale}/admin/settings/diagnostics`,
+            label: t('diagnostics'),
+          },
         ]}
       />
       <main className="flex-1">{children}</main>

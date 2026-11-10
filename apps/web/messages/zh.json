@@ -180,7 +180,8 @@
     "nav": {
       "label": "管理后台栏目",
       "levels": "级别",
-      "students": "学员"
+      "students": "学员",
+      "diagnostics": "视频诊断"
     },
     "status": {
       "draft": "草稿",
@@ -264,7 +265,28 @@
       "errors": {
         "tooLarge": "视频超过了服务器允许的大小。",
         "type": "只接受 MP4 或 WebM 视频。",
-        "network": "上传中断。请检查网络后重试。"
+        "network": "上传中断。请检查网络后重试。",
+        "unavailable": "无法连接 Bunny Stream。请稍后再试。"
+      },
+      "storage": "存储位置",
+      "provider": {
+        "LOCAL": "本服务器（仅限开发）",
+        "BUNNY": "Bunny Stream"
+      },
+      "bunny": {
+        "uploadedProcessing": "上传完成，Bunny 正在处理视频。",
+        "processing": "正在 Bunny 上处理…",
+        "processingHelp": "通常需要几分钟。你可以离开此页面，视频就绪后会显示在这里。",
+        "pendingUploading": "有一次上传没有完成。若始终未完成，系统会自动清理。",
+        "failed": "失败 — {reason}",
+        "reasons": {
+          "encoding-failed": "Bunny 无法处理该文件",
+          "upload-failed": "上传到 Bunny 失败",
+          "upload-abandoned": "上传始终没有完成",
+          "video-missing": "Bunny 上已找不到该视频",
+          "unknown": "原因未知"
+        },
+        "previewNote": "Bunny 视频在课程页面自带的播放器中播放。"
       }
     },
     "form": {
@@ -426,6 +448,37 @@
       "revoked": "已收回权限。",
       "cancel": "取消",
       "joinedLabel": "加入日期"
+    },
+    "diagnostics": {
+      "title": "视频诊断",
+      "intro": "查看当前使用的视频服务、Bunny Stream 是否已完整配置，以及视频的状态。这里不会显示任何密钥内容，只显示设置项的名称。",
+      "activeTitle": "当前服务",
+      "active": {
+        "LOCAL": "本地",
+        "BUNNY": "Bunny Stream"
+      },
+      "bunnyConfigured": "Bunny Stream 已配置",
+      "yes": "是",
+      "no": "否",
+      "missingTitle": "缺少的设置",
+      "missingNone": "没有缺少的设置。",
+      "countsTitle": "视频",
+      "counts": {
+        "local": "本地存储",
+        "bunny": "在 Bunny 上",
+        "processing": "处理中",
+        "failed": "失败"
+      },
+      "lastWebhook": "最近一次 Bunny 回调",
+      "never": "尚未收到",
+      "webhookTitle": "Webhook 地址",
+      "webhookBody": "在 Bunny Stream 媒体库设置中，把此地址添加为 webhook 地址，并把同一个密钥保存到 BUNNY_WEBHOOK_SECRET。",
+      "copy": "复制地址",
+      "copied": "地址已复制。",
+      "copyFailed": "无法复制。请选中地址后手动复制。",
+      "devOnly": "视频保存在服务器本机磁盘上，仅用于开发。上线前请配置 Bunny Stream。",
+      "unavailableTitle": "诊断信息暂不可用",
+      "unavailableBody": "视频服务没有响应。请稍后再试。"
     }
   },
   "Metadata": {
@@ -445,7 +498,8 @@
     "adminStudents": "学员 · 管理后台 · 马赞中文",
     "adminStudent": "学员详情 · 管理后台 · 马赞中文",
     "lesson": "课程 · 马赞中文",
-    "lessonNamed": "{lesson} · {level} · 马赞中文"
+    "lessonNamed": "{lesson} · {level} · 马赞中文",
+    "adminDiagnostics": "视频诊断 · 管理后台 · 马赞中文"
   },
   "NotFound": {
     "title": "页面未找到",

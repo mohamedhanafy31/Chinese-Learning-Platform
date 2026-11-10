@@ -6,6 +6,8 @@ export interface VideoAssetRef {
   provider: VideoProviderKind;
   localKey: string | null;
   mime: string | null;
+  bunnyVideoId?: string | null;
+  bunnyLibraryId?: string | null;
 }
 
 /** What a provider hands back when an upload is about to start. */
@@ -27,23 +29,32 @@ export interface FinalizedUpload {
   sizeBytes: number;
 }
 
-export interface PlaybackDescriptor {
-  provider: VideoProviderKind;
-  /** Same-origin or absolute URL the player loads. */
-  src: string;
-  mime: string | null;
-}
+export type PlaybackDescriptor =
+  | {
+      provider: 'LOCAL';
+      /** Same-origin URL of the access-checked stream route. */
+      src: string;
+      mime: string | null;
+    }
+  | {
+      provider: 'BUNNY';
+      /** Signed, expiring embed URL for an iframe. */
+      embedUrl: string;
+      expiresAt: string;
+    };
 
 /**
- * What a video backend implements. `LocalProvider` stores files on the API's
- * disk (development only). M7's `BunnyProvider` implements the same four
- * operations against Bunny Stream: create the video and a signed TUS upload,
- * finalize from the webhook or reconcile job, hand out a signed embed, delete.
+ * What a video backend implements. Every asset keeps the provider that
+ * created it, so a LOCAL asset still streams after Bunny is configured.
+ *
+ * - `LocalProvider` stores files on the API's disk (development only) and
+ *   also offers `finalize`, which moves a finished multipart upload into place.
+ * - `BunnyProvider` creates a Bunny video plus a signed TUS upload. Its
+ *   uploads are finalized by the Bunny webhook or the reconcile job (see
+ *   `BunnyVideoService`), never by the request that created them.
  */
 export interface VideoProvider {
   readonly kind: VideoProviderKind;
-  createUpload(): UploadTicket;
-  finalize(input: FinalizeUploadInput): Promise<FinalizedUpload>;
   playback(asset: VideoAssetRef): PlaybackDescriptor;
   delete(asset: VideoAssetRef): Promise<void>;
 }

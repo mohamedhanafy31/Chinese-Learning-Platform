@@ -24,8 +24,7 @@ import {
   toAdminLevel,
 } from './catalog.mapper';
 import { Prisma } from '../generated/prisma/client';
-import { MediaStorage } from '../media/media-storage';
-import { removeVideoFile } from '../media/video/video-files';
+import { VideoService } from '../media/video/video.service';
 import { PrismaService } from '../prisma/prisma.service';
 
 type Tx = Prisma.TransactionClient;
@@ -68,7 +67,7 @@ const SLUG_TAKEN = 'A level with this slug already exists';
 export class CatalogAdminService {
   constructor(
     @Inject(PrismaService) private readonly prisma: PrismaService,
-    @Inject(MediaStorage) private readonly storage: MediaStorage,
+    @Inject(VideoService) private readonly videos: VideoService,
   ) {}
 
   // ----- levels ------------------------------------------------------------
@@ -317,7 +316,7 @@ export class CatalogAdminService {
   }
 
   async deleteLesson(id: string): Promise<void> {
-    const videoKeys = await this.prisma.$transaction(async (tx) => {
+    const removedVideos = await this.prisma.$transaction(async (tx) => {
       const lesson = await this.findLessonOrThrow(tx, id);
       await lockScope(tx, lessonsLockKey(lesson.levelId));
       const current = await this.findLessonOrThrow(tx, id);
@@ -326,18 +325,13 @@ export class CatalogAdminService {
           'A published lesson cannot be deleted. Archive it instead.',
         );
       }
-      // Video rows go with the lesson (cascade); their files are removed
-      // once the delete has committed.
-      const videos = await tx.videoAsset.findMany({
-        where: { lessonId: id },
-        select: { localKey: true },
-      });
+      // Video rows go with the lesson (cascade); their stored videos (files or
+      // Bunny videos) are removed once the delete has committed.
+      const videos = await tx.videoAsset.findMany({ where: { lessonId: id } });
       await tx.lesson.delete({ where: { id } });
-      return videos.map((video) => video.localKey);
+      return videos;
     });
-    for (const key of videoKeys) {
-      await removeVideoFile(this.storage.videosDir, key);
-    }
+    await this.videos.discardAssets(removedVideos);
   }
 
   publishLesson(id: string): Promise<AdminLesson> {

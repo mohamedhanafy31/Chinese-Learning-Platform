@@ -130,6 +130,7 @@ model Lesson {
 
 enum VideoProvider {
   LOCAL
+  BUNNY
 }
 
 enum VideoStatus {
@@ -140,21 +141,39 @@ enum VideoStatus {
 }
 
 model VideoAsset {
-  id           String        @id @default(uuid()) @db.Uuid
-  lessonId     String        @db.Uuid
-  provider     VideoProvider
-  status       VideoStatus
-  localKey     String?       @unique
-  mime         String?
-  durationSec  Int?
-  sizeBytes    BigInt?
-  originalName String        @db.VarChar(255)
-  createdAt    DateTime      @default(now())
-  updatedAt    DateTime      @updatedAt
-  lesson       Lesson        @relation("LessonVideos", fields: [lessonId], references: [id], onDelete: Cascade)
-  activeFor    Lesson?       @relation("ActiveVideo")
+  id             String        @id @default(uuid()) @db.Uuid
+  lessonId       String        @db.Uuid
+  provider       VideoProvider
+  status         VideoStatus
+  localKey       String?       @unique
+  mime           String?
+  durationSec    Int?
+  sizeBytes      BigInt?
+  originalName   String        @db.VarChar(255)
+  bunnyLibraryId String?
+  bunnyVideoId   String?       @unique
+  lastEventAt    DateTime?
+  failureReason  String?
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+  lesson         Lesson        @relation("LessonVideos", fields: [lessonId], references: [id], onDelete: Cascade)
+  activeFor      Lesson?       @relation("ActiveVideo")
 
   @@index([lessonId])
+}
+
+enum WebhookProvider {
+  BUNNY
+}
+
+/// One processed provider webhook; the unique key makes redelivery a no-op.
+model WebhookEvent {
+  id              String          @id @default(uuid()) @db.Uuid
+  provider        WebhookProvider
+  externalEventId String
+  receivedAt      DateTime        @default(now())
+
+  @@unique([provider, externalEventId])
 }
 
 enum EnrollmentSource {

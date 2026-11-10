@@ -6,7 +6,7 @@ import {
   type PublicUser,
 } from '@app/shared';
 
-import { LocalProvider } from './local.provider';
+import { VideoProviders } from './video-providers';
 import { assertWatchable } from './video-access';
 import {
   parseLocalizedText,
@@ -43,7 +43,7 @@ export class VideoPlaybackService {
   constructor(
     @Inject(PrismaService) private readonly prisma: PrismaService,
     @Inject(ContentAccessPolicy) private readonly policy: ContentAccessPolicy,
-    @Inject(LocalProvider) private readonly local: LocalProvider,
+    @Inject(VideoProviders) private readonly providers: VideoProviders,
   ) {}
 
   /** What the lesson page needs to play one lesson, or the reason it cannot. */
@@ -119,15 +119,24 @@ export class VideoPlaybackService {
     if (!video || video.status !== VideoStatus.READY) {
       throw new NoVideoError(context);
     }
-    const descriptor = this.local.playback(video);
+    // Each asset keeps its own provider, whichever one is active for uploads.
+    const descriptor = this.providers.for(video.provider).playback(video);
     return {
       ...context,
-      video: {
-        provider: descriptor.provider,
-        src: descriptor.src,
-        mime: descriptor.mime,
-        durationSec: video.durationSec,
-      },
+      video:
+        descriptor.provider === 'BUNNY'
+          ? {
+              provider: 'BUNNY',
+              embedUrl: descriptor.embedUrl,
+              expiresAt: descriptor.expiresAt,
+              durationSec: video.durationSec,
+            }
+          : {
+              provider: 'LOCAL',
+              src: descriptor.src,
+              mime: descriptor.mime,
+              durationSec: video.durationSec,
+            },
     };
   }
 }

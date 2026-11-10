@@ -262,8 +262,12 @@ export default async function LessonPage({
         <article className="min-w-0">
           {result.status === 'ok' ? (
             <LessonPlayer
-              label={t('playerLabel')}
-              src={result.data.video.src}
+              label={
+                result.data.video.provider === 'BUNNY'
+                  ? title
+                  : t('playerLabel')
+              }
+              video={result.data.video}
               poster={result.data.poster}
               unsupported={t('unsupported')}
             />

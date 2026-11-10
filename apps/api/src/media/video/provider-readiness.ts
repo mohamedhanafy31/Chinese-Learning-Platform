@@ -12,9 +12,8 @@ export const BUNNY_ENV_KEYS = [
 export type BunnyEnvKey = (typeof BUNNY_ENV_KEYS)[number];
 
 /**
- * Which video provider is usable. Only variable names are reported, never
- * values. `active` stays LOCAL until the Bunny provider ships (M7 flips it
- * when `bunny.configured`).
+ * Which video provider handles new uploads: BUNNY only when all five variables
+ * are set, otherwise LOCAL. Only variable names are reported, never values.
  */
 export function computeProviderReadiness(
   values: Partial<Record<BunnyEnvKey, string | undefined>>,
@@ -22,7 +21,7 @@ export function computeProviderReadiness(
   const missing = BUNNY_ENV_KEYS.filter((key) => !values[key]);
   return {
     bunny: { configured: missing.length === 0, missing },
-    active: 'LOCAL',
+    active: missing.length === 0 ? 'BUNNY' : 'LOCAL',
   };
 }
 

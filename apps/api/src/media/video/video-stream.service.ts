@@ -3,7 +3,7 @@ import { stat } from 'node:fs/promises';
 import { pipeline } from 'node:stream';
 
 import { Inject, Injectable, Logger, NotFoundException } from '@nestjs/common';
-import { Role, VideoStatus, type PublicUser } from '@app/shared';
+import { Role, VideoProvider, VideoStatus, type PublicUser } from '@app/shared';
 import type { Request, Response } from 'express';
 
 import { LocalProvider } from './local.provider';
@@ -45,6 +45,7 @@ export class VideoStreamService {
     const isAdmin = user?.role === Role.ADMIN;
     if (
       asset.status !== VideoStatus.READY ||
+      asset.provider !== VideoProvider.LOCAL ||
       !asset.localKey ||
       (!isAdmin && asset.lesson.activeVideoId !== asset.id)
     ) {

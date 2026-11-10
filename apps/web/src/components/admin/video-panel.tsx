@@ -1,11 +1,16 @@
 'use client';
 
-import { Film, Info, Trash2, Upload, X } from 'lucide-react';
+import { CircleAlert, Film, Info, Trash2, Upload, X } from 'lucide-react';
 import { usePathname, useRouter } from 'next/navigation';
 import { useLocale, useTranslations } from 'next-intl';
 import { useEffect, useId, useRef, useState } from 'react';
 
-import { uploadedVideoSchema, type AdminVideo, type Locale } from '@app/shared';
+import {
+  uploadedVideoSchema,
+  type AdminVideo,
+  type Locale,
+  type PendingVideo,
+} from '@app/shared';
 
 import {
   StatusLine,
@@ -16,6 +21,8 @@ import { FormAlert } from '@/components/auth/form-controls';
 import { adminErrorKey } from '@/lib/admin-errors';
 import { failureKey } from '@/lib/admin-client';
 import { apiFetch } from '@/lib/api-client';
+import { startBunnyUpload } from '@/lib/bunny-upload';
+import { usePendingVideo } from '@/lib/use-pending-video';
 import {
   formatDuration,
   formatFileSize,
@@ -34,6 +41,10 @@ interface VideoPanelProps {
   lessonId: string;
   lessonTitle: string;
   video: AdminVideo | null;
+  /** A newer upload still processing on Bunny, or one that failed. */
+  pending: PendingVideo | null;
+  /** Which provider takes new uploads; null when diagnostics are unavailable. */
+  activeProvider: 'LOCAL' | 'BUNNY' | null;
   /**
    * API origin the browser posts uploads to ('' for same-origin `/api`). In
    * development this is the API itself, so the Next dev server never buffers a
@@ -46,11 +57,13 @@ interface VideoPanelProps {
 
 /** The lesson's video: details, preview, upload with progress, remove. */
 export function VideoPanel({
+  activeProvider,
   bunnyConfigured,
   lessonId,
   lessonTitle,
+  pending: initialPending,
   uploadOrigin,
-  video,
+  video: initialVideo,
 }: VideoPanelProps): React.JSX.Element {
   const t = useTranslations('Admin.video');
   const tErrors = useTranslations('Admin.errors');
@@ -72,6 +85,15 @@ export function VideoPanel({
 
   const busy = phase !== 'idle';
 
+  // While a Bunny upload is processing, re-read the lesson every five seconds.
+  const { pending, video } = usePendingVideo({
+    lessonId,
+    video: initialVideo,
+    pending: initialPending,
+    onReady: () => router.refresh(),
+  });
+  const useBunny = activeProvider === 'BUNNY';
+
   // Leaving the page cancels an upload in flight (the API discards the partial
   // file), so a half-sent video never lingers.
   useEffect(
@@ -91,6 +113,7 @@ export function VideoPanel({
         if (outcome.status === 401) return 'unauthenticated';
         if (outcome.status === 413) return t('errors.tooLarge');
         if (outcome.status === 415) return t('errors.type');
+        if (outcome.status === 502) return t('errors.unavailable');
         return tErrors(adminErrorKey(outcome.status));
       case 'network-error':
         return t('errors.network');
@@ -114,13 +137,21 @@ export function VideoPanel({
 
     const durationSec = await readVideoDuration(file);
     setPhase('uploading');
-    const started = startVideoUpload({
-      url: `${uploadOrigin}/api/v1/admin/lessons/${lessonId}/videos/local`,
-      file,
-      durationSec,
-      onProgress: setProgress,
-      onSent: () => setPhase('finishing'),
-    });
+    const started = useBunny
+      ? startBunnyUpload({
+          lessonId,
+          file,
+          durationSec,
+          onProgress: setProgress,
+          onSent: () => setPhase('finishing'),
+        })
+      : startVideoUpload({
+          url: `${uploadOrigin}/api/v1/admin/lessons/${lessonId}/videos/local`,
+          file,
+          durationSec,
+          onProgress: setProgress,
+          onSent: () => setPhase('finishing'),
+        });
     upload.current = started;
     const outcome = await started.promise;
     upload.current = null;
@@ -134,8 +165,8 @@ export function VideoPanel({
     if (outcome.kind === 'success') {
       const parsed = uploadedVideoSchema.safeParse(outcome.data);
       setProgress(1);
-      setDevOnly(parsed.success && parsed.data.devOnly);
-      setStatus(t('done'));
+      setDevOnly(!useBunny && parsed.success && parsed.data.devOnly);
+      setStatus(useBunny ? t('bunny.uploadedProcessing') : t('done'));
       router.refresh();
       return;
     }
@@ -167,6 +198,18 @@ export function VideoPanel({
     router.refresh();
   }
 
+  function failureText(reason: string | undefined): string {
+    const known = [
+      'encoding-failed',
+      'upload-failed',
+      'upload-abandoned',
+      'video-missing',
+    ];
+    return t(
+      `bunny.reasons.${reason && known.includes(reason) ? reason : 'unknown'}`,
+    );
+  }
+
   const percent = Math.round(progress * 100);
   const percentText = formatPercent(progress, locale);
   const progressLabelId = `${id}-progress`;
@@ -196,7 +239,15 @@ export function VideoPanel({
       <div className="mt-6">
         {video ? (
           <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,20rem)]">
-            {video.status === 'READY' ? (
+            {video.status === 'READY' && video.provider === 'BUNNY' ? (
+              <p
+                data-testid="video-bunny-note"
+                className="flex items-center gap-3 rounded-2xl bg-glaze-shade px-5 py-8 text-cobalt"
+              >
+                <Film aria-hidden="true" className="size-6 shrink-0" />
+                {t('bunny.previewNote')}
+              </p>
+            ) : video.status === 'READY' ? (
               <div className="overflow-hidden rounded-2xl bg-deep">
                 <video
                   key={video.id}
@@ -237,12 +288,18 @@ export function VideoPanel({
                 </div>
               )}
               <div>
+                <dt className="font-semibold text-deep">{t('storage')}</dt>
+                <dd className="text-cobalt">
+                  {t(`provider.${video.provider}`)}
+                </dd>
+              </div>
+              <div>
                 <dt className="font-semibold text-deep">{t('fileStatus')}</dt>
                 <dd className="text-cobalt">{t(`status.${video.status}`)}</dd>
               </div>
             </dl>
           </div>
-        ) : (
+        ) : pending ? null : (
           <p
             data-testid="video-empty"
             className="flex items-center gap-3 rounded-2xl border-2 border-dashed border-unfired px-5 py-8 text-unfired-ink"
@@ -252,6 +309,51 @@ export function VideoPanel({
           </p>
         )}
       </div>
+
+      {pending ? (
+        <div
+          data-testid="video-pending"
+          data-status={pending.status}
+          className="mt-4 rounded-2xl bg-glaze-shade px-5 py-4"
+        >
+          {pending.status === 'FAILED' ? (
+            <p
+              role="alert"
+              data-testid="video-pending-failed"
+              className="flex items-start gap-3 font-semibold leading-relaxed text-deep"
+            >
+              <CircleAlert
+                aria-hidden="true"
+                className="mt-0.5 size-5 shrink-0"
+              />
+              {t('bunny.failed', {
+                reason: failureText(pending.failureReason),
+              })}
+            </p>
+          ) : (
+            <div role="status">
+              <p className="font-semibold text-deep">
+                {pending.status === 'PROCESSING'
+                  ? t('bunny.processing')
+                  : t('bunny.pendingUploading')}
+              </p>
+              {pending.status === 'PROCESSING' ? (
+                <>
+                  <div
+                    aria-hidden="true"
+                    className="mt-3 h-2.5 overflow-hidden rounded-full bg-wash"
+                  >
+                    <div className="h-full w-2/5 rounded-full bg-cobalt motion-safe:animate-pulse" />
+                  </div>
+                  <p className="mt-3 text-sm text-cobalt">
+                    {t('bunny.processingHelp')}
+                  </p>
+                </>
+              ) : null}
+            </div>
+          )}
+        </div>
+      ) : null}
 
       <div className="mt-6 flex flex-wrap items-center gap-x-4 gap-y-2">
         <input
@@ -274,7 +376,7 @@ export function VideoPanel({
         >
           <Upload aria-hidden="true" className="size-5" />
           {phase === 'idle'
-            ? video
+            ? video || pending
               ? t('replace')
               : t('choose')
             : t('uploading')}
@@ -289,7 +391,7 @@ export function VideoPanel({
             {t('cancel')}
           </button>
         ) : null}
-        {video && !busy ? (
+        {(video || pending) && !busy ? (
           <button
             type="button"
             onClick={() => {

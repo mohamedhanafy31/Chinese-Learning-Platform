@@ -17,19 +17,27 @@ import type {
   VideoAsset,
 } from '../generated/prisma/client';
 import { toImageRef } from '../media/media-url';
-import { toAdminVideo } from '../media/video/video-mapper';
+import { toAdminVideo, toPendingVideo } from '../media/video/video-mapper';
 
 export type LevelRow = Level & { coverImage: MediaAsset | null };
 export type LessonRow = Lesson & { thumbnail: MediaAsset | null };
-export type AdminLessonRow = LessonRow & { activeVideo: VideoAsset | null };
+export type AdminLessonRow = LessonRow & {
+  activeVideo: VideoAsset | null;
+  videos: VideoAsset[];
+};
 
 /** Prisma `include` fragments that keep rows compatible with the mappers. */
 export const levelImageInclude = { coverImage: true } as const;
 export const lessonImageInclude = { thumbnail: true } as const;
-/** The admin also sees each lesson's active video. */
+/** The admin also sees each lesson's active video and its unfinished uploads. */
 export const lessonAdminInclude = {
   thumbnail: true,
   activeVideo: true,
+  videos: {
+    where: { status: { not: 'READY' } },
+    orderBy: { createdAt: 'desc' },
+    take: 5,
+  },
 } as const;
 
 /** DB JSON is never trusted: it is parsed again on the way out. */
@@ -62,6 +70,7 @@ export function toAdminLesson(row: AdminLessonRow): AdminLesson {
     thumbnailId: row.thumbnailId,
     thumbnail: toImageRef(row.thumbnail),
     video: row.activeVideo ? toAdminVideo(row.activeVideo) : null,
+    pendingVideo: toPendingVideo(row.videos, row.activeVideo),
     firstPublishedAt: row.firstPublishedAt?.toISOString() ?? null,
     archivedAt: row.archivedAt?.toISOString() ?? null,
     createdAt: row.createdAt.toISOString(),

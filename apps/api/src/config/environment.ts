@@ -6,6 +6,23 @@ const optionalString = z.preprocess(
   z.string().min(1).optional(),
 );
 
+function optionalOf(schema: z.ZodType<string>): z.ZodType<string | undefined> {
+  return z.preprocess(
+    (value) => (value === '' ? undefined : value),
+    schema.optional(),
+  ) as z.ZodType<string | undefined>;
+}
+
+function withDefault<Output extends string | number>(
+  schema: z.ZodType<Output>,
+  fallback: Output,
+): z.ZodType<Output> {
+  return z.preprocess(
+    (value) => (value === '' || value === undefined ? undefined : value),
+    schema.default(fallback),
+  ) as z.ZodType<Output>;
+}
+
 export const environmentSchema = z
   .object({
     NODE_ENV: z
@@ -27,11 +44,34 @@ export const environmentSchema = z
     ),
     JWT_ACCESS_SECRET: z.string().min(32),
     JWT_REFRESH_SECRET: z.string().min(32),
-    BUNNY_LIBRARY_ID: optionalString,
+    BUNNY_LIBRARY_ID: optionalOf(
+      z
+        .string()
+        .regex(/^\d+$/, 'BUNNY_LIBRARY_ID must be a numeric library id'),
+    ),
     BUNNY_API_KEY: optionalString,
     BUNNY_TOKEN_KEY: optionalString,
     BUNNY_WEBHOOK_SECRET: optionalString,
-    BUNNY_CDN_HOST: optionalString,
+    BUNNY_CDN_HOST: optionalOf(
+      z
+        .string()
+        .regex(
+          /^(?=.{1,253}$)([a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?)(\.[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?)*$/i,
+          'BUNNY_CDN_HOST must be a bare hostname without a scheme or path',
+        ),
+    ),
+    /** Overridable so tests can point the client at a mock Bunny server. */
+    BUNNY_API_BASE: withDefault(z.url(), 'https://video.bunnycdn.com'),
+    BUNNY_EMBED_BASE: withDefault(z.url(), 'https://iframe.mediadelivery.net'),
+    BUNNY_EMBED_TTL_SEC: withDefault(
+      z.coerce.number().int().min(60).max(86_400),
+      7200,
+    ),
+    /** Seconds between reconcile runs; 0 disables the interval. */
+    VIDEO_RECONCILE_INTERVAL_SEC: withDefault(
+      z.coerce.number().int().min(0).max(86_400),
+      300,
+    ),
     PAYMOB_SECRET_KEY: optionalString,
     PAYMOB_PUBLIC_KEY: optionalString,
     PAYMOB_HMAC_SECRET: optionalString,

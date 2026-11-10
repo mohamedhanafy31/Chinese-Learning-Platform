@@ -427,6 +427,9 @@ describe('local video (e2e)', () => {
       },
       active: 'LOCAL',
       devOnly: false,
+      // Added in M7 (the diagnostics page).
+      counts: { local: 0, bunny: 0, processing: 0, failed: 0 },
+      lastWebhookAt: null,
     });
     expect(response.headers['cache-control']).toBe('private, no-store');
   });

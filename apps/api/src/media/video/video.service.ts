@@ -10,13 +10,17 @@ import {
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import {
+  createBunnyUploadRequestSchema,
   uploadVideoFieldsSchema,
   VideoProvider as VideoProviderKind,
   VideoStatus,
+  type BunnyUploadTicket,
   type ProviderReadiness,
   type UploadedVideo,
   type VideoDiagnostics,
 } from '@app/shared';
+
+import { BunnyVideoService } from './bunny/bunny-video.service';
 
 import { LocalProvider } from './local.provider';
 import {
@@ -28,24 +32,16 @@ import {
   computeProviderReadiness,
   isPartiallyConfigured,
 } from './provider-readiness';
+import { sanitizeOriginalName } from './original-name';
 import { removeVideoFile } from './video-files';
 import { toAdminVideo } from './video-mapper';
-import type { VideoProvider } from './video-provider';
+import { VideoProviders } from './video-providers';
 import type { Environment } from '../../config/environment';
 import { MediaStorage } from '../media-storage';
 import { PrismaService } from '../../prisma/prisma.service';
+import { WebhookProvider } from '../../generated/prisma/client';
 
-const MAX_NAME_LENGTH = 255;
-
-/** Browsers send a bare name, but never trust it: no paths, no control chars. */
-export function sanitizeOriginalName(name: string | undefined): string {
-  const base = path.basename((name ?? '').replace(/\\/g, '/'));
-  // eslint-disable-next-line no-control-regex
-  const cleaned = base.replace(/[\u0000-\u001f\u007f]/g, '').trim();
-  return Array.from(cleaned || 'video')
-    .slice(0, MAX_NAME_LENGTH)
-    .join('');
-}
+export { sanitizeOriginalName };
 
 @Injectable()
 export class VideoService implements OnModuleInit {
@@ -54,6 +50,8 @@ export class VideoService implements OnModuleInit {
   constructor(
     @Inject(PrismaService) private readonly prisma: PrismaService,
     @Inject(LocalProvider) private readonly local: LocalProvider,
+    @Inject(VideoProviders) private readonly providers: VideoProviders,
+    @Inject(BunnyVideoService) private readonly bunny: BunnyVideoService,
     @Inject(MediaStorage) private readonly storage: MediaStorage,
     @Inject(ConfigService)
     private readonly config: ConfigService<Environment, true>,
@@ -91,14 +89,57 @@ export class VideoService implements OnModuleInit {
     });
   }
 
-  diagnostics(): VideoDiagnostics {
+  async diagnostics(): Promise<VideoDiagnostics> {
     const readiness = this.providerReadiness();
-    return { ...readiness, devOnly: this.isDevOnly(readiness) };
+    const [local, bunny, processing, failed, lastWebhook] = await Promise.all([
+      this.prisma.videoAsset.count({
+        where: { provider: VideoProviderKind.LOCAL },
+      }),
+      this.prisma.videoAsset.count({
+        where: { provider: VideoProviderKind.BUNNY },
+      }),
+      this.prisma.videoAsset.count({
+        where: {
+          status: { in: [VideoStatus.UPLOADING, VideoStatus.PROCESSING] },
+        },
+      }),
+      this.prisma.videoAsset.count({ where: { status: VideoStatus.FAILED } }),
+      this.prisma.webhookEvent.findFirst({
+        where: { provider: WebhookProvider.BUNNY },
+        orderBy: { receivedAt: 'desc' },
+        select: { receivedAt: true },
+      }),
+    ]);
+    return {
+      ...readiness,
+      devOnly: this.isDevOnly(readiness),
+      counts: { local, bunny, processing, failed },
+      lastWebhookAt: lastWebhook?.receivedAt.toISOString() ?? null,
+    };
   }
 
-  /** The provider that handles new uploads. Always LOCAL until M7. */
-  private activeProvider(): VideoProvider {
-    return this.local;
+  /** Starts a direct-to-Bunny TUS upload (409 unless Bunny is active). */
+  createBunnyUpload(
+    lessonId: string,
+    body: unknown,
+  ): Promise<BunnyUploadTicket> {
+    const parsed = createBunnyUploadRequestSchema.safeParse(body ?? {});
+    if (!parsed.success) {
+      throw new BadRequestException({
+        message: 'Validation failed',
+        issues: parsed.error.issues,
+      });
+    }
+    return this.bunny.createUpload(
+      lessonId,
+      parsed.data,
+      this.config.get('VIDEO_MAX_BYTES', { infer: true }),
+    );
+  }
+
+  /** The browser finished its TUS upload. */
+  markBunnyUploaded(assetId: string): Promise<void> {
+    return this.bunny.markUploaded(assetId);
   }
 
   private isDevOnly(readiness: ProviderReadiness): boolean {
@@ -118,7 +159,8 @@ export class VideoService implements OnModuleInit {
     fields: unknown,
   ): Promise<UploadedVideo> {
     if (!file) throw new BadRequestException('A file is required');
-    const provider = this.activeProvider();
+    // The multipart route is always local, even once Bunny is configured.
+    const provider = this.local;
     const ticket = provider.createUpload();
     let finalKey: string | null = null;
     let committed = false;
@@ -174,7 +216,10 @@ export class VideoService implements OnModuleInit {
 
       committed = true;
       if (previous) await this.discardFile(previous);
-      return { ...toAdminVideo(row), devOnly: this.diagnostics().devOnly };
+      return {
+        ...toAdminVideo(row),
+        devOnly: this.isDevOnly(this.providerReadiness()),
+      };
     } catch (error) {
       if (!committed) {
         await removeVideoFile(this.storage.videosDir, path.basename(file.path));
@@ -184,41 +229,53 @@ export class VideoService implements OnModuleInit {
     }
   }
 
-  /** Clears the lesson's video and deletes the asset and its file. Idempotent. */
+  /**
+   * Clears the lesson's video and every pending or failed upload, deleting the
+   * assets and their stored videos (files or Bunny videos). Idempotent.
+   */
   async removeActive(lessonId: string): Promise<void> {
     const removed = await this.prisma.$transaction(async (tx) => {
       await tx.$executeRaw`SELECT 1 FROM "Lesson" WHERE id = ${lessonId}::uuid FOR UPDATE`;
       const lesson = await tx.lesson.findUnique({
         where: { id: lessonId },
-        select: { activeVideo: true },
+        select: { activeVideoId: true },
       });
       if (!lesson) throw new NotFoundException('Lesson not found');
-      if (!lesson.activeVideo) return null;
+      const assets = await tx.videoAsset.findMany({ where: { lessonId } });
+      if (assets.length === 0) return [];
       await tx.lesson.update({
         where: { id: lessonId },
         data: { activeVideoId: null },
       });
-      await tx.videoAsset.delete({ where: { id: lesson.activeVideo.id } });
-      return lesson.activeVideo;
+      await tx.videoAsset.deleteMany({ where: { lessonId } });
+      return assets;
     });
-    if (removed) await this.discardFile(removed);
+    await this.discardAssets(removed);
+  }
+
+  /** Deletes stored videos of assets whose rows are already gone. */
+  async discardAssets(
+    assets: Array<{
+      id: string;
+      provider: VideoProviderKind;
+      localKey: string | null;
+      mime: string | null;
+      bunnyVideoId: string | null;
+      bunnyLibraryId: string | null;
+    }>,
+  ): Promise<void> {
+    for (const asset of assets) await this.providers.discard(asset);
   }
 
   /** Deletes a replaced asset's file after the database has committed. */
-  private async discardFile(asset: {
+  private discardFile(asset: {
     id: string;
     provider: VideoProviderKind;
     localKey: string | null;
     mime: string | null;
+    bunnyVideoId: string | null;
+    bunnyLibraryId: string | null;
   }): Promise<void> {
-    try {
-      await this.activeProvider().delete(asset);
-    } catch (error) {
-      this.logger.error(
-        `Could not delete video ${asset.id}: ${
-          error instanceof Error ? error.message : String(error)
-        }`,
-      );
-    }
+    return this.providers.discard(asset);
   }
 }

@@ -81,6 +81,8 @@ export default async function EditLessonPage({
           lessonId={lesson.id}
           lessonTitle={title}
           video={lesson.video}
+          pending={lesson.pendingVideo}
+          activeProvider={diagnostics ? diagnostics.active : null}
           uploadOrigin={videoUploadOrigin()}
           bunnyConfigured={diagnostics ? diagnostics.bunny.configured : null}
         />

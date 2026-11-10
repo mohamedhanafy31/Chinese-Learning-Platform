@@ -46,8 +46,15 @@ describe('computeProviderReadiness', () => {
     ).toEqual(['BUNNY_API_KEY']);
   });
 
-  it('keeps LOCAL active until the Bunny provider exists', () => {
-    expect(computeProviderReadiness(all).active).toBe('LOCAL');
+  it('flips to BUNNY only when all five are configured', () => {
+    expect(computeProviderReadiness(all).active).toBe('BUNNY');
+    expect(
+      computeProviderReadiness({ ...all, BUNNY_WEBHOOK_SECRET: undefined })
+        .active,
+    ).toBe('LOCAL');
+    expect(computeProviderReadiness({ BUNNY_API_KEY: 'x' }).active).toBe(
+      'LOCAL',
+    );
   });
 });
 

@@ -180,7 +180,8 @@
     "nav": {
       "label": "أقسام الإدارة",
       "levels": "المستويات",
-      "students": "الطلاب"
+      "students": "الطلاب",
+      "diagnostics": "تشخيص الفيديو"
     },
     "status": {
       "draft": "مسودة",
@@ -264,7 +265,28 @@
       "errors": {
         "tooLarge": "الفيديو أكبر من الحجم الذي يسمح به الخادم.",
         "type": "يُقبل فقط فيديو بصيغة MP4 أو WebM.",
-        "network": "انقطع الرفع. تحقق من اتصالك وحاول مجدداً."
+        "network": "انقطع الرفع. تحقق من اتصالك وحاول مجدداً.",
+        "unavailable": "تعذّر الوصول إلى Bunny Stream. حاول مجدداً بعد قليل."
+      },
+      "storage": "مكان التخزين",
+      "provider": {
+        "LOCAL": "هذا الخادم (للتطوير فقط)",
+        "BUNNY": "Bunny Stream"
+      },
+      "bunny": {
+        "uploadedProcessing": "اكتمل الرفع. تجهّز Bunny الفيديو الآن.",
+        "processing": "جارٍ المعالجة على Bunny…",
+        "processingHelp": "يستغرق هذا عادةً بضع دقائق. يمكنك مغادرة الصفحة، وسيظهر الفيديو هنا عندما يجهز.",
+        "pendingUploading": "لم يكتمل أحد عمليات الرفع. ستُنظَّف تلقائياً إن لم يكتمل أبداً.",
+        "failed": "فشل — {reason}",
+        "reasons": {
+          "encoding-failed": "تعذّرت معالجة الملف على Bunny",
+          "upload-failed": "فشل الرفع إلى Bunny",
+          "upload-abandoned": "لم يكتمل الرفع",
+          "video-missing": "لم يعد الفيديو موجوداً على Bunny",
+          "unknown": "سبب غير معروف"
+        },
+        "previewNote": "تُشغَّل فيديوهات Bunny في مشغّل صفحة الدرس نفسه."
       }
     },
     "form": {
@@ -426,6 +448,37 @@
       "revoked": "تم سحب الوصول.",
       "cancel": "إلغاء",
       "joinedLabel": "تاريخ الانضمام"
+    },
+    "diagnostics": {
+      "title": "تشخيص الفيديو",
+      "intro": "أي خدمة فيديو مفعّلة، وهل ضُبط Bunny Stream بالكامل، وكيف حال الفيديوهات. لا تُعرض القيم السرية أبداً، بل أسماء الإعدادات فقط.",
+      "activeTitle": "المزوّد المفعّل",
+      "active": {
+        "LOCAL": "محلي",
+        "BUNNY": "Bunny Stream"
+      },
+      "bunnyConfigured": "ضبط Bunny Stream",
+      "yes": "نعم",
+      "no": "لا",
+      "missingTitle": "الإعدادات الناقصة",
+      "missingNone": "لا يوجد شيء ناقص.",
+      "countsTitle": "الفيديوهات",
+      "counts": {
+        "local": "مخزّنة محلياً",
+        "bunny": "على Bunny",
+        "processing": "قيد المعالجة",
+        "failed": "فشلت"
+      },
+      "lastWebhook": "آخر إشعار من Bunny",
+      "never": "لم يصل أي إشعار",
+      "webhookTitle": "عنوان الإشعارات (Webhook)",
+      "webhookBody": "في إعدادات مكتبة Bunny Stream أضف هذا العنوان كعنوان للـ webhook، ثم احفظ السرّ نفسه في BUNNY_WEBHOOK_SECRET.",
+      "copy": "انسخ العنوان",
+      "copied": "تم نسخ العنوان.",
+      "copyFailed": "تعذّر النسخ. حدّد العنوان وانسخه يدوياً.",
+      "devOnly": "تُحفظ الفيديوهات على قرص الخادم نفسه. هذا للتطوير فقط: اضبط Bunny Stream قبل الإطلاق.",
+      "unavailableTitle": "التشخيص غير متاح",
+      "unavailableBody": "لم تستجب خدمة الفيديو. حاول مرة أخرى بعد قليل."
     }
   },
   "Metadata": {
@@ -445,7 +498,8 @@
     "adminStudents": "الطلاب · الإدارة · مازن للصينية",
     "adminStudent": "طالب · الإدارة · مازن للصينية",
     "lesson": "الدرس · مازن للصينية",
-    "lessonNamed": "{lesson} · {level} · مازن للصينية"
+    "lessonNamed": "{lesson} · {level} · مازن للصينية",
+    "adminDiagnostics": "تشخيص الفيديو · الإدارة · مازن للصينية"
   },
   "NotFound": {
     "title": "الصفحة غير موجودة",

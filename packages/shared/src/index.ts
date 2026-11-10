@@ -214,6 +214,7 @@ export const DEFAULT_VIDEO_MAX_BYTES = 2 * 1024 * 1024 * 1024;
 
 export const VideoProvider = {
   LOCAL: 'LOCAL',
+  BUNNY: 'BUNNY',
 } as const;
 
 export type VideoProvider = (typeof VideoProvider)[keyof typeof VideoProvider];
@@ -254,6 +255,45 @@ export const providerReadinessSchema = z.object({
 
 export const videoDiagnosticsSchema = providerReadinessSchema.extend({
   devOnly: z.boolean(),
+  /** Asset counts by provider and state; no secrets, no ids. */
+  counts: z.object({
+    local: z.number().int().min(0),
+    bunny: z.number().int().min(0),
+    processing: z.number().int().min(0),
+    failed: z.number().int().min(0),
+  }),
+  /** When Bunny last called the webhook, or null if it never has. */
+  lastWebhookAt: z.string().nullable(),
+});
+
+/** A newer asset that is uploading, processing or failed, beside the active one. */
+export const pendingVideoSchema = z.object({
+  id: z.uuid(),
+  status: z.enum(VideoStatus),
+  failureReason: z.string().optional(),
+  createdAt: z.string(),
+});
+
+/** Metadata the browser sends before a direct-to-Bunny TUS upload. */
+export const createBunnyUploadRequestSchema = z.object({
+  originalName: z.string().min(1).max(255),
+  sizeBytes: z.number().int().min(1).max(Number.MAX_SAFE_INTEGER).optional(),
+  durationSec: z.number().int().min(1).max(MAX_VIDEO_DURATION_SEC).optional(),
+});
+
+/** What the browser needs to start a TUS upload; never the library API key. */
+export const bunnyUploadTicketSchema = z.object({
+  assetId: z.uuid(),
+  tus: z.object({
+    endpoint: z.string(),
+    headers: z.object({
+      AuthorizationSignature: z.string(),
+      AuthorizationExpire: z.string(),
+      VideoId: z.string(),
+      LibraryId: z.string(),
+    }),
+  }),
+  metadata: z.object({ filetype: z.string(), title: z.string() }),
 });
 
 export const uploadVideoFieldsSchema = z.object({
@@ -292,14 +332,29 @@ const playbackContextShape = {
   siblings: z.array(playbackSiblingSchema),
 };
 
+export const localPlaybackSchema = z.object({
+  provider: z.literal(VideoProvider.LOCAL),
+  src: z.string().startsWith('/'),
+  mime: z.string().nullable(),
+  durationSec: z.number().int().min(0).nullable(),
+});
+
+/** A signed, expiring Bunny embed the lesson page puts in an iframe. */
+export const bunnyPlaybackSchema = z.object({
+  provider: z.literal(VideoProvider.BUNNY),
+  embedUrl: z.url(),
+  expiresAt: z.string(),
+  durationSec: z.number().int().min(0).nullable(),
+});
+
+export const playbackVideoSchema = z.discriminatedUnion('provider', [
+  localPlaybackSchema,
+  bunnyPlaybackSchema,
+]);
+
 export const playbackResponseSchema = z.object({
   ...playbackContextShape,
-  video: z.object({
-    provider: z.enum(VideoProvider),
-    src: z.string().startsWith('/'),
-    mime: z.string().nullable(),
-    durationSec: z.number().int().min(0).nullable(),
-  }),
+  video: playbackVideoSchema,
 });
 
 /** The 404 body when the lesson is open to the viewer but has no video yet. */
@@ -315,6 +370,12 @@ export const playbackDeniedSchema = z.object({
 });
 
 export type AdminVideo = z.infer<typeof adminVideoSchema>;
+export type PendingVideo = z.infer<typeof pendingVideoSchema>;
+export type CreateBunnyUploadRequest = z.infer<
+  typeof createBunnyUploadRequestSchema
+>;
+export type BunnyUploadTicket = z.infer<typeof bunnyUploadTicketSchema>;
+export type PlaybackVideo = z.infer<typeof playbackVideoSchema>;
 export type UploadedVideo = z.infer<typeof uploadedVideoSchema>;
 export type ProviderReadiness = z.infer<typeof providerReadinessSchema>;
 export type VideoDiagnostics = z.infer<typeof videoDiagnosticsSchema>;
@@ -334,6 +395,8 @@ export const adminLessonSchema = z.object({
   thumbnailId: z.uuid().nullable(),
   thumbnail: imageRefSchema.nullable(),
   video: adminVideoSchema.nullable(),
+  /** A newer upload still in flight (or failed) next to the active video. */
+  pendingVideo: pendingVideoSchema.nullable(),
   firstPublishedAt: timestampSchema.nullable(),
   archivedAt: timestampSchema.nullable(),
   createdAt: timestampSchema,

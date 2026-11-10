@@ -180,7 +180,8 @@
     "nav": {
       "label": "Admin sections",
       "levels": "Levels",
-      "students": "Students"
+      "students": "Students",
+      "diagnostics": "Video diagnostics"
     },
     "status": {
       "draft": "Draft",
@@ -264,7 +265,28 @@
       "errors": {
         "tooLarge": "The video is larger than the server allows.",
         "type": "Only MP4 or WebM videos are accepted.",
-        "network": "The upload was interrupted. Check your connection and try again."
+        "network": "The upload was interrupted. Check your connection and try again.",
+        "unavailable": "Bunny Stream could not be reached. Try again in a moment."
+      },
+      "storage": "Stored on",
+      "provider": {
+        "LOCAL": "This server (development only)",
+        "BUNNY": "Bunny Stream"
+      },
+      "bunny": {
+        "uploadedProcessing": "Upload finished. Bunny is preparing the video.",
+        "processing": "Processing on Bunny…",
+        "processingHelp": "This usually takes a few minutes. You can leave this page; the video appears here when it is ready.",
+        "pendingUploading": "An upload did not finish. It is cleared automatically if it never completes.",
+        "failed": "Failed — {reason}",
+        "reasons": {
+          "encoding-failed": "Bunny could not process the file",
+          "upload-failed": "the upload to Bunny failed",
+          "upload-abandoned": "the upload never finished",
+          "video-missing": "Bunny no longer has the video",
+          "unknown": "unknown reason"
+        },
+        "previewNote": "Bunny videos play in the lesson page’s own player."
       }
     },
     "form": {
@@ -426,6 +448,37 @@
       "revoked": "Access revoked.",
       "cancel": "Cancel",
       "joinedLabel": "Joined"
+    },
+    "diagnostics": {
+      "title": "Video diagnostics",
+      "intro": "Which video service is active, whether Bunny Stream is fully set up, and how the videos are doing. Secret values are never shown, only the names of settings.",
+      "activeTitle": "Active provider",
+      "active": {
+        "LOCAL": "Local",
+        "BUNNY": "Bunny Stream"
+      },
+      "bunnyConfigured": "Bunny Stream configured",
+      "yes": "Yes",
+      "no": "No",
+      "missingTitle": "Missing settings",
+      "missingNone": "Nothing is missing.",
+      "countsTitle": "Videos",
+      "counts": {
+        "local": "Stored locally",
+        "bunny": "On Bunny",
+        "processing": "Processing",
+        "failed": "Failed"
+      },
+      "lastWebhook": "Last Bunny webhook",
+      "never": "Never received",
+      "webhookTitle": "Webhook address",
+      "webhookBody": "In your Bunny Stream library settings, add this address as the webhook URL, then save the same secret in BUNNY_WEBHOOK_SECRET.",
+      "copy": "Copy address",
+      "copied": "Address copied.",
+      "copyFailed": "Could not copy. Select the address and copy it by hand.",
+      "devOnly": "Videos are stored on the server’s own disk. This is for development only: configure Bunny Stream before going live.",
+      "unavailableTitle": "Diagnostics are unavailable",
+      "unavailableBody": "The video service did not answer. Please try again in a moment."
     }
   },
   "Metadata": {
@@ -445,7 +498,8 @@
     "adminStudents": "Students · Admin · Mazen Chinese",
     "adminStudent": "Student · Admin · Mazen Chinese",
     "lesson": "Lesson · Mazen Chinese",
-    "lessonNamed": "{lesson} · {level} · Mazen Chinese"
+    "lessonNamed": "{lesson} · {level} · Mazen Chinese",
+    "adminDiagnostics": "Video diagnostics · Admin · Mazen Chinese"
   },
   "NotFound": {
     "title": "Page not found",

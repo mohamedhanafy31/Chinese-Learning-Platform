@@ -1,25 +1,50 @@
+import type { PlaybackVideo } from '@app/shared';
+
+const FRAME =
+  'rounded-2xl bg-white p-2 shadow-[0_34px_40px_-28px_rgb(3_10_40/0.55)]';
+
+/** What a signed Bunny embed may do inside its iframe, and nothing more. */
+const EMBED_ALLOW =
+  'accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture';
+
 /**
  * The lesson video in its porcelain frame: a bright glaze mount with 1rem
  * corners and a soft cobalt-tinted lift, `deep` ground behind any letterbox.
- * Native controls only: keyboard, captions menus and fullscreen come from the
- * browser. Downloads and picture-in-picture are switched off.
+ * A LOCAL video uses native controls only (keyboard, captions menus and
+ * fullscreen come from the browser; downloads and picture-in-picture are off).
+ * A BUNNY video is Bunny's signed embed in a responsive 16:9 iframe.
  */
 export function LessonPlayer({
   label,
   poster,
-  src,
   unsupported,
+  video,
 }: {
+  /** Accessible name of the player; the lesson title for the embed. */
   label: string;
-  src: string;
+  video: PlaybackVideo;
   poster: string | null;
   unsupported: string;
 }): React.JSX.Element {
+  if (video.provider === 'BUNNY') {
+    return (
+      <div data-reveal="" className={FRAME}>
+        <div className="relative aspect-video overflow-hidden rounded-xl bg-deep">
+          <iframe
+            data-testid="lesson-embed"
+            src={video.embedUrl}
+            title={label}
+            allow={EMBED_ALLOW}
+            allowFullScreen
+            loading="lazy"
+            className="absolute inset-0 size-full border-0"
+          />
+        </div>
+      </div>
+    );
+  }
   return (
-    <div
-      data-reveal=""
-      className="rounded-2xl bg-white p-2 shadow-[0_34px_40px_-28px_rgb(3_10_40/0.55)]"
-    >
+    <div data-reveal="" className={FRAME}>
       <div className="overflow-hidden rounded-xl bg-deep">
         <video
           data-testid="lesson-video"
@@ -28,7 +53,7 @@ export function LessonPlayer({
           preload="metadata"
           controlsList="nodownload"
           disablePictureInPicture
-          src={src}
+          src={video.src}
           poster={poster ?? undefined}
           aria-label={label}
           className="block aspect-video w-full bg-deep"
