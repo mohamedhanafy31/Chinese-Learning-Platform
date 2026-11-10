@@ -233,11 +233,11 @@ Prerequisite: `git init` in this folder (Codex needs a git repo); optionally a p
 | 2 | Paymob methods | **Cards only** (one card integration id). Wallets/Fawry later = add integration ids. |
 | 3 | UI languages | **Arabic + English + Chinese**. `next-intl`, locale prefix routes (`/ar`, `/en`, `/zh`), Arabic = RTL (`dir="rtl"`, logical CSS properties). Content fields (level/lesson/quiz text) stored per locale (`title_ar/en/zh` via JSON `{ar,en,zh}` columns), with fallback to English. |
 | 4 | Unlocking | **Sequential**: lesson N+1 opens only when lesson N is completed. Admin can preview everything. |
-| 5 | Completion rule | *Assumed:* **video ≥ 90 % watched AND every quiz of the lesson passed** (lessons without quizzes: video only). |
+| 5 | Completion rule | **video ≥ 90 % watched AND every quiz of the lesson passed** (lessons without quizzes: video only). |
 | 6 | Free preview | **Yes** — admin can flag lessons as free preview (open to anyone, outside the sequence lock). |
 | 7 | Email verification | **Later** (not in MVP). |
 | 8 | Access | **Simplest: lifetime access.** Refunds handled manually in Paymob dashboard; admin revokes enrollment by hand. No automatic refund webhook handling in MVP (callback is recorded only). |
-| 9 | Phone | *Assumed:* **required at registration** (Egyptian mobile format validated), sent to Paymob in `billing_data`. |
+| 9 | Phone | **required at registration** (Egyptian mobile format validated), sent to Paymob in `billing_data`. |
 | 10 | Local video | **Development only.** Production uses Bunny. Local provider kept simple: plain multipart upload (no tus/chunking), cookie-auth Range streaming. |
 | 11 | Archived levels | Existing buyers **keep access**. |
 | 12 | Extras budget | **Skip for MVP**: no Sentry/uptime/off-box backup services. Keep a local nightly `pg_dump` script + health endpoints only. |
