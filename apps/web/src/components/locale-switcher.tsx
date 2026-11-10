@@ -11,21 +11,44 @@ const localeLabels: Record<LocaleCode, string> = {
 interface LocaleSwitcherProps {
   currentLocale: LocaleCode;
   label: string;
+  /** Visual tone: on the cobalt field or on glaze white. */
+  tone?: 'on-cobalt' | 'on-glaze';
 }
 
 export function LocaleSwitcher({
   currentLocale,
   label,
+  tone = 'on-glaze',
 }: LocaleSwitcherProps): React.JSX.Element {
+  const idle =
+    tone === 'on-cobalt'
+      ? 'text-wash hover:text-glaze'
+      : 'text-cobalt hover:text-deep';
+  const active =
+    tone === 'on-cobalt'
+      ? 'text-glaze underline decoration-seal decoration-2 underline-offset-8'
+      : 'text-deep underline decoration-seal decoration-2 underline-offset-8';
+
   return (
     <nav aria-label={label}>
-      <ul>
+      <ul className="flex items-center gap-1 text-sm">
         {Object.values(Locale).map((locale) => (
           <li key={locale}>
             {locale === currentLocale ? (
-              <span aria-current="page">{localeLabels[locale]}</span>
+              <span
+                aria-current="page"
+                lang={locale}
+                className={`inline-flex min-h-11 items-center px-2 ${active}`}
+              >
+                {localeLabels[locale]}
+              </span>
             ) : (
-              <Link href={`/${locale}`} hrefLang={locale} lang={locale}>
+              <Link
+                href={`/${locale}`}
+                hrefLang={locale}
+                lang={locale}
+                className={`inline-flex min-h-11 items-center px-2 transition-colors ${idle}`}
+              >
                 {localeLabels[locale]}
               </Link>
             )}

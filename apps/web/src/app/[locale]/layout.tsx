@@ -9,10 +9,11 @@ import { RTL_LOCALES, type Locale } from '@app/shared';
 import { routing } from '@/i18n/routing';
 
 import '../globals.css';
+import { fontVariables } from '../fonts';
 
 export const metadata: Metadata = {
-  title: 'Chinese Learning Platform',
-  description: 'Learn Chinese in Arabic, English, or Chinese.',
+  title: 'Mazen Chinese · 马赞中文',
+  description: 'Chinese lessons for Arabic speakers, taught by Mazen.',
 };
 
 export function generateStaticParams(): Array<{ locale: string }> {
@@ -41,8 +42,8 @@ export default async function LocaleLayout({
     : 'ltr';
 
   return (
-    <html lang={locale} dir={direction}>
-      <body>
+    <html lang={locale} dir={direction} className={fontVariables}>
+      <body className="min-h-dvh antialiased">
         <NextIntlClientProvider messages={messages}>
           {children}
         </NextIntlClientProvider>

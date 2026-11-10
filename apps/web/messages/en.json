@@ -1,10 +1,67 @@
 {
+  "Brand": {
+    "name": "Mazen Chinese",
+    "nameZh": "马赞中文",
+    "home": "Mazen Chinese home"
+  },
+  "Nav": {
+    "label": "Main",
+    "levels": "Levels",
+    "about": "About Mazen",
+    "login": "Log in",
+    "language": "Language",
+    "openMenu": "Open menu",
+    "closeMenu": "Close menu"
+  },
   "Home": {
-    "appName": "Chinese Learning Platform",
-    "placeholder": "The learning experience is coming in a later milestone.",
-    "languageSwitcher": "Choose language",
-    "apiStatus": "API status",
-    "apiOnline": "Online",
-    "apiOffline": "Unavailable"
+    "headlineSecond": "跟马赞学中文",
+    "headlineSecondLang": "zh",
+    "headline": "Learn Chinese with Mazen",
+    "lede": "Short video lessons explained in Arabic, one level after another, from your first tone to real conversation. Start with a free lesson today.",
+    "primary": "Start the free lesson",
+    "secondary": "See the levels",
+    "levelsLabel": "Course levels",
+    "levelWord": "Level",
+    "viewLevel": "Level details",
+    "pricePending": "Price announced soon",
+    "priceLabel": "{price} EGP · lifetime access",
+    "portraitPlaceholder": "Mazen's photo goes here",
+    "portraitAlt": "Mazen, your Chinese teacher",
+    "pathTitle": "One lesson opens the next",
+    "pathBody": "Watch the lesson, pass its short quiz, and the next one opens. Every finished lesson gets Mazen's seal, so you always know where you are.",
+    "pathExample": "Example of a level in progress",
+    "stepsTitle": "How it works",
+    "step1Title": "Choose a level",
+    "step1Body": "Pay once by card in Egyptian pounds. The level is yours for life.",
+    "step2Title": "Watch and practise",
+    "step2Body": "Each lesson is a short video with Mazen, then a quiz to check yourself.",
+    "step3Title": "Move forward",
+    "step3Body": "Pass the quiz and the next lesson opens. Your progress is saved on every device.",
+    "aboutTitle": "Your teacher, Mazen",
+    "aboutBody": "Mazen's introduction will appear here: who he is, how he learned Chinese, and how he teaches it to Arabic speakers.",
+    "aboutPending": "Text to be written by Mazen",
+    "closeTitle": "Your first lesson is free",
+    "closeBody": "No payment needed to try. Create an account and start with the four tones.",
+    "sample": "Sample content",
+    "footer": "Chinese lessons for Arabic speakers, taught by Mazen."
+  },
+  "Path": {
+    "done": "Completed",
+    "next": "Up next",
+    "locked": "Locked",
+    "preview": "Free",
+    "start": "Start",
+    "sealedBy": "Completed, sealed by Mazen",
+    "lessonNumber": "Lesson {n}",
+    "minutes": "{count} min"
+  },
+  "Level": {
+    "back": "All levels",
+    "lessonsCount": "{count} lessons",
+    "progress": "{done} of {total} completed",
+    "buy": "Unlock this level",
+    "lessons": "Lessons in this level",
+    "includes": "In this level",
+    "empty": "Mazen is preparing this level's lessons."
   }
 }

@@ -1,10 +1,67 @@
 {
+  "Brand": {
+    "name": "马赞中文",
+    "nameZh": "马赞中文",
+    "home": "马赞中文首页"
+  },
+  "Nav": {
+    "label": "主导航",
+    "levels": "课程级别",
+    "about": "关于马赞",
+    "login": "登录",
+    "language": "语言",
+    "openMenu": "打开菜单",
+    "closeMenu": "关闭菜单"
+  },
   "Home": {
-    "appName": "中文学习平台",
-    "placeholder": "学习功能将在后续里程碑中添加。",
-    "languageSwitcher": "选择语言",
-    "apiStatus": "API 状态",
-    "apiOnline": "在线",
-    "apiOffline": "暂不可用"
+    "headlineSecond": "Gēn Mǎ Zàn xué Zhōngwén",
+    "headlineSecondLang": "zh-Latn",
+    "headline": "跟马赞学中文",
+    "lede": "用阿拉伯语讲解的短视频课，一个级别接一个级别，从第一个声调到真正的对话。今天就从免费课开始。",
+    "primary": "开始免费课",
+    "secondary": "查看课程级别",
+    "levelsLabel": "课程级别",
+    "levelWord": "级别",
+    "viewLevel": "级别详情",
+    "pricePending": "价格即将公布",
+    "priceLabel": "{price} 埃及镑 · 永久访问",
+    "portraitPlaceholder": "此处放马赞的照片",
+    "portraitAlt": "马赞，你的中文老师",
+    "pathTitle": "学完一课，开启下一课",
+    "pathBody": "看完视频，通过小测验，下一课就会打开。每完成一课都会盖上马赞的印章，你总能知道自己学到了哪里。",
+    "pathExample": "学习中的级别示例",
+    "stepsTitle": "学习方式",
+    "step1Title": "选择级别",
+    "step1Body": "用银行卡以埃及镑一次付款，该级别永久属于你。",
+    "step2Title": "观看并练习",
+    "step2Body": "每课是一段马赞的短视频，然后用测验检查自己。",
+    "step3Title": "继续前进",
+    "step3Body": "通过测验即可开启下一课，学习进度在所有设备上保存。",
+    "aboutTitle": "你的老师：马赞",
+    "aboutBody": "这里将介绍马赞：他是谁、如何学会中文，以及他如何教阿拉伯语使用者学中文。",
+    "aboutPending": "由马赞撰写",
+    "closeTitle": "第一课免费",
+    "closeBody": "无需付款即可试学。创建账号，从四个声调开始。",
+    "sample": "示例内容",
+    "footer": "为阿拉伯语使用者开设的中文课，由马赞授课。"
+  },
+  "Path": {
+    "done": "已完成",
+    "next": "下一课",
+    "locked": "未解锁",
+    "preview": "免费",
+    "start": "开始",
+    "sealedBy": "已完成，马赞盖章",
+    "lessonNumber": "第{n}课",
+    "minutes": "{count} 分钟"
+  },
+  "Level": {
+    "back": "全部级别",
+    "lessonsCount": "{count} 课",
+    "progress": "已完成 {done}/{total}",
+    "buy": "解锁本级别",
+    "lessons": "本级别课程",
+    "includes": "本级别内容",
+    "empty": "马赞正在准备本级别的课程。"
   }
 }

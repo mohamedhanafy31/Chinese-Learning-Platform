@@ -1,1 +1,106 @@
 @import 'tailwindcss';
+
+/*
+ * Qinghua world: glaze white and cobalt in depth; cinnabar only for the seal
+ * and the one lesson in focus. No greys, no other hues.
+ */
+@theme {
+  --color-glaze: #f4f7fa;
+  --color-glaze-shade: #e3eaf3;
+  --color-wash: #b9cae6;
+  --color-wash-strong: #8fa9d6;
+  --color-cobalt: #1c3f94;
+  --color-cobalt-mid: #2a55b8;
+  --color-deep: #0e2366;
+  --color-abyss: #08174a;
+  --color-unfired: #9db0d3;
+  --color-unfired-ink: #4a64a3;
+  --color-seal: #c8372d;
+  --color-seal-deep: #a42a22;
+
+  --font-ui: var(--font-alexandria), var(--font-noto-sc), system-ui, sans-serif;
+  --font-display-ar: var(--font-ruqaa), var(--font-alexandria), serif;
+  --font-brush: var(--font-mashan), var(--font-noto-sc), serif;
+  --font-zh: var(--font-noto-sc), var(--font-alexandria), sans-serif;
+
+  --ease-glaze: cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@layer base {
+  html {
+    -webkit-text-size-adjust: 100%;
+    text-rendering: optimizeLegibility;
+  }
+
+  body {
+    background: var(--color-glaze);
+    color: var(--color-deep);
+    font-family: var(--font-ui);
+    font-feature-settings: 'tnum' 0;
+  }
+
+  :lang(zh) body,
+  body:lang(zh) {
+    font-family: var(--font-zh);
+  }
+
+  ::selection {
+    background: var(--color-cobalt);
+    color: var(--color-glaze);
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--color-glaze);
+    outline-offset: 2px;
+    box-shadow: 0 0 0 5px var(--color-cobalt-mid);
+  }
+
+  a {
+    text-underline-offset: 0.25em;
+    text-decoration-thickness: 1px;
+  }
+
+  html {
+    scrollbar-color: var(--color-cobalt) var(--color-glaze-shade);
+  }
+
+  input,
+  textarea {
+    caret-color: var(--color-seal);
+  }
+}
+
+@layer utilities {
+  .font-display {
+    font-family: var(--font-display-ar);
+  }
+
+  :lang(en) .font-display,
+  .font-display:lang(en) {
+    font-family: var(--font-ruqaa), serif;
+    font-weight: 700;
+  }
+
+  :lang(zh) .font-display,
+  .font-display:lang(zh) {
+    font-family: var(--font-brush);
+    font-weight: 400;
+  }
+
+  .font-brush {
+    font-family: var(--font-brush);
+  }
+
+  .tabular {
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+  }
+}
