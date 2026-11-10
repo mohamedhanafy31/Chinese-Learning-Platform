@@ -31,6 +31,9 @@ docker build -f apps/web/Dockerfile -t cl-web:local .
 Integration tests use `DATABASE_URL_TEST`, defaulting to
 `postgresql://postgres:postgres@localhost:5433/app_test?schema=public`, and
 require the test Compose database. Always stop it when finished.
+If port 5433 is taken on the machine, export `TEST_POSTGRES_PORT=15433` and
+`DATABASE_URL_TEST=postgresql://postgres:postgres@localhost:15433/app_test?schema=public`
+before `test:db:up` and `test:integration`.
 
 ## Rules
 
