@@ -32,6 +32,7 @@ export const environmentSchema = z
     DATABASE_URL: z.url(),
     APP_URL: z.url(),
     INTERNAL_API_URL: z.url(),
+    API_PUBLIC_ORIGIN: optionalOf(z.url()),
     UPLOADS_DIR: optionalString,
     VIDEO_MAX_BYTES: z.preprocess(
       (value) => (value === '' || value === undefined ? undefined : value),
@@ -75,7 +76,32 @@ export const environmentSchema = z
     PAYMOB_SECRET_KEY: optionalString,
     PAYMOB_PUBLIC_KEY: optionalString,
     PAYMOB_HMAC_SECRET: optionalString,
-    PAYMOB_INTEGRATION_IDS: optionalString,
+    PAYMOB_INTEGRATION_IDS: optionalOf(
+      z
+        .string()
+        .regex(
+          /^\s*[1-9]\d*\s*(?:,\s*[1-9]\d*\s*)*$/,
+          'PAYMOB_INTEGRATION_IDS must be comma-separated positive integers',
+        ),
+    ),
+    PAYMOB_API_BASE: withDefault(z.url(), 'https://accept.paymob.com'),
+    PAYMOB_CHECKOUT_BASE: withDefault(
+      z.url(),
+      'https://accept.paymob.com/unifiedcheckout/',
+    ),
+    ORDER_TTL_MIN: withDefault(
+      z.coerce
+        .number()
+        .int()
+        .min(1)
+        .max(24 * 60),
+      60,
+    ),
+    /** Seconds between expiry runs; 0 disables the interval. */
+    BILLING_EXPIRY_INTERVAL_SEC: withDefault(
+      z.coerce.number().int().min(0).max(86_400),
+      300,
+    ),
     SMTP_HOST: optionalString,
     SMTP_PORT: z.preprocess(
       (value) => (value === '' || value === undefined ? undefined : value),

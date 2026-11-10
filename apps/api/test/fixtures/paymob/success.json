@@ -1,0 +1,36 @@
+{
+  "amount_cents": 125000,
+  "created_at": "2026-11-11T10:00:00.000000",
+  "currency": "EGP",
+  "error_occured": false,
+  "has_parent_transaction": false,
+  "id": 9001001,
+  "integration_id": 4242,
+  "is_3d_secure": true,
+  "is_auth": false,
+  "is_capture": true,
+  "is_refunded": false,
+  "is_standalone_payment": true,
+  "is_voided": false,
+  "order": {
+    "id": 7001,
+    "merchant_order_id": "11111111-2222-4333-8444-555555555555"
+  },
+  "owner": 12345,
+  "pending": false,
+  "source_data": {
+    "pan": "xxxx-xxxx-xxxx-2346",
+    "sub_type": "MasterCard",
+    "type": "card"
+  },
+  "success": true,
+  "billing_data": {
+    "email": "private.student@example.com",
+    "phone_number": "+201001234567",
+    "first_name": "Private",
+    "last_name": "Student"
+  },
+  "shipping_data": { "email": "shipping@example.com" },
+  "token": "never-store-this-token",
+  "data": { "message": "Approved" }
+}

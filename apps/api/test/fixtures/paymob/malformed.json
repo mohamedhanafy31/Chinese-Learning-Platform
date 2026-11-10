@@ -1,0 +1,10 @@
+{
+  "amount_cents": "12.50",
+  "created_at": "not-a-date",
+  "currency": "EGP",
+  "id": "malformed-1",
+  "integration_id": 4242,
+  "order": { "id": 7001 },
+  "pending": "false",
+  "success": "true"
+}

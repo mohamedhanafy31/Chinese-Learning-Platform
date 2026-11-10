@@ -1,0 +1,21 @@
+{
+  "amount_cents": 125000,
+  "created_at": "2026-11-11T11:05:00.000000",
+  "currency": "EGP",
+  "error_occured": false,
+  "has_parent_transaction": true,
+  "id": 9001005,
+  "integration_id": 4242,
+  "is_3d_secure": false,
+  "is_auth": false,
+  "is_capture": false,
+  "is_refunded": false,
+  "is_standalone_payment": false,
+  "is_voided": true,
+  "order": { "id": 7001, "merchant_order_id": "11111111-2222-4333-8444-555555555555" },
+  "owner": 12345,
+  "pending": false,
+  "source_data": { "pan": "xxxx-xxxx-xxxx-2346", "sub_type": "MasterCard", "type": "card" },
+  "success": true,
+  "data": { "message": "Voided" }
+}

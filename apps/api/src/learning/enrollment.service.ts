@@ -7,7 +7,7 @@ import {
 import type { EnrollmentSource } from '@app/shared';
 
 import { isLevelReadableByEnrollees } from './content-access';
-import type { Enrollment } from '../generated/prisma/client';
+import type { Enrollment, Prisma } from '../generated/prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 
 @Injectable()
@@ -25,39 +25,58 @@ export class EnrollmentService {
     actorId?: string,
   ): Promise<Enrollment> {
     return this.prisma.$transaction(async (tx) => {
-      await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${`enrollment:${userId}:${levelId}`}))`;
-      const level = await tx.level.findUnique({ where: { id: levelId } });
-      if (!level) throw new NotFoundException('Level not found');
-      if (!isLevelReadableByEnrollees(level)) {
-        throw new ConflictException(
-          'A level that is not published cannot be granted',
-        );
-      }
-      const user = await tx.user.findUnique({
-        where: { id: userId },
-        select: { id: true },
-      });
-      if (!user) throw new NotFoundException('Student not found');
+      return this.grantInTransaction(tx, userId, levelId, source, actorId);
+    });
+  }
 
-      const existing = await tx.enrollment.findUnique({
-        where: { userId_levelId: { userId, levelId } },
+  /** Used when enrollment must commit atomically with another bounded module. */
+  async grantInTransaction(
+    tx: Prisma.TransactionClient,
+    userId: string,
+    levelId: string,
+    source: EnrollmentSource,
+    actorId?: string,
+    orderId?: string,
+  ): Promise<Enrollment> {
+    await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${`enrollment:${userId}:${levelId}`}))`;
+    const level = await tx.level.findUnique({ where: { id: levelId } });
+    if (!level) throw new NotFoundException('Level not found');
+    if (!isLevelReadableByEnrollees(level)) {
+      throw new ConflictException(
+        'A level that is not published cannot be granted',
+      );
+    }
+    const user = await tx.user.findUnique({
+      where: { id: userId },
+      select: { id: true },
+    });
+    if (!user) throw new NotFoundException('Student not found');
+
+    const existing = await tx.enrollment.findUnique({
+      where: { userId_levelId: { userId, levelId } },
+    });
+    if (existing && existing.revokedAt === null) return existing;
+    if (existing) {
+      return tx.enrollment.update({
+        where: { id: existing.id },
+        data: {
+          source,
+          grantedById: actorId ?? null,
+          orderId: orderId ?? null,
+          revokedAt: null,
+          revokedById: null,
+          revokeReason: null,
+        },
       });
-      if (existing && existing.revokedAt === null) return existing;
-      if (existing) {
-        return tx.enrollment.update({
-          where: { id: existing.id },
-          data: {
-            source,
-            grantedById: actorId ?? null,
-            revokedAt: null,
-            revokedById: null,
-            revokeReason: null,
-          },
-        });
-      }
-      return tx.enrollment.create({
-        data: { userId, levelId, source, grantedById: actorId ?? null },
-      });
+    }
+    return tx.enrollment.create({
+      data: {
+        userId,
+        levelId,
+        source,
+        grantedById: actorId ?? null,
+        orderId: orderId ?? null,
+      },
     });
   }
 

@@ -14,6 +14,7 @@ process.env.JWT_ACCESS_SECRET =
   'test-only-access-secret-at-least-thirty-two-characters';
 process.env.JWT_REFRESH_SECRET =
   'test-only-refresh-secret-at-least-thirty-two-characters';
+process.env.BILLING_EXPIRY_INTERVAL_SEC = '0';
 process.env.DATABASE_URL =
   process.env.DATABASE_URL_TEST ??
   'postgresql://postgres:postgres@localhost:5433/app_test?schema=public';

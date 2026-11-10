@@ -10,6 +10,7 @@ import { AuthGuard } from './common/guards/auth.guard';
 import { OriginGuard } from './common/guards/origin.guard';
 import { RolesGuard } from './common/guards/roles.guard';
 import { AssessmentModule } from './assessment/assessment.module';
+import { BillingModule } from './billing/billing.module';
 import { CatalogModule } from './catalog/catalog.module';
 import { ConfigModule } from './config/config.module';
 import { HealthModule } from './health/health.module';
@@ -70,6 +71,7 @@ import { PrismaModule } from './prisma/prisma.module';
     CatalogModule,
     LearningModule,
     AssessmentModule,
+    BillingModule,
     VideoModule,
     HealthModule,
   ],

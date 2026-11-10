@@ -14,6 +14,7 @@ import { MAIL_SERVICE } from '../src/identity/identity.constants';
 import { IdentityService } from '../src/identity/identity.service';
 import { InMemoryMailService } from '../src/identity/mail.service';
 import { BunnyVideoService } from '../src/media/video/bunny/bunny-video.service';
+import { BillingExpiryService } from '../src/billing/billing-expiry.service';
 import { serveUploadedImages } from '../src/media/serve-media';
 import { enableDevVideoUploadCors } from '../src/media/video/dev-cors';
 
@@ -41,6 +42,7 @@ interface TestMessage {
     | 'identity:deactivate'
     | 'mail:clear'
     | 'mail:get'
+    | 'billing:expire'
     | 'video:reconcile';
   userId?: string;
 }
@@ -66,6 +68,7 @@ async function bootstrap(): Promise<void> {
   const clock = app.get(IdentityClockService);
   const identity = app.get(IdentityService);
   const bunnyVideos = app.get(BunnyVideoService);
+  const billingExpiry = app.get(BillingExpiryService);
   const systemNow = IdentityClockService.prototype.now.bind(clock);
 
   process.on('message', (message: TestMessage) => {
@@ -98,6 +101,15 @@ async function bootstrap(): Promise<void> {
             type: 'video:reconciled',
             requestId: message.requestId,
             result: await bunnyVideos.reconcileOnce(),
+          });
+          break;
+        case 'billing:expire':
+          process.send?.({
+            type: 'billing:expired',
+            requestId: message.requestId,
+            result: await billingExpiry.expireOnce(
+              message.now ? new Date(message.now) : new Date(),
+            ),
           });
           break;
         case 'identity:deactivate':

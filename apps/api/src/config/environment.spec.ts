@@ -44,3 +44,34 @@ describe('Bunny environment', () => {
     );
   });
 });
+
+describe('Paymob environment', () => {
+  it('defaults provider bases and billing intervals', () => {
+    const env = validateEnvironment({ ...base });
+    expect(env.PAYMOB_API_BASE).toBe('https://accept.paymob.com');
+    expect(env.PAYMOB_CHECKOUT_BASE).toBe(
+      'https://accept.paymob.com/unifiedcheckout/',
+    );
+    expect(env.ORDER_TTL_MIN).toBe(60);
+    expect(env.BILLING_EXPIRY_INTERVAL_SEC).toBe(300);
+  });
+
+  it('accepts positive comma-separated ids and a disabled expiry interval', () => {
+    const env = validateEnvironment({
+      ...base,
+      PAYMOB_INTEGRATION_IDS: '42, 99',
+      BILLING_EXPIRY_INTERVAL_SEC: '0',
+    });
+    expect(env.PAYMOB_INTEGRATION_IDS).toBe('42, 99');
+    expect(env.BILLING_EXPIRY_INTERVAL_SEC).toBe(0);
+  });
+
+  it.each(['0', '-1', '42,', 'abc', '42, 0'])(
+    'rejects integration ids %s',
+    (value) => {
+      expect(() =>
+        validateEnvironment({ ...base, PAYMOB_INTEGRATION_IDS: value }),
+      ).toThrow(/Invalid environment/);
+    },
+  );
+});
