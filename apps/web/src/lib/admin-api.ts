@@ -3,6 +3,8 @@ import 'server-only';
 import { notFound } from 'next/navigation';
 import {
   adminLessonSchema,
+  adminQuizDetailSchema,
+  adminQuizzesResponseSchema,
   adminLevelDetailSchema,
   adminLevelsResponseSchema,
   adminStudentDetailSchema,
@@ -11,6 +13,8 @@ import {
   type AdminLesson,
   type AdminLevel,
   type AdminLevelDetail,
+  type AdminQuizDetail,
+  type AdminQuizSummary,
   type AdminStudentDetail,
   type AdminStudentsResponse,
   type VideoDiagnostics,
@@ -71,4 +75,18 @@ export async function getVideoDiagnostics(): Promise<VideoDiagnostics | null> {
   } catch {
     return null;
   }
+}
+
+export async function getAdminQuizzes(
+  lessonId: string,
+): Promise<AdminQuizSummary[]> {
+  const { quizzes } = await adminGet(
+    `/api/v1/admin/lessons/${lessonId}/quizzes`,
+    adminQuizzesResponseSchema,
+  );
+  return quizzes;
+}
+
+export function getAdminQuiz(id: string): Promise<AdminQuizDetail> {
+  return adminGet(`/api/v1/admin/quizzes/${id}`, adminQuizDetailSchema);
 }

@@ -6,10 +6,12 @@ import type { Locale } from '@app/shared';
 
 import { LessonForm } from '@/components/admin/lesson-form';
 import { LifecycleActions } from '@/components/admin/lifecycle-actions';
+import { QuizzesPanel } from '@/components/admin/quizzes-panel';
 import { VideoPanel } from '@/components/admin/video-panel';
 import {
   getAdminLesson,
   getAdminLevel,
+  getAdminQuizzes,
   getVideoDiagnostics,
 } from '@/lib/admin-api';
 import { pick } from '@/lib/localized';
@@ -39,9 +41,10 @@ export default async function EditLessonPage({
   await requireUser(locale, `/${locale}/admin/lessons/${id}`, true);
   const t = await getTranslations('Admin.lessons');
   const lesson = await getAdminLesson(id);
-  const [level, diagnostics] = await Promise.all([
+  const [level, diagnostics, quizzes] = await Promise.all([
     getAdminLevel(lesson.levelId),
     getVideoDiagnostics(),
+    getAdminQuizzes(id),
   ]);
   const title = pick(lesson.title, locale);
 
@@ -86,6 +89,10 @@ export default async function EditLessonPage({
           uploadOrigin={videoUploadOrigin()}
           bunnyConfigured={diagnostics ? diagnostics.bunny.configured : null}
         />
+      </div>
+
+      <div className="mt-10">
+        <QuizzesPanel lessonId={lesson.id} locale={locale} quizzes={quizzes} />
       </div>
 
       <div className="mt-14">

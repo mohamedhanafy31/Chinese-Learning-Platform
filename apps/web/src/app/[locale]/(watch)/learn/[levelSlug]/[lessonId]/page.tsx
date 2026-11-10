@@ -6,6 +6,7 @@ import { getTranslations, setRequestLocale } from 'next-intl/server';
 
 import type { Locale, PlaybackNoVideo, PlaybackResponse } from '@app/shared';
 
+import { QuizList } from '@/components/quiz/quiz-list';
 import { LessonPath } from '@/components/learning/lesson-path';
 import { WriteOn } from '@/components/motion/write-on';
 import {
@@ -21,6 +22,8 @@ import { getPublicLevel } from '@/lib/catalog';
 import { getPlayback } from '@/lib/learning';
 import { pick } from '@/lib/localized';
 import { numberFormat } from '@/lib/numbers';
+import { getLessonQuizzes } from '@/lib/quiz';
+import { getCurrentUser } from '@/lib/session';
 import type { PathLesson, PathState } from '@/components/learning/lesson-path';
 
 interface LessonPageProps {
@@ -171,6 +174,10 @@ export default async function LessonPage({
     ? pick(data.lesson.description, locale)
     : null;
   const levelTitle = pick(data.level.title, locale);
+  const [quizzes, viewer] = await Promise.all([
+    getLessonQuizzes(data.lesson.id),
+    getCurrentUser().catch(() => null),
+  ]);
 
   const siblings = data.siblings;
   const index = siblings.findIndex((sibling) => sibling.id === data.lesson.id);
@@ -311,6 +318,13 @@ export default async function LessonPage({
               {description}
             </p>
           ) : null}
+
+          <QuizList
+            locale={locale}
+            quizzes={quizzes}
+            lessonPath={here}
+            signedIn={viewer !== null}
+          />
         </article>
 
         <aside aria-labelledby="lesson-path-title" className="min-w-0">
