@@ -1,0 +1,14 @@
+.agents
+.claude
+.codex
+.git
+.github
+**/.next
+**/coverage
+**/dist
+**/node_modules
+.env
+uploads
+*.log
+
+**/src/generated

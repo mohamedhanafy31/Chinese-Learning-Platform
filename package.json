@@ -1,0 +1,34 @@
+{
+  "name": "chinese-language-learning-platform",
+  "version": "0.0.0",
+  "private": true,
+  "packageManager": "pnpm@10.33.4",
+  "engines": {
+    "node": ">=22.12.0"
+  },
+  "scripts": {
+    "dev": "pnpm --filter @app/shared build && concurrently -k -n api,web -c blue,green \"pnpm --filter @app/api dev\" \"pnpm --filter @app/web dev\"",
+    "lint": "pnpm -r --if-present lint",
+    "typecheck": "pnpm --filter @app/shared build && pnpm -r --if-present typecheck",
+    "test": "pnpm -r --if-present test",
+    "test:integration": "pnpm --filter @app/api test:integration",
+    "build": "pnpm -r --if-present build",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "db:up": "docker compose -f infra/docker-compose.dev.yml up -d --wait",
+    "db:down": "docker compose -f infra/docker-compose.dev.yml down",
+    "db:migrate": "pnpm --filter @app/api exec prisma migrate dev",
+    "test:db:up": "docker compose -f infra/docker-compose.test.yml up -d --wait",
+    "test:db:down": "docker compose -f infra/docker-compose.test.yml down"
+  },
+  "devDependencies": {
+    "@eslint/js": "10.0.1",
+    "@types/node": "26.6.6",
+    "concurrently": "10.0.7",
+    "eslint": "10.14.0",
+    "globals": "17.14.0",
+    "prettier": "3.9.10",
+    "typescript": "6.0.3",
+    "typescript-eslint": "8.72.2"
+  }
+}

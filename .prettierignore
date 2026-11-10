@@ -1,0 +1,12 @@
+.agents/
+.claude/
+.codex/
+.next/
+coverage/
+dist/
+node_modules/
+pnpm-lock.yaml
+apps/api/src/generated/
+apps/web/next-env.d.ts
+PLAN.md
+PRODUCT.md

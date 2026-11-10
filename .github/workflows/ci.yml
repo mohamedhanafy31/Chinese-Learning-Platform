@@ -1,0 +1,50 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: app_test
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d app_test"
+          --health-interval 2s
+          --health-timeout 5s
+          --health-retries 15
+    env:
+      NODE_ENV: test
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/app_test?schema=public
+      DATABASE_URL_TEST: postgresql://postgres:postgres@localhost:5432/app_test?schema=public
+      APP_URL: http://localhost:3000
+      INTERNAL_API_URL: http://localhost:4000
+      JWT_ACCESS_SECRET: ci-only-access-secret-at-least-thirty-two-characters
+      JWT_REFRESH_SECRET: ci-only-refresh-secret-at-least-thirty-two-characters
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.33.4
+          run_install: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm lint
+      - run: pnpm typecheck
+      - run: pnpm test
+      - run: pnpm test:integration
+      - run: pnpm --filter @app/api exec prisma validate
+      - run: pnpm build
+      - run: docker build -f apps/api/Dockerfile -t cl-api:ci .
+      - run: docker build -f apps/web/Dockerfile -t cl-web:ci .

@@ -9,3 +9,4 @@ uploads/
 *.log
 .claude/settings.local.json
 .impeccable/config.local.json
+apps/api/src/generated/

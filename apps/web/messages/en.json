@@ -1,0 +1,10 @@
+{
+  "Home": {
+    "appName": "Chinese Learning Platform",
+    "placeholder": "The learning experience is coming in a later milestone.",
+    "languageSwitcher": "Choose language",
+    "apiStatus": "API status",
+    "apiOnline": "Online",
+    "apiOffline": "Unavailable"
+  }
+}

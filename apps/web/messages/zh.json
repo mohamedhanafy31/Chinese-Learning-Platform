@@ -1,0 +1,10 @@
+{
+  "Home": {
+    "appName": "中文学习平台",
+    "placeholder": "学习功能将在后续里程碑中添加。",
+    "languageSwitcher": "选择语言",
+    "apiStatus": "API 状态",
+    "apiOnline": "在线",
+    "apiOffline": "暂不可用"
+  }
+}
