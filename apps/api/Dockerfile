@@ -8,11 +8,14 @@ WORKDIR /workspace
 
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml tsconfig.base.json ./
 COPY apps/api/package.json apps/api/package.json
+COPY packages/shared/package.json packages/shared/package.json
 RUN pnpm install --frozen-lockfile --filter @app/api...
 
+COPY packages/shared packages/shared
 COPY apps/api apps/api
-RUN pnpm --filter @app/api build \
-  && pnpm --filter @app/api deploy --prod --no-optional /prod/api
+RUN pnpm --filter @app/shared build \
+  && pnpm --filter @app/api build \
+  && pnpm --filter @app/api deploy --prod /prod/api
 
 FROM build AS migrate
 

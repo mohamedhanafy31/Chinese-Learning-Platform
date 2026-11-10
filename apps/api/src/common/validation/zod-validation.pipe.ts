@@ -20,12 +20,17 @@ function hasZodSchema(value: unknown): value is ZodDtoConstructor {
 
 @Injectable()
 export class ZodValidationPipe implements PipeTransform {
+  constructor(private readonly schema?: ZodType) {}
+
   transform(value: unknown, metadata: ArgumentMetadata): unknown {
-    if (!hasZodSchema(metadata.metatype)) {
+    const schema =
+      this.schema ??
+      (hasZodSchema(metadata.metatype) ? metadata.metatype.schema : undefined);
+    if (!schema) {
       return value;
     }
 
-    const result = metadata.metatype.schema.safeParse(value);
+    const result = schema.safeParse(value);
 
     if (!result.success) {
       throw new BadRequestException({

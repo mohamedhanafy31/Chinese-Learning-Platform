@@ -1,12 +1,14 @@
 import { Controller, Get, Inject } from '@nestjs/common';
 
 import { PrismaService } from '../prisma/prisma.service';
+import { Public } from '../common/decorators/public.decorator';
 
 interface HealthResponse {
   status: 'ok';
 }
 
 @Controller()
+@Public()
 export class HealthController {
   constructor(@Inject(PrismaService) private readonly prisma: PrismaService) {}
 

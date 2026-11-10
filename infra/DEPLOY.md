@@ -13,3 +13,15 @@ For now:
    Caddy.
 5. Schedule `infra/backup/pg-backup.sh` nightly and keep its output local until
    the M14 off-host/restore procedure is approved.
+
+## Create the first administrator
+
+After the API is running and migrations have completed, run the interactive CLI
+inside the production API container:
+
+```sh
+docker compose -f infra/docker-compose.yml exec api node dist/identity/admin-create.cli.js
+```
+
+The password is requested twice with hidden input. Existing student accounts are
+promoted only after an explicit confirmation.
