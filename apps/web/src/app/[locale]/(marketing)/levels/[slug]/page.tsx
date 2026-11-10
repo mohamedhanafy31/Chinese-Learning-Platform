@@ -7,6 +7,7 @@ import { getTranslations, setRequestLocale } from 'next-intl/server';
 import { Locale, type PublicLevelDetail } from '@app/shared';
 
 import { LessonPath } from '@/components/learning/lesson-path';
+import { WriteOn } from '@/components/motion/write-on';
 import { Band } from '@/components/porcelain/band';
 import { SiteFooter } from '@/components/site-footer';
 import { SiteHeader } from '@/components/site-header';
@@ -140,11 +141,11 @@ export default async function LevelPage({
                   aria-hidden="true"
                   className="font-brush text-[clamp(5rem,12vw,8.5rem)] leading-[0.9] text-cobalt"
                 >
-                  {level.hanzi}
+                  <WriteOn text={level.hanzi} mode="char" stagger={220} />
                 </span>
                 <div className="min-w-0">
                   <h1 className="font-display text-[clamp(2.5rem,5vw,4rem)] leading-[1.05] text-deep">
-                    {pick(level.title, locale)}
+                    <WriteOn text={pick(level.title, locale)} delay={350} />
                   </h1>
                   <p className="mt-2 text-cobalt">
                     {tHome('levelWord')} {nf.format(level.number)} ·{' '}
@@ -194,7 +195,9 @@ export default async function LevelPage({
               ) : null}
             </div>
           </div>
-          <Band kind="lotus" ink="var(--color-cobalt)" />
+          <div data-reveal="band">
+            <Band kind="lotus" ink="var(--color-cobalt)" />
+          </div>
         </section>
 
         <section className="bg-glaze-shade">

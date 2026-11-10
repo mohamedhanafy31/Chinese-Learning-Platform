@@ -289,6 +289,15 @@ Pending content is labelled honestly. A 0.75rem pill with a dashed `unfired` bor
 - Plate rotation and panel counter-rotation take 1100ms, panel fill 600ms, and the button lift 300ms. Colour hovers use the default 150ms.
 - **Reduced motion:** under `prefers-reduced-motion: reduce`, all transitions and animations collapse to 0.01ms, so the plate turns instantly.
 
+**Entrance language: ink, glaze and kiln** (`app/motion.css`, `components/motion/*`). Every entrance plays once, the first time its element scrolls into view.
+- **Write-on (the unseen pen):** display headings and brush hanzi use `<WriteOn>`. The text stays real and inline. Each word, or each hanzi in `mode="char"`, is uncovered by a soft, feathered ink edge over 760ms with a slight blur settling to sharp. The edge travels in the reading direction: right to left in Arabic, left to right in Latin script, and top to bottom per character for Chinese, like a brush stroke. Words follow each other at about 120ms and hanzi at about 140ms. No pen or cursor is ever drawn. Strokes must stay `display: inline`, because inline-blocks are reordered by the bidi algorithm and would reverse hanzi or Latin runs inside Arabic lines.
+- **Glaze settle (`data-reveal`):** body copy and blocks rise 18px and fade in over 900ms. `data-reveal="stagger"` staggers its `data-reveal-item` children by 110ms, for the steps and the levels ledger.
+- **Painted bands (`data-reveal="band"`):** borders are painted along the reading direction with a clip over 1400ms.
+- **Kiln path (`data-reveal="path"`):** the spine draws downward and each row then fires in turn, with the node scaling in about 160ms after the previous one.
+- **Plate:** settles onto the field from a 28° turn against the reading direction at 94% scale (1600ms).
+- **Seal (`data-reveal="seal"`):** stamps down from 135% with a slight overshoot.
+- **Boot:** an inline pre-paint script opts in (`html[data-motion="ready"]`) only when motion is allowed, and starts the observer on DOMContentLoaded. If the observer never starts within 4s, everything is shown, so without JavaScript or under reduced motion all content renders in its final state.
+
 ### Accessibility
 - **Focus ring:** 2px `glaze` outline at 2px offset plus a 5px `cobalt-mid` halo. The outline carries on cobalt fields and the halo on glaze.
 - **Contrast:** `deep` on glaze is 13.5:1, `cobalt` on glaze 8.9:1, `unfired-ink` on glaze 5.4:1, `wash` on deep 8.7:1, `wash-strong` on deep 6.1:1, and glaze on `seal` 4.8:1. `wash-strong` on `cobalt` is 4.0:1, so keep it to large or decorative text there.

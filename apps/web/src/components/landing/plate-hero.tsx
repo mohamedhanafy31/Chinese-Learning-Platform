@@ -4,6 +4,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { useState } from 'react';
 
+import { WriteOn } from '@/components/motion/write-on';
 import {
   PANEL_RADIUS,
   PlateArt,
@@ -85,16 +86,27 @@ export function PlateHero({
                   : 'tracking-normal'
               }`}
             >
-              {copy.headlineSecond}
+              <WriteOn
+                text={copy.headlineSecond}
+                mode={copy.headlineSecondLang === 'zh' ? 'char' : 'word'}
+                stagger={copy.headlineSecondLang === 'zh' ? 110 : 90}
+              />
             </span>
             <span className="font-display mt-1 block text-[clamp(2.6rem,7.4vw,6rem)] leading-[1.05] lg:mt-2">
-              {copy.headline}
+              <WriteOn text={copy.headline} delay={500} stagger={150} />
             </span>
           </h1>
-          <p className="mt-4 max-w-[34rem] text-pretty text-base leading-[1.8] text-wash sm:text-xl lg:mt-6">
+          <p
+            data-reveal=""
+            style={{ '--reveal-delay': '1100ms' } as React.CSSProperties}
+            className="mt-4 max-w-[34rem] text-pretty text-base leading-[1.8] text-wash sm:text-xl lg:mt-6">
             {copy.lede}
           </p>
-          <div className="mt-6 flex flex-wrap items-center gap-x-4 gap-y-2 lg:mt-9">
+          <div
+            data-reveal=""
+            style={{ '--reveal-delay': '1300ms' } as React.CSSProperties}
+            className="mt-6 flex flex-wrap items-center gap-x-4 gap-y-2 lg:mt-9"
+          >
             <Link
               href={copy.primaryHref}
               className="inline-flex min-h-14 items-center rounded-full bg-glaze px-8 text-lg font-semibold text-deep shadow-[0_10px_30px_-12px_rgb(0_0_0/0.6)] transition-[transform,background-color] duration-300 ease-glaze hover:-translate-y-0.5 hover:bg-white"
@@ -150,7 +162,10 @@ export function PlateHero({
         </div>
 
         <div className="order-1 flex justify-center lg:order-2">
-          <div className="relative aspect-square w-[min(80vw,46vw+12rem,720px)] drop-shadow-[0_34px_40px_rgb(3_10_40/0.55)] @container">
+          <div
+            data-reveal="plate"
+            className="relative aspect-square w-[min(80vw,46vw+12rem,720px)] drop-shadow-[0_34px_40px_rgb(3_10_40/0.55)] @container"
+          >
             {/* the plate turns as one painted object */}
             <div
               className="absolute inset-0 transition-transform duration-[1100ms] ease-glaze"

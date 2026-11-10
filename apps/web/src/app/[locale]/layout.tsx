@@ -6,9 +6,14 @@ import { NextIntlClientProvider } from 'next-intl';
 
 import { RTL_LOCALES, type Locale } from '@app/shared';
 
+import {
+  MOTION_BOOT_SCRIPT,
+  MotionObserver,
+} from '@/components/motion/motion-observer';
 import { routing } from '@/i18n/routing';
 
 import '../globals.css';
+import '../motion.css';
 import { fontVariables } from '../fonts';
 
 export const metadata: Metadata = {
@@ -42,8 +47,17 @@ export default async function LocaleLayout({
     : 'ltr';
 
   return (
-    <html lang={locale} dir={direction} className={fontVariables}>
+    <html
+      lang={locale}
+      dir={direction}
+      className={fontVariables}
+      suppressHydrationWarning
+    >
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: MOTION_BOOT_SCRIPT }} />
+      </head>
       <body className="min-h-dvh antialiased">
+        <MotionObserver />
         <NextIntlClientProvider messages={messages}>
           {children}
         </NextIntlClientProvider>

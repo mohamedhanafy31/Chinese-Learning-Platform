@@ -1,0 +1,245 @@
+/*
+ * Motion: ink, glaze and kiln.
+ * Everything here is gated on :root[data-motion='ready'], set before first
+ * paint by MOTION_BOOT_SCRIPT unless the visitor prefers reduced motion.
+ * Without it, every element renders in its final state.
+ */
+
+/* ---- Write-on: an unseen pen lays ink in the reading direction ---------- */
+
+[data-write] .ink-stroke {
+  /*
+   * Stay inline: separate inline-blocks would be reordered by the bidi
+   * algorithm (hanzi and Latin words reversed inside Arabic lines).
+   * Inline padding gives the mask room for Ruqʿah swashes and tashkeel
+   * without changing the line box.
+   */
+  display: inline;
+  padding-block: 0.28em;
+  padding-inline: 0.1em;
+  margin-inline: -0.1em;
+  -webkit-box-decoration-break: clone;
+  box-decoration-break: clone;
+}
+
+:root[data-motion='ready'] [data-write] .ink-stroke {
+  --ink-edge: linear-gradient(var(--ink-to), #000 42%, transparent 58%);
+  -webkit-mask-image: var(--ink-edge);
+  mask-image: var(--ink-edge);
+  -webkit-mask-size: 260% 100%;
+  mask-size: 260% 100%;
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+  -webkit-mask-position: var(--ink-from) 0;
+  mask-position: var(--ink-from) 0;
+  opacity: 0.001;
+}
+
+/* LTR scripts: the edge travels from the left */
+:root[data-motion='ready'] [data-write] .ink-stroke {
+  --ink-to: to right;
+  --ink-from: 100%;
+  --ink-end: 0%;
+}
+
+/* Arabic: the edge travels from the right */
+:root[data-motion='ready'] [dir='rtl'] [data-write='word'] .ink-stroke,
+:root[data-motion='ready'] [data-write='word'][dir='rtl'] .ink-stroke {
+  --ink-to: to left;
+  --ink-from: 0%;
+  --ink-end: 100%;
+}
+
+/* Hanzi: each character is brushed from the top down */
+:root[data-motion='ready'] [data-write='char'] .ink-stroke {
+  --ink-edge: linear-gradient(to bottom, #000 42%, transparent 58%);
+  -webkit-mask-size: 100% 260%;
+  mask-size: 100% 260%;
+  -webkit-mask-position: 0 100%;
+  mask-position: 0 100%;
+}
+
+:root[data-motion='ready'] [data-write][data-inview] .ink-stroke {
+  animation: ink-write 760ms var(--ease-glaze) both;
+  animation-delay: calc(var(--ink-delay, 0ms) + var(--ink-i, 0) * var(--ink-step, 120ms));
+}
+
+:root[data-motion='ready'] [data-write='char'][data-inview] .ink-stroke {
+  animation-name: ink-brush;
+  animation-duration: 640ms;
+}
+
+@keyframes ink-write {
+  0% {
+    opacity: 1;
+    -webkit-mask-position: var(--ink-from) 0;
+    mask-position: var(--ink-from) 0;
+    filter: blur(0.6px);
+  }
+  70% {
+    filter: blur(0);
+  }
+  100% {
+    opacity: 1;
+    -webkit-mask-position: var(--ink-end) 0;
+    mask-position: var(--ink-end) 0;
+    filter: blur(0);
+  }
+}
+
+@keyframes ink-brush {
+  0% {
+    opacity: 1;
+    -webkit-mask-position: 0 100%;
+    mask-position: 0 100%;
+    filter: blur(0.8px);
+  }
+  100% {
+    opacity: 1;
+    -webkit-mask-position: 0 0;
+    mask-position: 0 0;
+    filter: blur(0);
+  }
+}
+
+/* ---- Reveal: blocks settle into place like glaze ------------------------- */
+
+:root[data-motion='ready'] [data-reveal] {
+  opacity: 0;
+  transform: translateY(18px);
+}
+
+:root[data-motion='ready'] [data-reveal][data-inview] {
+  opacity: 1;
+  transform: none;
+  transition:
+    opacity 900ms var(--ease-glaze),
+    transform 900ms var(--ease-glaze);
+  transition-delay: var(--reveal-delay, 0ms);
+}
+
+/* children with data-reveal-item fade in one after another */
+:root[data-motion='ready'] [data-reveal='stagger'] {
+  opacity: 1;
+  transform: none;
+}
+
+:root[data-motion='ready'] [data-reveal='stagger'] > [data-reveal-item] {
+  opacity: 0;
+  transform: translateY(14px);
+}
+
+:root[data-motion='ready'] [data-reveal='stagger'][data-inview] > [data-reveal-item] {
+  opacity: 1;
+  transform: none;
+  transition:
+    opacity 800ms var(--ease-glaze),
+    transform 800ms var(--ease-glaze);
+  transition-delay: calc(var(--reveal-i, 0) * 110ms);
+}
+
+/* ---- Bands: the border is painted along the reading direction ----------- */
+
+:root[data-motion='ready'] [data-reveal='band'] {
+  opacity: 1;
+  transform: none;
+  clip-path: inset(0 100% 0 0);
+}
+
+:root[data-motion='ready'] [dir='rtl'] [data-reveal='band'] {
+  clip-path: inset(0 0 0 100%);
+}
+
+:root[data-motion='ready'] [data-reveal='band'][data-inview] {
+  clip-path: inset(0 0 0 0);
+  transition: clip-path 1400ms var(--ease-glaze);
+}
+
+/* ---- Lesson path: the spine is drawn, then each node is fired ----------- */
+
+:root[data-motion='ready'] [data-reveal='path'] {
+  opacity: 1;
+  transform: none;
+}
+
+:root[data-motion='ready'] [data-reveal='path'] [data-path-spine] {
+  transform: scaleY(0);
+  transform-origin: top;
+}
+
+:root[data-motion='ready'] [data-reveal='path'][data-inview] [data-path-spine] {
+  transform: scaleY(1);
+  transition: transform 1200ms var(--ease-glaze);
+}
+
+:root[data-motion='ready'] [data-reveal='path'] [data-path-row] {
+  opacity: 0;
+  transform: translateY(10px);
+}
+
+:root[data-motion='ready'] [data-reveal='path'][data-inview] [data-path-row] {
+  opacity: 1;
+  transform: none;
+  transition:
+    opacity 700ms var(--ease-glaze),
+    transform 700ms var(--ease-glaze);
+  transition-delay: calc(200ms + var(--reveal-i, 0) * 160ms);
+}
+
+:root[data-motion='ready'] [data-reveal='path'] [data-path-node] {
+  transform: scale(0.6);
+}
+
+:root[data-motion='ready'] [data-reveal='path'][data-inview] [data-path-node] {
+  transform: scale(1);
+  transition: transform 600ms var(--ease-glaze);
+  transition-delay: calc(260ms + var(--reveal-i, 0) * 160ms);
+}
+
+/* ---- Plate: the rim settles onto the field on first view ---------------- */
+
+:root[data-motion='ready'] [data-reveal='plate'] {
+  opacity: 0;
+  transform: rotate(-28deg) scale(0.94);
+}
+
+:root[data-motion='ready'] [dir='rtl'] [data-reveal='plate'] {
+  transform: rotate(28deg) scale(0.94);
+}
+
+:root[data-motion='ready'] [data-reveal='plate'][data-inview] {
+  opacity: 1;
+  transform: none;
+  transition:
+    opacity 1000ms var(--ease-glaze),
+    transform 1600ms var(--ease-glaze);
+}
+
+/* the seal is pressed once it lands */
+:root[data-motion='ready'] [data-reveal='seal'] {
+  opacity: 0;
+  transform: scale(1.35) rotate(-6deg);
+}
+
+:root[data-motion='ready'] [data-reveal='seal'][data-inview] {
+  opacity: 1;
+  transform: none;
+  transition:
+    opacity 260ms ease-out,
+    transform 420ms cubic-bezier(0.2, 1.4, 0.4, 1);
+  transition-delay: var(--reveal-delay, 0ms);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-write] .ink-stroke,
+  [data-reveal],
+  [data-reveal] * {
+    animation: none !important;
+    transition: none !important;
+    -webkit-mask-image: none !important;
+    mask-image: none !important;
+    clip-path: none !important;
+    opacity: 1 !important;
+    transform: none !important;
+  }
+}

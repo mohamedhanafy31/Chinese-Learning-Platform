@@ -40,12 +40,13 @@ export function LessonPath({
   title,
 }: LessonPathProps): React.JSX.Element {
   return (
-    <ol aria-label={title} className="relative">
+    <ol aria-label={title} data-reveal="path" className="relative">
       <span
         aria-hidden="true"
+        data-path-spine=""
         className="absolute inset-y-6 start-[1.375rem] w-1 rounded-full bg-cobalt sm:start-[1.625rem]"
       />
-      {lessons.map((lesson) => {
+      {lessons.map((lesson, index) => {
         const fired = lesson.state === 'done';
         const next = lesson.state === 'next';
         const locked = lesson.state === 'locked';
@@ -58,6 +59,7 @@ export function LessonPath({
             }`}
           >
             <span
+              data-path-node=""
               className={`relative z-10 grid size-11 shrink-0 place-items-center rounded-full sm:size-[3.25rem] ${
                 fired
                   ? 'bg-deep text-glaze'
@@ -124,7 +126,13 @@ export function LessonPath({
         );
 
         return (
-          <li key={lesson.id} id={lesson.id} className="scroll-mt-24">
+          <li
+            key={lesson.id}
+            id={lesson.id}
+            data-path-row=""
+            style={{ '--reveal-i': index } as React.CSSProperties}
+            className="scroll-mt-24"
+          >
             {lesson.href && !locked ? (
               <Link
                 href={lesson.href}

@@ -6,6 +6,7 @@ import { RTL_LOCALES, type Locale } from '@app/shared';
 import { PlateHero, type PlateLevel } from '@/components/landing/plate-hero';
 import { LessonPath } from '@/components/learning/lesson-path';
 import { Band } from '@/components/porcelain/band';
+import { WriteOn } from '@/components/motion/write-on';
 import { Seal } from '@/components/porcelain/seal';
 import { SiteFooter } from '@/components/site-footer';
 import { SiteHeader } from '@/components/site-header';
@@ -90,19 +91,23 @@ export default async function HomePage({
             portraitAlt: t('portraitAlt'),
           }}
         />
-        <Band kind="wave" ink="var(--color-wash-strong)" ground="var(--color-deep)" />
+        <div data-reveal="band" className="bg-deep">
+          <Band kind="wave" ink="var(--color-wash-strong)" ground="var(--color-deep)" />
+        </div>
 
         {/* the path */}
         <section className="mx-auto grid max-w-[1440px] gap-12 px-4 py-20 sm:px-8 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)] lg:gap-20 lg:px-[72px] lg:py-28">
           <div className="lg:pt-6">
             <h2 className="font-display text-balance text-[clamp(2.25rem,4.5vw,3.75rem)] leading-[1.1] text-deep">
-              {t('pathTitle')}
+              <WriteOn text={t('pathTitle')} />
             </h2>
-            <p className="mt-6 max-w-[34rem] text-pretty text-lg leading-[1.85] text-cobalt">
+            <p data-reveal="" style={{ '--reveal-delay': '300ms' } as React.CSSProperties} className="mt-6 max-w-[34rem] text-pretty text-lg leading-[1.85] text-cobalt">
               {t('pathBody')}
             </p>
             <div className="mt-8 flex items-center gap-3 text-cobalt">
-              <Seal size={34} />
+              <span data-reveal="seal" style={{ '--reveal-delay': '700ms' } as React.CSSProperties}>
+                <Seal size={34} />
+              </span>
               <span>{tPath('sealedBy')}</span>
             </div>
           </div>
@@ -128,15 +133,19 @@ export default async function HomePage({
 
         {/* how it works */}
         <section className="bg-glaze-shade">
-          <Band kind="lotus" ink="var(--color-cobalt)" />
+          <div data-reveal="band">
+            <Band kind="lotus" ink="var(--color-cobalt)" />
+          </div>
           <div className="mx-auto max-w-[1440px] px-4 py-20 sm:px-8 lg:px-[72px] lg:py-24">
             <h2 className="font-display text-[clamp(2rem,4vw,3.25rem)] leading-tight text-deep">
-              {t('stepsTitle')}
+              <WriteOn text={t('stepsTitle')} />
             </h2>
-            <ol className="mt-12 grid gap-12 md:grid-cols-3 md:gap-0">
+            <ol data-reveal="stagger" className="mt-12 grid gap-12 md:grid-cols-3 md:gap-0">
               {steps.map((step, index) => (
                 <li
                   key={step.glyph}
+                  data-reveal-item=""
+                  style={{ '--reveal-i': index } as React.CSSProperties}
                   className={`md:px-10 ${index > 0 ? 'md:border-s md:border-wash' : 'md:ps-0'}`}
                 >
                   <span
@@ -144,7 +153,7 @@ export default async function HomePage({
                     aria-hidden="true"
                     className="font-brush block text-6xl leading-none text-cobalt"
                   >
-                    {step.glyph}
+                    <WriteOn text={step.glyph} mode="char" delay={200 + index * 180} />
                   </span>
                   <h3 className="mt-5 text-2xl font-semibold text-deep">
                     {step.title}
@@ -165,7 +174,7 @@ export default async function HomePage({
         >
           <div className="flex flex-wrap items-end justify-between gap-4">
             <h2 className="font-display text-[clamp(2rem,4vw,3.25rem)] leading-tight text-deep">
-              {t('levelsLabel')}
+              <WriteOn text={t('levelsLabel')} />
             </h2>
           </div>
           {plateLevels.length === 0 ? (
@@ -175,9 +184,14 @@ export default async function HomePage({
                 : t('levelsEmpty')}
             </p>
           ) : (
-          <ul className="mt-10 border-t-2 border-cobalt">
-            {plateLevels.map((level) => (
-              <li key={level.slug} className="border-b border-wash">
+          <ul data-reveal="stagger" className="mt-10 border-t-2 border-cobalt">
+            {plateLevels.map((level, index) => (
+              <li
+                key={level.slug}
+                data-reveal-item=""
+                style={{ '--reveal-i': index } as React.CSSProperties}
+                className="border-b border-wash"
+              >
                 <Link
                   href={level.href}
                   className="group grid grid-cols-[6.5rem_minmax(0,1fr)] items-center gap-x-6 gap-y-2 py-8 transition-colors hover:bg-white sm:grid-cols-[9rem_minmax(0,1fr)_auto] sm:px-4"
@@ -217,6 +231,7 @@ export default async function HomePage({
         <section id="mazen" className="scroll-mt-6 bg-cobalt text-glaze">
           <div className="mx-auto grid max-w-[1440px] items-center gap-12 px-4 py-20 sm:px-8 md:grid-cols-[minmax(0,0.8fr)_minmax(0,1.2fr)] lg:px-[72px] lg:py-28">
             <div
+              data-reveal=""
               className="grid aspect-[4/5] w-full max-w-[26rem] place-items-center rounded-t-full border-4 border-glaze bg-deep text-center"
               role="img"
               aria-label={t('portraitPlaceholder')}
@@ -232,9 +247,9 @@ export default async function HomePage({
             </div>
             <div>
               <h2 className="font-display text-[clamp(2.25rem,4.5vw,3.75rem)] leading-[1.1]">
-                {t('aboutTitle')}
+                <WriteOn text={t('aboutTitle')} />
               </h2>
-              <p className="mt-6 max-w-[36rem] text-lg leading-[1.85] text-wash">
+              <p data-reveal="" style={{ '--reveal-delay': '300ms' } as React.CSSProperties} className="mt-6 max-w-[36rem] text-lg leading-[1.85] text-wash">
                 {t('aboutBody')}
               </p>
               <p className="mt-4 inline-block rounded-full border border-wash-strong px-3 py-1 text-sm text-wash">
@@ -246,11 +261,13 @@ export default async function HomePage({
 
         {/* close */}
         <section className="bg-deep text-glaze">
-          <Band kind="wave" ink="var(--color-cobalt-mid)" />
+          <div data-reveal="band">
+            <Band kind="wave" ink="var(--color-cobalt-mid)" />
+          </div>
           <div className="mx-auto flex max-w-[1440px] flex-col items-start gap-8 px-4 py-20 sm:px-8 lg:flex-row lg:items-end lg:justify-between lg:px-[72px] lg:py-24">
             <div>
               <h2 className="font-display text-[clamp(2.5rem,5vw,4.25rem)] leading-[1.05]">
-                {t('closeTitle')}
+                <WriteOn text={t('closeTitle')} />
               </h2>
               <p className="mt-4 max-w-[32rem] text-lg leading-[1.8] text-wash">
                 {t('closeBody')}
