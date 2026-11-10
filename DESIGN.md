@@ -246,6 +246,14 @@ Round and lobed, like thrown and painted ware. Buttons, pills, path nodes, tags 
 - **Secondary:** a text link on the same baseline with a `wash-strong` underline at 8px offset, and the same 56px hit area.
 - **Seal start pill:** `seal` ground, `glaze` text, 8px by 16px, 0.875rem semibold. Used only on the next lesson.
 
+### Forms
+- **Input:** min-height 56px, 1rem radius, `glaze-bright` ground, 1.5px `wash-strong` border hovering to `cobalt`, `deep` text at 1.125rem, `unfired-ink` placeholder. Focus uses the global focus ring; the caret is `seal`.
+- **Label:** 0.875rem semibold `deep`, 8px above its input and always visible. Helper text is 0.875rem `cobalt`.
+- **Error (no cinnabar):** errors never use `seal`, because of the One Seal Rule. An invalid input gets a 2px `deep` border with `aria-invalid`. Its message sits below in 0.875rem semibold `deep`, led by a `CircleAlert` icon and linked by `aria-describedby`. A form-level error is a 1rem-rounded `glaze-shade` block with a 4px `deep` inline-start border and `role="alert"`.
+- **Numbers and phone:** the phone input is `dir="ltr"` with Western-digit placeholders, even in Arabic. Eastern digits typed by the user are accepted and normalised.
+- **Submit:** the "Primary on glaze" pill, full width below `sm`, with a disabled `aria-busy` pending state and no double submit.
+- **Auth layout:** at `lg`, the form sits on the reading-start side and a `deep` panel on the reading-end side holds a 120px seal, one brush-hanzi line in `wash-strong` and the brand line, with a wave band at its foot. Below `lg`, the hanzi line becomes the second line of the `h1`.
+
 ### Lesson Path (signature)
 The level's lessons as one unbroken cobalt band: a 4px `cobalt` spine on the inline-start side, with 44px nodes (52px at sm).
 - **Fired / done:** `deep` node with a glaze check, the title in `deep`, and a 30px 马 seal at the row end with accessible name "sealed by Mazen".

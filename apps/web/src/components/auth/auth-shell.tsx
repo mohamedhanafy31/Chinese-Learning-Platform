@@ -1,3 +1,5 @@
+import { getTranslations } from 'next-intl/server';
+
 import { Band } from '@/components/porcelain/band';
 import { Seal } from '@/components/porcelain/seal';
 
@@ -8,12 +10,14 @@ interface AuthShellProps {
   title: string;
 }
 
-export function AuthShell({
+export async function AuthShell({
   children,
   description,
   hanzi,
   title,
-}: AuthShellProps): React.JSX.Element {
+}: AuthShellProps): Promise<React.JSX.Element> {
+  const home = await getTranslations('Home');
+
   return (
     <div className="mx-auto grid w-full max-w-[1100px] flex-1 lg:grid-cols-[minmax(0,1fr)_minmax(22rem,0.85fr)]">
       <section className="px-4 py-16 sm:px-8 sm:py-20 lg:px-[72px] lg:py-24">
@@ -43,7 +47,7 @@ export function AuthShell({
           {hanzi}
         </p>
         <p className="mt-5 max-w-xs text-center text-lg leading-[1.8] text-wash">
-          {description}
+          {home('footer')}
         </p>
         <div className="absolute inset-x-0 bottom-0">
           <Band
