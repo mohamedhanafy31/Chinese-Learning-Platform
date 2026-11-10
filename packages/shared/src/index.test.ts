@@ -4,8 +4,11 @@ import {
   adminStudentsQuerySchema,
   createLessonRequestSchema,
   createLevelRequestSchema,
+  createQuizRequestSchema,
+  learnerQuestionSchema,
   localizedTextSchema,
   phoneSchema,
+  questionRequestSchema,
   registerRequestSchema,
   revokeEnrollmentRequestSchema,
 } from './index';
@@ -209,5 +212,56 @@ describe('learning contracts', () => {
     expect(() =>
       revokeEnrollmentRequestSchema.parse({ reason: 'x'.repeat(501) }),
     ).toThrow();
+  });
+});
+
+describe('assessment contracts', () => {
+  it('defaults question fields and keeps option counts for the domain rules', () => {
+    const parsed = questionRequestSchema.parse({
+      type: 'TRUE_FALSE',
+      prompt: { en: 'Is 你好 hello?' },
+    });
+    expect(parsed).toMatchObject({
+      hanzi: null,
+      imageId: null,
+      explanation: null,
+      points: 1,
+      options: [],
+    });
+  });
+
+  it('bounds points, hanzi and passing score', () => {
+    const base = { type: 'SINGLE', prompt: { en: 'Q' } };
+    expect(() => questionRequestSchema.parse({ ...base, points: 0 })).toThrow();
+    expect(() =>
+      questionRequestSchema.parse({ ...base, points: 101 }),
+    ).toThrow();
+    expect(() =>
+      questionRequestSchema.parse({ ...base, hanzi: '你'.repeat(201) }),
+    ).toThrow();
+    expect(
+      questionRequestSchema.parse({ ...base, hanzi: '你'.repeat(200) }).hanzi,
+    ).toHaveLength(200);
+    expect(createQuizRequestSchema.parse({ title: { en: 'Q' } })).toMatchObject(
+      { passingScore: 70, description: null },
+    );
+    expect(() =>
+      createQuizRequestSchema.parse({ title: { en: 'Q' }, passingScore: 101 }),
+    ).toThrow();
+  });
+
+  it('strips correctness and explanations from the learner quiz shape', () => {
+    const id = '00000000-0000-4000-8000-000000000001';
+    const parsed = learnerQuestionSchema.parse({
+      id,
+      type: 'SINGLE',
+      prompt: { en: 'Q' },
+      hanzi: null,
+      image: null,
+      points: 1,
+      explanation: { en: 'secret' },
+      options: [{ id, text: { en: 'A' }, isCorrect: true }],
+    });
+    expect(JSON.stringify(parsed)).not.toMatch(/isCorrect|explanation|secret/);
   });
 });

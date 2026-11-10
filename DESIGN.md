@@ -264,6 +264,28 @@ The level's lessons as one unbroken cobalt band: a 4px `cobalt` spine on the inl
 - Every row carries a screen-reader state label. Rows that are links get a `glaze-bright`/70% hover.
 - **Progress bar (level page):** one 10px pill segment per lesson. Fired is `deep`, next is `seal`, preview is `cobalt-mid`, and locked is a dashed `unfired` outline. Above it is a tabular count ("أكملت ٢ من ٥").
 
+### Quiz (lesson check)
+Quizzes are a calm exam sheet on glaze. They are built from the ledger, the forms and the seal, with no new colours.
+- **Quiz list (lesson page, under the description):** a ruled list like the levels ledger: a 2px `cobalt` top rule and `wash` row hairlines. Each row shows the title (Title, `deep`) and a Label meta line in `cobalt` ("٥ أسئلة · النجاح ٧٠٪"). The result is one of:
+  - Passed: a `deep` check with "Passed · ٨٠٪".
+  - Not yet passed: "Best ٤٠٪" in `cobalt`.
+  - Never taken: "Not taken" in `unfired-ink`.
+
+  The action is the "Primary on glaze" pill ("Start", or "Try again"), never the seal pill, because the seal is the next lesson's.
+- **Sheet:** one page per quiz. It opens with a `font-display` heading through `<WriteOn>` and the pass mark, then each question as a `fieldset` in a vertical stack with 48px between questions. The `legend` carries a Label "Question ٣ of ٨" in `cobalt`, then the prompt in Title `deep`. If the question has hanzi, it sits on its own line in brush hanzi (3rem, `lang="zh"`), and an image sits in a 1rem-rounded frame at most 28rem wide.
+- **Option:** the whole row is the `label` of a visually hidden native radio or checkbox, which stays focusable and uses the global focus ring. Rows are min-height 56px with 1rem radius on a `glaze-bright` ground, with a 1.5px `wash-strong` border that hovers to `cobalt`. The indicator is a 22px round dot for single and true/false, and a 22px 6px-rounded square for multiple. Unselected is a `cobalt` 2px outline. Selected is a 2px `deep` border on the row, with the indicator filled `deep` and a glaze dot or check. Multiple-answer questions say "Choose all that apply" in helper text. Selection is never shown by colour alone.
+- **Submit bar:** at the end of the sheet, with a tabular count "Answered ٣ of ٥" and the "Primary on glaze" submit pill. The pill is disabled (`wash`) until every question is answered, with the `aria-busy` pending state and no double submit. A 429 or network failure shows the form-level error block.
+- **Result:** the score in Headline `font-display` with tabular locale digits ("٨٠٪"), and the line "Passed (pass mark ٧٠٪)" or "Not yet: the pass mark is ٧٠٪".
+  - Passing stamps Mazen's seal at 72px (`data-reveal="seal"`, accessible name "sealed by Mazen"). It means the same as the fired-lesson seal, so it is the only cinnabar on the view.
+  - Not passing shows no seal and no cinnabar, only the "Try again" pill.
+- **Review:** each question repeats with its options read-only.
+  - The learner's choice keeps the selected styling.
+  - The correct option gets a `deep` check icon and the label "Correct answer".
+  - A wrong choice gets a `CircleAlert` and the label "Your answer". It is styled in `deep`, never red and never seal.
+  - The question gets a status line, "Correct" or "Not quite", with the same icons.
+  - The explanation sits below in a 1rem-rounded `glaze-shade` block.
+- **History:** a ruled list of past attempts, newest first, each with the date (`Intl.DateTimeFormat`), the tabular score and a passed label. A row links to that attempt's review.
+
 ### Porcelain Plate (signature)
 An authored SVG on a 1000-unit viewBox. It has a glaze radial body, a cobalt rim pooled with turbulence pigment, one continuous swelling-and-tapering 缠枝莲 scroll stem with tendrils, leaves and a lotus blossom between each pair of panels, and painted double rings (heavy outer, fine inner). Each level gets one lobed reserve panel. The selected panel washes to `seal` (600ms fill) and its lines invert to glaze. The panels form a `radiogroup` of `radio` buttons. Choosing one rotates the whole rim so that level sits at the top, over 1100ms `ease-glaze`. Levels advance clockwise in LTR and counter-clockwise in RTL. The well stays upright and holds Mazen, and an `aria-live="polite"` readout under the hero copy shows the selected level's title, hanzi, number, price, summary and topics.
 

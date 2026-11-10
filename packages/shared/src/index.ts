@@ -614,3 +614,274 @@ export type GrantEnrollmentRequest = z.infer<
 export type RevokeEnrollmentRequest = z.infer<
   typeof revokeEnrollmentRequestSchema
 >;
+
+// ---------------------------------------------------------------------------
+// Assessment (quizzes, questions, attempts)
+// ---------------------------------------------------------------------------
+
+export const QuestionType = {
+  SINGLE: 'SINGLE',
+  MULTIPLE: 'MULTIPLE',
+  TRUE_FALSE: 'TRUE_FALSE',
+} as const;
+
+export type QuestionType = (typeof QuestionType)[keyof typeof QuestionType];
+
+export const DEFAULT_PASSING_SCORE = 70;
+export const MIN_QUESTION_OPTIONS = 2;
+export const MAX_QUESTION_OPTIONS = 8;
+export const MAX_QUESTION_HANZI_LENGTH = 200;
+export const MIN_QUESTION_POINTS = 1;
+export const MAX_QUESTION_POINTS = 100;
+/** Sanity ceiling on a question write; the real 2..8 rule is enforced as a 422. */
+export const MAX_OPTIONS_PAYLOAD = 50;
+/** Upper bound on answers in one attempt submission. */
+export const MAX_ATTEMPT_ANSWERS = 500;
+
+/** Image attached to a question; the id lets the admin builder keep it. */
+export const questionImageSchema = imageRefSchema.extend({ id: z.uuid() });
+
+const passingScoreSchema = z.number().int().min(0).max(100);
+
+const questionHanziSchema = z
+  .string()
+  .trim()
+  .min(1)
+  .refine((value) => codePointLength(value) <= MAX_QUESTION_HANZI_LENGTH, {
+    message: `Must be at most ${MAX_QUESTION_HANZI_LENGTH} characters`,
+  });
+
+const questionPointsSchema = z
+  .number()
+  .int()
+  .min(MIN_QUESTION_POINTS)
+  .max(MAX_QUESTION_POINTS);
+
+export const createQuizRequestSchema = z.object({
+  title: localizedTextSchema,
+  description: localizedTextSchema.nullable().default(null),
+  passingScore: passingScoreSchema.default(DEFAULT_PASSING_SCORE),
+});
+
+export const updateQuizRequestSchema = z.object({
+  title: localizedTextSchema.optional(),
+  description: localizedTextSchema.nullable().optional(),
+  passingScore: passingScoreSchema.optional(),
+});
+
+export const questionOptionInputSchema = z.object({
+  text: localizedTextSchema,
+  isCorrect: z.boolean(),
+});
+
+/**
+ * Create and replace share one body. Option counts and the correct-answer
+ * rules per type are domain rules (422 `invalid-options`), not shape rules.
+ */
+export const questionRequestSchema = z.object({
+  type: z.enum(QuestionType),
+  prompt: localizedTextSchema,
+  hanzi: questionHanziSchema.nullable().default(null),
+  imageId: z.uuid().nullable().default(null),
+  explanation: localizedTextSchema.nullable().default(null),
+  points: questionPointsSchema.default(MIN_QUESTION_POINTS),
+  options: z
+    .array(questionOptionInputSchema)
+    .max(MAX_OPTIONS_PAYLOAD)
+    .default([]),
+  /**
+   * TRUE_FALSE only, and only when `options` is empty: whether "True" is the
+   * correct answer. The API then creates the localized True/False options.
+   */
+  correctAnswer: z.boolean().nullable().default(null),
+});
+
+export const adminQuizSummarySchema = z.object({
+  id: z.uuid(),
+  lessonId: z.uuid(),
+  title: localizedTextSchema,
+  description: localizedTextSchema.nullable(),
+  passingScore: passingScoreSchema,
+  sortOrder: z.number().int(),
+  archivedAt: z.string().nullable(),
+  questionCount: z.number().int().min(0),
+  totalPoints: z.number().int().min(0),
+  attemptCount: z.number().int().min(0),
+  createdAt: z.string(),
+  updatedAt: z.string(),
+});
+
+export const adminQuizzesResponseSchema = z.object({
+  quizzes: z.array(adminQuizSummarySchema),
+});
+
+export const adminOptionSchema = z.object({
+  id: z.uuid(),
+  text: localizedTextSchema,
+  isCorrect: z.boolean(),
+  sortOrder: z.number().int(),
+});
+
+export const adminQuestionSchema = z.object({
+  id: z.uuid(),
+  quizId: z.uuid(),
+  type: z.enum(QuestionType),
+  prompt: localizedTextSchema,
+  hanzi: z.string().nullable(),
+  imageId: z.uuid().nullable(),
+  image: questionImageSchema.nullable(),
+  explanation: localizedTextSchema.nullable(),
+  points: questionPointsSchema,
+  sortOrder: z.number().int(),
+  options: z.array(adminOptionSchema),
+});
+
+export const adminQuizDetailSchema = adminQuizSummarySchema.extend({
+  questions: z.array(adminQuestionSchema),
+});
+
+/** Learner view of a quiz row in a lesson's list. */
+export const learnerQuizSummarySchema = z.object({
+  id: z.uuid(),
+  title: localizedTextSchema,
+  description: localizedTextSchema.nullable(),
+  passingScore: passingScoreSchema,
+  questionCount: z.number().int().min(1),
+  totalPoints: z.number().int().min(1),
+  best: z
+    .object({
+      score: z.number().int().min(0).max(100),
+      passed: z.boolean(),
+      createdAt: z.string(),
+    })
+    .nullable(),
+  attempts: z.number().int().min(0),
+});
+
+export const learnerQuizzesResponseSchema = z.object({
+  quizzes: z.array(learnerQuizSummarySchema),
+});
+
+/** An option as the learner sees it: never says whether it is correct. */
+export const learnerOptionSchema = z.object({
+  id: z.uuid(),
+  text: localizedTextSchema,
+});
+
+export const learnerQuestionSchema = z.object({
+  id: z.uuid(),
+  type: z.enum(QuestionType),
+  prompt: localizedTextSchema,
+  hanzi: z.string().nullable(),
+  image: questionImageSchema.nullable(),
+  points: questionPointsSchema,
+  options: z.array(learnerOptionSchema),
+});
+
+export const learnerQuizSchema = z.object({
+  id: z.uuid(),
+  lessonId: z.uuid(),
+  title: localizedTextSchema,
+  description: localizedTextSchema.nullable(),
+  passingScore: passingScoreSchema,
+  questionCount: z.number().int().min(1),
+  totalPoints: z.number().int().min(1),
+  questions: z.array(learnerQuestionSchema),
+});
+
+export const attemptAnswerSchema = z.object({
+  questionId: z.uuid(),
+  optionIds: z.array(z.uuid()).max(MAX_QUESTION_OPTIONS),
+});
+
+export const submitAttemptRequestSchema = z.object({
+  answers: z.array(attemptAnswerSchema).max(MAX_ATTEMPT_ANSWERS),
+});
+
+export const attemptSummarySchema = z.object({
+  id: z.uuid(),
+  score: z.number().int().min(0).max(100),
+  earnedPoints: z.number().int().min(0),
+  totalPoints: z.number().int().min(1),
+  passed: z.boolean(),
+  createdAt: z.string(),
+});
+
+export const attemptResultSchema = z.object({
+  questionId: z.uuid(),
+  correct: z.boolean(),
+  chosen: z.array(z.uuid()),
+  correctOptionIds: z.array(z.uuid()),
+  explanation: localizedTextSchema.nullable(),
+});
+
+export const submitAttemptResponseSchema = z.object({
+  attempt: attemptSummarySchema,
+  results: z.array(attemptResultSchema),
+});
+
+export const attemptsResponseSchema = z.object({
+  attempts: z.array(attemptSummarySchema),
+});
+
+/** What `QuizAttempt.snapshot` stores (version 1). */
+export const attemptSnapshotQuestionSchema = z.object({
+  id: z.uuid(),
+  type: z.enum(QuestionType),
+  prompt: localizedTextSchema,
+  hanzi: z.string().nullable(),
+  points: questionPointsSchema,
+  explanation: localizedTextSchema.nullable(),
+  options: z.array(
+    z.object({
+      id: z.uuid(),
+      text: localizedTextSchema,
+      isCorrect: z.boolean(),
+    }),
+  ),
+  chosen: z.array(z.uuid()),
+  correct: z.boolean(),
+});
+
+export const attemptSnapshotSchema = z.object({
+  version: z.literal(1),
+  passingScore: passingScoreSchema,
+  questions: z.array(attemptSnapshotQuestionSchema),
+});
+
+export const attemptDetailSchema = z.object({
+  attempt: attemptSummarySchema.extend({
+    quizId: z.uuid(),
+    passingScore: passingScoreSchema,
+  }),
+  questions: z.array(attemptSnapshotQuestionSchema),
+});
+
+export type QuestionImage = z.infer<typeof questionImageSchema>;
+export type CreateQuizRequest = z.infer<typeof createQuizRequestSchema>;
+export type UpdateQuizRequest = z.infer<typeof updateQuizRequestSchema>;
+export type QuestionOptionInput = z.infer<typeof questionOptionInputSchema>;
+export type QuestionRequest = z.infer<typeof questionRequestSchema>;
+export type AdminQuizSummary = z.infer<typeof adminQuizSummarySchema>;
+export type AdminQuizzesResponse = z.infer<typeof adminQuizzesResponseSchema>;
+export type AdminOption = z.infer<typeof adminOptionSchema>;
+export type AdminQuestion = z.infer<typeof adminQuestionSchema>;
+export type AdminQuizDetail = z.infer<typeof adminQuizDetailSchema>;
+export type LearnerQuizSummary = z.infer<typeof learnerQuizSummarySchema>;
+export type LearnerQuizzesResponse = z.infer<
+  typeof learnerQuizzesResponseSchema
+>;
+export type LearnerOption = z.infer<typeof learnerOptionSchema>;
+export type LearnerQuestion = z.infer<typeof learnerQuestionSchema>;
+export type LearnerQuiz = z.infer<typeof learnerQuizSchema>;
+export type AttemptAnswer = z.infer<typeof attemptAnswerSchema>;
+export type SubmitAttemptRequest = z.infer<typeof submitAttemptRequestSchema>;
+export type AttemptSummary = z.infer<typeof attemptSummarySchema>;
+export type AttemptResult = z.infer<typeof attemptResultSchema>;
+export type SubmitAttemptResponse = z.infer<typeof submitAttemptResponseSchema>;
+export type AttemptsResponse = z.infer<typeof attemptsResponseSchema>;
+export type AttemptSnapshotQuestion = z.infer<
+  typeof attemptSnapshotQuestionSchema
+>;
+export type AttemptSnapshot = z.infer<typeof attemptSnapshotSchema>;
+export type AttemptDetail = z.infer<typeof attemptDetailSchema>;

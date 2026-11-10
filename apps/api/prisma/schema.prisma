@@ -28,6 +28,7 @@ model User {
   enrollments        Enrollment[]    @relation("EnrollmentStudent")
   grantedEnrollments Enrollment[]    @relation("EnrollmentGrantedBy")
   revokedEnrollments Enrollment[]    @relation("EnrollmentRevokedBy")
+  quizAttempts       QuizAttempt[]
 }
 
 model Session {
@@ -78,6 +79,7 @@ model MediaAsset {
   createdAt        DateTime  @default(now())
   levelCovers      Level[]
   lessonThumbnails Lesson[]
+  questionImages   Question[]
 }
 
 model Level {
@@ -123,6 +125,7 @@ model Lesson {
   thumbnail        MediaAsset?  @relation(fields: [thumbnailId], references: [id], onDelete: SetNull)
   activeVideo      VideoAsset?  @relation("ActiveVideo", fields: [activeVideoId], references: [id], onDelete: SetNull)
   videos           VideoAsset[] @relation("LessonVideos")
+  quizzes          Quiz[]
 
   @@unique([levelId, sortOrder])
   @@index([levelId, isPublished, archivedAt, sortOrder])
@@ -199,4 +202,76 @@ model Enrollment {
 
   @@unique([userId, levelId])
   @@index([levelId])
+}
+
+enum QuestionType {
+  SINGLE
+  MULTIPLE
+  TRUE_FALSE
+}
+
+model Quiz {
+  id           String        @id @default(uuid()) @db.Uuid
+  lessonId     String        @db.Uuid
+  title        Json
+  description  Json?
+  passingScore Int           @default(70)
+  sortOrder    Int
+  archivedAt   DateTime?
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  lesson       Lesson        @relation(fields: [lessonId], references: [id], onDelete: Restrict)
+  questions    Question[]
+  attempts     QuizAttempt[]
+
+  @@unique([lessonId, sortOrder])
+  @@index([lessonId, archivedAt, sortOrder])
+}
+
+model Question {
+  id          String       @id @default(uuid()) @db.Uuid
+  quizId      String       @db.Uuid
+  type        QuestionType
+  prompt      Json
+  hanzi       String?      @db.VarChar(200)
+  imageId     String?      @db.Uuid
+  explanation Json?
+  points      Int          @default(1)
+  sortOrder   Int
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  quiz        Quiz         @relation(fields: [quizId], references: [id], onDelete: Cascade)
+  image       MediaAsset?  @relation(fields: [imageId], references: [id], onDelete: SetNull)
+  options     Option[]
+
+  @@unique([quizId, sortOrder])
+}
+
+model Option {
+  id         String   @id @default(uuid()) @db.Uuid
+  questionId String   @db.Uuid
+  text       Json
+  isCorrect  Boolean
+  sortOrder  Int
+  question   Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
+
+  @@unique([questionId, sortOrder])
+}
+
+/// One graded submission. `snapshot` freezes the questions as they were when
+/// the learner answered, so later quiz edits never rewrite history.
+model QuizAttempt {
+  id           String   @id @default(uuid()) @db.Uuid
+  userId       String   @db.Uuid
+  quizId       String   @db.Uuid
+  score        Int
+  earnedPoints Int
+  totalPoints  Int
+  passed       Boolean
+  snapshot     Json
+  createdAt    DateTime @default(now())
+  user         User     @relation(fields: [userId], references: [id], onDelete: Restrict)
+  quiz         Quiz     @relation(fields: [quizId], references: [id], onDelete: Restrict)
+
+  @@index([userId, quizId, createdAt])
 }

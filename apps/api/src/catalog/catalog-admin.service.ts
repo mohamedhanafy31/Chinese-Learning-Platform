@@ -325,6 +325,12 @@ export class CatalogAdminService {
           'A published lesson cannot be deleted. Archive it instead.',
         );
       }
+      const quizzes = await tx.quiz.count({ where: { lessonId: id } });
+      if (quizzes > 0) {
+        throw new ConflictException(
+          'A lesson with quizzes cannot be deleted. Delete its quizzes first, or archive the lesson if they have attempts.',
+        );
+      }
       // Video rows go with the lesson (cascade); their stored videos (files or
       // Bunny videos) are removed once the delete has committed.
       const videos = await tx.videoAsset.findMany({ where: { lessonId: id } });
