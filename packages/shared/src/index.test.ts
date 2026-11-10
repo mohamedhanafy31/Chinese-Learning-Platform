@@ -1,11 +1,13 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+  adminStudentsQuerySchema,
   createLessonRequestSchema,
   createLevelRequestSchema,
   localizedTextSchema,
   phoneSchema,
   registerRequestSchema,
+  revokeEnrollmentRequestSchema,
 } from './index';
 
 describe('localizedTextSchema', () => {
@@ -161,5 +163,51 @@ describe('catalog request schemas', () => {
         thumbnailId: null,
       },
     );
+  });
+});
+
+describe('learning contracts', () => {
+  it('defaults and bounds the students query', () => {
+    expect(adminStudentsQuerySchema.parse({})).toEqual({
+      query: '',
+      page: 1,
+      pageSize: 20,
+    });
+    expect(
+      adminStudentsQuerySchema.parse({
+        query: '  Amal ',
+        page: '3',
+        pageSize: '50',
+      }),
+    ).toEqual({ query: 'Amal', page: 3, pageSize: 50 });
+    expect(
+      adminStudentsQuerySchema.parse({ page: '', pageSize: '' }),
+    ).toMatchObject({
+      page: 1,
+      pageSize: 20,
+    });
+    expect(() => adminStudentsQuerySchema.parse({ pageSize: '51' })).toThrow();
+    expect(() => adminStudentsQuerySchema.parse({ page: '0' })).toThrow();
+    expect(() => adminStudentsQuerySchema.parse({ page: 'x' })).toThrow();
+  });
+
+  it('accepts an empty or missing revoke body and bounds the reason', () => {
+    expect(revokeEnrollmentRequestSchema.parse(undefined)).toEqual({
+      reason: undefined,
+    });
+    expect(revokeEnrollmentRequestSchema.parse({})).toEqual({
+      reason: undefined,
+    });
+    expect(revokeEnrollmentRequestSchema.parse({ reason: '   ' })).toEqual({
+      reason: undefined,
+    });
+    expect(revokeEnrollmentRequestSchema.parse({ reason: ' Refund ' })).toEqual(
+      {
+        reason: 'Refund',
+      },
+    );
+    expect(() =>
+      revokeEnrollmentRequestSchema.parse({ reason: 'x'.repeat(501) }),
+    ).toThrow();
   });
 });

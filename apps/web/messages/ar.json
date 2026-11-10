@@ -58,7 +58,8 @@
     "start": "ابدأ",
     "sealedBy": "مكتمل، بختم مازن",
     "lessonNumber": "الدرس {n}",
-    "minutes": "{count} دقيقة"
+    "minutes": "{count} دقيقة",
+    "open": "متاح"
   },
   "Level": {
     "back": "كل المستويات",
@@ -70,7 +71,10 @@
     "comingSoon": "يُفتح الشراء قريباً.",
     "unavailableTitle": "تعذّر تحميل هذا المستوى",
     "unavailableBody": "حاول مجدداً بعد قليل.",
-    "includesEmpty": "ستُعرض موضوعات هذا المستوى هنا."
+    "includesEmpty": "ستُعرض موضوعات هذا المستوى هنا.",
+    "enrolled": "أنت مسجّل في هذا المستوى",
+    "enrolledNote": "جميع الدروس متاحة لك.",
+    "archivedNote": "هذا المستوى مؤرشف، وما زال وصولك إليه قائماً."
   },
   "Auth": {
     "loginTitle": "مرحباً بعودتك",
@@ -135,7 +139,13 @@
     "browse": "تصفّح المستويات",
     "logout": "تسجيل الخروج",
     "loggingOut": "جارٍ تسجيل الخروج…",
-    "logoutError": "تعذّر تسجيل خروجك. حاول مجدداً."
+    "logoutError": "تعذّر تسجيل خروجك. حاول مجدداً.",
+    "myLevels": "مستوياتي",
+    "lessonsCount": "{count} دروس",
+    "goToLevel": "اذهب إلى المستوى",
+    "goToLevelNamed": "اذهب إلى المستوى: {title}",
+    "archived": "مؤرشف · وصولك باقٍ",
+    "loadError": "تعذّر تحميل مستوياتك. حدّث الصفحة وحاول مجدداً."
   },
   "Admin": {
     "title": "الإدارة",
@@ -147,7 +157,8 @@
     "manageLevels": "إدارة المستويات",
     "nav": {
       "label": "أقسام الإدارة",
-      "levels": "المستويات"
+      "levels": "المستويات",
+      "students": "الطلاب"
     },
     "status": {
       "draft": "مسودة",
@@ -266,7 +277,9 @@
       "notFound": "هذا العنصر لم يعد موجوداً.",
       "forbidden": "ليست لديك صلاحية لتنفيذ ذلك.",
       "rateLimited": "طلبات كثيرة. انتظر دقيقة ثم حاول مجدداً.",
-      "retry": "حدث خطأ ما. تحقّق من اتصالك وحاول مجدداً."
+      "retry": "حدث خطأ ما. تحقّق من اتصالك وحاول مجدداً.",
+      "notStudent": "يمكن تسجيل الطلاب فقط في المستويات.",
+      "levelNotGrantable": "لا يمكن منح إلا المستويات المنشورة أو المؤرشفة."
     },
     "lifecycle": {
       "publish": "انشر",
@@ -290,6 +303,67 @@
       "confirmDelete": "احذف نهائياً",
       "deleting": "جارٍ الحذف…",
       "cancel": "إلغاء"
+    },
+    "students": {
+      "title": "الطلاب",
+      "intro": "ابحث عن طالب، ثم افتح ملفه لمنح مستوى أو سحبه.",
+      "searchLabel": "ابحث في الطلاب",
+      "searchHelper": "بالاسم أو البريد الإلكتروني أو رقم الهاتف.",
+      "searchSubmit": "بحث",
+      "searchClear": "مسح البحث",
+      "results": "{count} طلاب",
+      "resultsFor": "{count} طلاب لعبارة «{query}»",
+      "empty": "لم يسجّل أي طالب بعد.",
+      "emptySearch": "لا يوجد طالب يطابق هذا البحث.",
+      "listLabel": "الطلاب، الأحدث أولاً",
+      "joined": "انضم في {date}",
+      "activeCount": "المستويات الفعّالة: {count}",
+      "pagination": "الصفحات",
+      "previous": "السابق",
+      "next": "التالي",
+      "pageInfo": "الصفحة {page} من {pages}"
+    },
+    "student": {
+      "back": "كل الطلاب",
+      "profile": "الملف الشخصي",
+      "email": "البريد الإلكتروني",
+      "phone": "الهاتف",
+      "enrollmentsTitle": "المستويات",
+      "enrollmentsEmpty": "ليس لدى هذا الطالب أي مستوى بعد.",
+      "listLabel": "التسجيلات",
+      "source": "المصدر",
+      "sourcePURCHASE": "شراء",
+      "sourceADMIN": "منحه مسؤول",
+      "grantedBy": "منحه {name}",
+      "noGrantedBy": "لا يوجد مسؤول مسجَّل للمنح",
+      "enrolledOn": "سُجّل في {date}",
+      "statusActive": "فعّال",
+      "statusRevoked": "مسحوب",
+      "revokedOn": "سُحب في {date}",
+      "reasonLine": "السبب: {reason}",
+      "noReason": "لم يُذكر سبب",
+      "grantTitle": "منح مستوى",
+      "grantIntro": "منح المستوى يفتح جميع دروسه لهذا الطالب.",
+      "grantLabel": "المستوى",
+      "grantPlaceholder": "اختر مستوى",
+      "grantSubmit": "امنح المستوى",
+      "granting": "جارٍ المنح…",
+      "granted": "تم منح المستوى.",
+      "grantNone": "لدى هذا الطالب كل المستويات المنشورة بالفعل.",
+      "grantArchivedSuffix": "مؤرشف",
+      "grantChoose": "اختر مستوى لمنحه.",
+      "revoke": "سحب…",
+      "revokeLabel": "سحب «{title}»",
+      "revokeTitle": "سحب هذا المستوى؟",
+      "revokeBody": "سيفقد هذا الطالب الوصول إلى «{title}». يمكنك منحه مجدداً في أي وقت.",
+      "reasonField": "السبب (اختياري)",
+      "reasonHelper": "يُحفظ في السجل، مثل استرداد المبلغ. حتى ٥٠٠ حرف.",
+      "reasonTooLong": "استخدم ٥٠٠ حرف كحدّ أقصى.",
+      "confirmRevoke": "سحب الوصول",
+      "revoking": "جارٍ السحب…",
+      "revoked": "تم سحب الوصول.",
+      "cancel": "إلغاء",
+      "joinedLabel": "تاريخ الانضمام"
     }
   },
   "Metadata": {
@@ -305,7 +379,9 @@
     "adminLevelEdit": "تعديل المستوى · الإدارة · مازن للصينية",
     "adminLessonNew": "درس جديد · الإدارة · مازن للصينية",
     "adminLessonEdit": "تعديل الدرس · الإدارة · مازن للصينية",
-    "levelDescriptionFallback": "مستوى من كورس مازن لتعليم الصينية للمتحدثين بالعربية."
+    "levelDescriptionFallback": "مستوى من كورس مازن لتعليم الصينية للمتحدثين بالعربية.",
+    "adminStudents": "الطلاب · الإدارة · مازن للصينية",
+    "adminStudent": "طالب · الإدارة · مازن للصينية"
   },
   "NotFound": {
     "title": "الصفحة غير موجودة",

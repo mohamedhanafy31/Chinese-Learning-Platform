@@ -4,7 +4,14 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 
-import { Locale, type PublicLevelDetail } from '@app/shared';
+import { Archive, Check } from 'lucide-react';
+
+import {
+  Locale,
+  type LessonAccess,
+  type MyLevelDetail,
+  type PublicLevelDetail,
+} from '@app/shared';
 
 import { LessonPath } from '@/components/learning/lesson-path';
 import { WriteOn } from '@/components/motion/write-on';
@@ -12,11 +19,27 @@ import { Band } from '@/components/porcelain/band';
 import { SiteFooter } from '@/components/site-footer';
 import { SiteHeader } from '@/components/site-header';
 import { getPublicLevel } from '@/lib/catalog';
+import { accessById } from '@/lib/lesson-access';
+import { getLevelAccess, getMyLevel } from '@/lib/learning';
 import { pick } from '@/lib/localized';
 import { numberFormat } from '@/lib/numbers';
 import { toCatalogPathLessons } from '@/lib/path-lessons';
 import { formatEgp } from '@/lib/price';
 import { absoluteUrl } from '@/lib/site-url';
+
+/** What the page renders: the public detail, or an owned (maybe archived) level. */
+type LevelView = Pick<
+  PublicLevelDetail,
+  | 'hanzi'
+  | 'title'
+  | 'summary'
+  | 'topics'
+  | 'priceMinor'
+  | 'coverImage'
+  | 'lessonCount'
+  | 'lessons'
+> &
+  Pick<MyLevelDetail, 'number'>;
 
 interface LevelPageProps {
   params: Promise<{ locale: Locale; slug: string }>;
@@ -75,12 +98,23 @@ export default async function LevelPage({
 }: LevelPageProps): Promise<React.JSX.Element> {
   const { locale, slug } = await params;
   setRequestLocale(locale);
-  const result = await getPublicLevel(slug);
-  if (result.status === 'not-found') notFound();
+  const [result, access] = await Promise.all([
+    getPublicLevel(slug),
+    getLevelAccess(slug),
+  ]);
+  // An archived level is gone from the public catalog but stays readable for
+  // the learners who own it.
+  // Enrolled viewers are also read uncached, so an archive done in the last
+  // minute is never hidden behind the cached public detail.
+  const owned =
+    result.status === 'not-found' || access?.enrolled
+      ? await getMyLevel(slug)
+      : null;
+  if (result.status === 'not-found' && !owned) notFound();
 
   const t = await getTranslations('Level');
 
-  if (result.status === 'unavailable') {
+  if (result.status === 'unavailable' && !owned) {
     return (
       <>
         <SiteHeader locale={locale} tone="on-glaze" />
@@ -103,11 +137,22 @@ export default async function LevelPage({
     );
   }
 
-  const level = result.data;
+  const level: LevelView | undefined =
+    owned ?? (result.status === 'ok' ? result.data : undefined);
+  if (!level) notFound();
+  const enrolled = owned !== null || access?.enrolled === true;
+  const archived = owned?.archived === true;
+  const lessonAccess: Map<string, LessonAccess> = owned
+    ? new Map(owned.lessons.map((lesson) => [lesson.id, 'open' as const]))
+    : accessById(access);
   const tHome = await getTranslations('Home');
   const tPath = await getTranslations('Path');
   const nf = numberFormat(locale);
-  const lessons = await toCatalogPathLessons(level.lessons, locale);
+  const lessons = await toCatalogPathLessons(
+    level.lessons,
+    locale,
+    lessonAccess,
+  );
   const price =
     level.priceMinor === null
       ? tHome('pricePending')
@@ -148,7 +193,9 @@ export default async function LevelPage({
                     <WriteOn text={pick(level.title, locale)} delay={350} />
                   </h1>
                   <p className="mt-2 text-cobalt">
-                    {tHome('levelWord')} {nf.format(level.number)} ·{' '}
+                    {level.number === null
+                      ? null
+                      : `${tHome('levelWord')} ${nf.format(level.number)} · `}
                     {t('lessonsCount', {
                       count: nf.format(level.lessonCount),
                     })}
@@ -162,19 +209,49 @@ export default async function LevelPage({
                     cover ? 'lg:col-span-2 lg:items-start' : ''
                   }`}
                 >
-                  <button
-                    type="button"
-                    disabled
-                    className="inline-flex min-h-14 items-center rounded-full bg-deep px-8 text-lg font-semibold text-glaze transition-colors hover:bg-cobalt disabled:cursor-not-allowed disabled:bg-wash disabled:text-cobalt"
-                  >
-                    {t('buy')}
-                  </button>
-                  <span className="text-sm text-cobalt">{price}</span>
-                  {level.priceMinor !== null ? (
-                    <span className="text-sm text-cobalt">
-                      {t('comingSoon')}
-                    </span>
-                  ) : null}
+                  {enrolled ? (
+                    <>
+                      <p
+                        data-testid="level-enrolled"
+                        className="inline-flex min-h-14 items-center gap-2 text-lg font-semibold text-deep"
+                      >
+                        <Check
+                          aria-hidden="true"
+                          className="size-6 shrink-0"
+                          strokeWidth={2.5}
+                        />
+                        {t('enrolled')}
+                      </p>
+                      <span className="max-w-[16rem] text-sm text-cobalt md:text-end lg:text-start">
+                        {t('enrolledNote')}
+                      </span>
+                      {archived ? (
+                        <p className="mt-1 flex max-w-[16rem] items-start gap-2 text-sm font-semibold text-deep">
+                          <Archive
+                            aria-hidden="true"
+                            className="mt-0.5 size-4 shrink-0"
+                          />
+                          {t('archivedNote')}
+                        </p>
+                      ) : null}
+                    </>
+                  ) : (
+                    <>
+                      <button
+                        type="button"
+                        disabled
+                        className="inline-flex min-h-14 items-center rounded-full bg-deep px-8 text-lg font-semibold text-glaze transition-colors hover:bg-cobalt disabled:cursor-not-allowed disabled:bg-wash disabled:text-cobalt"
+                      >
+                        {t('buy')}
+                      </button>
+                      <span className="text-sm text-cobalt">{price}</span>
+                      {level.priceMinor !== null ? (
+                        <span className="text-sm text-cobalt">
+                          {t('comingSoon')}
+                        </span>
+                      ) : null}
+                    </>
+                  )}
                 </div>
               </div>
 
@@ -214,6 +291,7 @@ export default async function LevelPage({
                       next: tPath('next'),
                       locked: tPath('locked'),
                       preview: tPath('preview'),
+                      open: tPath('open'),
                       start: tPath('start'),
                       sealedBy: tPath('sealedBy'),
                     }}

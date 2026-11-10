@@ -58,7 +58,8 @@
     "start": "开始",
     "sealedBy": "已完成，马赞盖章",
     "lessonNumber": "第{n}课",
-    "minutes": "{count} 分钟"
+    "minutes": "{count} 分钟",
+    "open": "可学习"
   },
   "Level": {
     "back": "全部级别",
@@ -70,7 +71,10 @@
     "comingSoon": "购买功能即将开放。",
     "unavailableTitle": "暂时无法加载此级别",
     "unavailableBody": "请稍后再试。",
-    "includesEmpty": "本级别的主题将在这里列出。"
+    "includesEmpty": "本级别的主题将在这里列出。",
+    "enrolled": "你已加入本级别",
+    "enrolledNote": "所有课程都已为你开放。",
+    "archivedNote": "本级别已归档，你仍可继续学习。"
   },
   "Auth": {
     "loginTitle": "欢迎回来",
@@ -135,7 +139,13 @@
     "browse": "浏览课程级别",
     "logout": "退出登录",
     "loggingOut": "正在退出…",
-    "logoutError": "暂时无法退出，请重试。"
+    "logoutError": "暂时无法退出，请重试。",
+    "myLevels": "我的级别",
+    "lessonsCount": "{count} 课",
+    "goToLevel": "进入级别",
+    "goToLevelNamed": "进入级别：{title}",
+    "archived": "已归档 · 仍可学习",
+    "loadError": "暂时无法加载你的级别。请刷新页面后重试。"
   },
   "Admin": {
     "title": "管理后台",
@@ -147,7 +157,8 @@
     "manageLevels": "管理级别",
     "nav": {
       "label": "管理后台栏目",
-      "levels": "级别"
+      "levels": "级别",
+      "students": "学员"
     },
     "status": {
       "draft": "草稿",
@@ -266,7 +277,9 @@
       "notFound": "此项目已不存在。",
       "forbidden": "你没有权限执行此操作。",
       "rateLimited": "请求过多。请等待一分钟后再试。",
-      "retry": "出错了。请检查网络后重试。"
+      "retry": "出错了。请检查网络后重试。",
+      "notStudent": "只能为学员开通级别。",
+      "levelNotGrantable": "只能授予已发布或已归档的级别。"
     },
     "lifecycle": {
       "publish": "发布",
@@ -290,6 +303,67 @@
       "confirmDelete": "永久删除",
       "deleting": "正在删除…",
       "cancel": "取消"
+    },
+    "students": {
+      "title": "学员",
+      "intro": "先找到学员，再打开其资料来授予或收回级别。",
+      "searchLabel": "搜索学员",
+      "searchHelper": "可按姓名、邮箱或手机号搜索。",
+      "searchSubmit": "搜索",
+      "searchClear": "清除搜索",
+      "results": "{count} 位学员",
+      "resultsFor": "“{query}”共 {count} 位学员",
+      "empty": "还没有学员注册。",
+      "emptySearch": "没有符合此搜索的学员。",
+      "listLabel": "学员，最新在前",
+      "joined": "{date} 加入",
+      "activeCount": "有效级别：{count}",
+      "pagination": "分页",
+      "previous": "上一页",
+      "next": "下一页",
+      "pageInfo": "第 {page} 页，共 {pages} 页"
+    },
+    "student": {
+      "back": "全部学员",
+      "profile": "资料",
+      "email": "邮箱",
+      "phone": "手机号",
+      "enrollmentsTitle": "级别",
+      "enrollmentsEmpty": "该学员还没有任何级别。",
+      "listLabel": "加入记录",
+      "source": "来源",
+      "sourcePURCHASE": "购买",
+      "sourceADMIN": "管理员授予",
+      "grantedBy": "由 {name} 授予",
+      "noGrantedBy": "未记录授予的管理员",
+      "enrolledOn": "{date} 加入",
+      "statusActive": "有效",
+      "statusRevoked": "已收回",
+      "revokedOn": "{date} 收回",
+      "reasonLine": "原因：{reason}",
+      "noReason": "未填写原因",
+      "grantTitle": "授予级别",
+      "grantIntro": "授予后，该学员可学习此级别的全部课程。",
+      "grantLabel": "级别",
+      "grantPlaceholder": "选择级别",
+      "grantSubmit": "授予级别",
+      "granting": "正在授予…",
+      "granted": "已授予级别。",
+      "grantNone": "该学员已拥有所有已发布的级别。",
+      "grantArchivedSuffix": "已归档",
+      "grantChoose": "请选择要授予的级别。",
+      "revoke": "收回…",
+      "revokeLabel": "收回“{title}”",
+      "revokeTitle": "收回此级别？",
+      "revokeBody": "该学员将无法再学习“{title}”。你随时可以重新授予。",
+      "reasonField": "原因（可选）",
+      "reasonHelper": "会记入档案，例如退款。最多 500 个字符。",
+      "reasonTooLong": "最多使用 500 个字符。",
+      "confirmRevoke": "收回权限",
+      "revoking": "正在收回…",
+      "revoked": "已收回权限。",
+      "cancel": "取消",
+      "joinedLabel": "加入日期"
     }
   },
   "Metadata": {
@@ -305,7 +379,9 @@
     "adminLevelEdit": "编辑级别 · 管理后台 · 马赞中文",
     "adminLessonNew": "新建课程 · 管理后台 · 马赞中文",
     "adminLessonEdit": "编辑课程 · 管理后台 · 马赞中文",
-    "levelDescriptionFallback": "马赞为阿拉伯语使用者开设的中文课程中的一个级别。"
+    "levelDescriptionFallback": "马赞为阿拉伯语使用者开设的中文课程中的一个级别。",
+    "adminStudents": "学员 · 管理后台 · 马赞中文",
+    "adminStudent": "学员详情 · 管理后台 · 马赞中文"
   },
   "NotFound": {
     "title": "页面未找到",

@@ -1,9 +1,10 @@
 import { getTranslations } from 'next-intl/server';
 
-import type { Locale } from '@app/shared';
+import type { LessonAccess, Locale } from '@app/shared';
 
 import type { PathLesson } from '@/components/learning/lesson-path';
 import { samplePathLessons } from '@/content/sample-path';
+import { pathStateFor } from '@/lib/lesson-access';
 import { numberFormat } from '@/lib/numbers';
 import { pick } from '@/lib/localized';
 
@@ -33,13 +34,14 @@ export interface RealLessonInput {
 }
 
 /**
- * Catalog lessons for the level page. There is no enrollment or progress yet,
- * so a lesson is either a free preview or locked; "done" and "next" arrive
- * with enrollments and progress.
+ * Catalog lessons for the level page. `access` is what the API said this
+ * viewer may do (see `getLevelAccess`); without it the view is anonymous: a
+ * lesson is a free preview or locked. "Done" and "next" arrive with progress.
  */
 export async function toCatalogPathLessons(
   lessons: RealLessonInput[],
   locale: Locale,
+  access: Map<string, LessonAccess> = new Map(),
 ): Promise<PathLesson[]> {
   const t = await getTranslations({ locale, namespace: 'Path' });
   const nf = numberFormat(locale);
@@ -49,6 +51,6 @@ export async function toCatalogPathLessons(
     number: t('lessonNumber', { n: nf.format(lesson.number) }),
     title: pick(lesson.title, locale),
     hanzi: lesson.hanzi ?? '',
-    state: lesson.isFreePreview ? 'preview' : 'locked',
+    state: pathStateFor(lesson, access.get(lesson.id)),
   }));
 }

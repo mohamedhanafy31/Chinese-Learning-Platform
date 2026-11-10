@@ -5,9 +5,13 @@ import {
   adminLessonSchema,
   adminLevelDetailSchema,
   adminLevelsResponseSchema,
+  adminStudentDetailSchema,
+  adminStudentsResponseSchema,
   type AdminLesson,
   type AdminLevel,
   type AdminLevelDetail,
+  type AdminStudentDetail,
+  type AdminStudentsResponse,
   type z,
 } from '@app/shared';
 
@@ -36,4 +40,21 @@ export function getAdminLevel(id: string): Promise<AdminLevelDetail> {
 
 export function getAdminLesson(id: string): Promise<AdminLesson> {
   return adminGet(`/api/v1/admin/lessons/${id}`, adminLessonSchema);
+}
+
+export function getAdminStudents(params: {
+  query: string;
+  page: number;
+}): Promise<AdminStudentsResponse> {
+  const search = new URLSearchParams();
+  if (params.query) search.set('query', params.query);
+  search.set('page', String(params.page));
+  return adminGet(
+    `/api/v1/admin/students?${search}`,
+    adminStudentsResponseSchema,
+  );
+}
+
+export function getAdminStudent(id: string): Promise<AdminStudentDetail> {
+  return adminGet(`/api/v1/admin/students/${id}`, adminStudentDetailSchema);
 }

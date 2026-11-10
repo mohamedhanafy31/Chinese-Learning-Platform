@@ -14,17 +14,20 @@ enum Role {
 }
 
 model User {
-  id             String          @id @default(uuid()) @db.Uuid
-  email          String          @unique
-  passwordHash   String
-  name           String
-  phone          String
-  role           Role            @default(STUDENT)
-  isActive       Boolean         @default(true)
-  createdAt      DateTime        @default(now())
-  updatedAt      DateTime        @updatedAt
-  sessions       Session[]
-  passwordResets PasswordReset[]
+  id                 String          @id @default(uuid()) @db.Uuid
+  email              String          @unique
+  passwordHash       String
+  name               String
+  phone              String
+  role               Role            @default(STUDENT)
+  isActive           Boolean         @default(true)
+  createdAt          DateTime        @default(now())
+  updatedAt          DateTime        @updatedAt
+  sessions           Session[]
+  passwordResets     PasswordReset[]
+  enrollments        Enrollment[]    @relation("EnrollmentStudent")
+  grantedEnrollments Enrollment[]    @relation("EnrollmentGrantedBy")
+  revokedEnrollments Enrollment[]    @relation("EnrollmentRevokedBy")
 }
 
 model Session {
@@ -78,23 +81,24 @@ model MediaAsset {
 }
 
 model Level {
-  id               String      @id @default(uuid()) @db.Uuid
-  slug             String      @unique
+  id               String       @id @default(uuid()) @db.Uuid
+  slug             String       @unique
   hanzi            String
   title            Json
   summary          Json
   topics           Json
   priceMinor       Int?
-  currency         String      @default("EGP")
+  currency         String       @default("EGP")
   sortOrder        Int
-  isPublished      Boolean     @default(false)
+  isPublished      Boolean      @default(false)
   firstPublishedAt DateTime?
   archivedAt       DateTime?
-  coverImageId     String?     @db.Uuid
-  createdAt        DateTime    @default(now())
-  updatedAt        DateTime    @updatedAt
-  coverImage       MediaAsset? @relation(fields: [coverImageId], references: [id], onDelete: SetNull)
+  coverImageId     String?      @db.Uuid
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
+  coverImage       MediaAsset?  @relation(fields: [coverImageId], references: [id], onDelete: SetNull)
   lessons          Lesson[]
+  enrollments      Enrollment[]
 
   @@unique([sortOrder])
   @@index([isPublished, archivedAt, sortOrder])
@@ -119,4 +123,29 @@ model Lesson {
 
   @@unique([levelId, sortOrder])
   @@index([levelId, isPublished, archivedAt, sortOrder])
+}
+
+enum EnrollmentSource {
+  PURCHASE
+  ADMIN
+}
+
+model Enrollment {
+  id           String           @id @default(uuid()) @db.Uuid
+  userId       String           @db.Uuid
+  levelId      String           @db.Uuid
+  source       EnrollmentSource
+  grantedById  String?          @db.Uuid
+  revokedAt    DateTime?
+  revokedById  String?          @db.Uuid
+  revokeReason String?          @db.VarChar(500)
+  createdAt    DateTime         @default(now())
+  updatedAt    DateTime         @updatedAt
+  user         User             @relation("EnrollmentStudent", fields: [userId], references: [id], onDelete: Cascade)
+  level        Level            @relation(fields: [levelId], references: [id], onDelete: Restrict)
+  grantedBy    User?            @relation("EnrollmentGrantedBy", fields: [grantedById], references: [id], onDelete: SetNull)
+  revokedBy    User?            @relation("EnrollmentRevokedBy", fields: [revokedById], references: [id], onDelete: SetNull)
+
+  @@unique([userId, levelId])
+  @@index([levelId])
 }

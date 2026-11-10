@@ -124,6 +124,7 @@ export default async function HomePage({
                 next: tPath('next'),
                 locked: tPath('locked'),
                 preview: tPath('preview'),
+                open: tPath('open'),
                 start: tPath('start'),
                 sealedBy: tPath('sealedBy'),
               }}

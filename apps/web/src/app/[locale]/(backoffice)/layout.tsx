@@ -24,7 +24,10 @@ export default async function BackofficeLayout({
         locale={locale}
         tone="on-glaze"
         navLabel={t('label')}
-        navItems={[{ href: `/${locale}/admin/levels`, label: t('levels') }]}
+        navItems={[
+          { href: `/${locale}/admin/levels`, label: t('levels') },
+          { href: `/${locale}/admin/students`, label: t('students') },
+        ]}
       />
       <main className="flex-1">{children}</main>
       <SiteFooter locale={locale} />

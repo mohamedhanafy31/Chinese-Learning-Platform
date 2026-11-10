@@ -10,6 +10,8 @@ export type AdminErrorKey =
   | 'imageType'
   | 'imageUnprocessable'
   | 'invalidOrder'
+  | 'notStudent'
+  | 'levelNotGrantable'
   | 'notFound'
   | 'forbidden'
   | 'rateLimited'
@@ -24,12 +26,14 @@ export function adminErrorKey(status: number, message = ''): AdminErrorKey {
   const text = message.toLowerCase();
   switch (status) {
     case 400:
+      if (text.includes('cannot be enrolled')) return 'notStudent';
       return text.includes('unknown image') ? 'unknownImage' : 'invalidOrder';
     case 403:
       return 'forbidden';
     case 404:
       return 'notFound';
     case 409:
+      if (text.includes('cannot be granted')) return 'levelNotGrantable';
       if (text.includes('slug already exists')) return 'slugTaken';
       if (text.includes('slug cannot change')) return 'slugLocked';
       if (text.includes('published level cannot be deleted')) {

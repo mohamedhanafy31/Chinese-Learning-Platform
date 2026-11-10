@@ -22,6 +22,15 @@ describe('adminErrorKey', () => {
     expect(adminErrorKey(409, 'something new')).toBe('conflict');
   });
 
+  it('maps the enrollment failures', () => {
+    expect(
+      adminErrorKey(409, 'A level that is not published cannot be granted'),
+    ).toBe('levelNotGrantable');
+    expect(adminErrorKey(400, 'Administrators cannot be enrolled')).toBe(
+      'notStudent',
+    );
+  });
+
   it('maps upload and generic failures', () => {
     expect(adminErrorKey(413)).toBe('imageTooLarge');
     expect(adminErrorKey(415)).toBe('imageType');

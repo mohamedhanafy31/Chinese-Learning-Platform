@@ -3,6 +3,7 @@ import { Reflector } from '@nestjs/core';
 import type { CanActivate, ExecutionContext } from '@nestjs/common';
 import type { Request } from 'express';
 
+import { IS_OPTIONAL_AUTH_KEY } from '../decorators/optional-auth.decorator';
 import { IS_PUBLIC_KEY } from '../decorators/public.decorator';
 import type { AuthenticatedRequest } from '../types/authenticated-request';
 import { IdentityTokensService } from '../../identity/identity-tokens.service';
@@ -27,9 +28,15 @@ export class AuthGuard implements CanActivate {
       return true;
     }
 
+    const isOptional = this.reflector.getAllAndOverride<boolean>(
+      IS_OPTIONAL_AUTH_KEY,
+      [context.getHandler(), context.getClass()],
+    );
+
     const request = context.switchToHttp().getRequest<Request>();
     const accessToken = request.cookies?.access_token as string | undefined;
     if (!accessToken) {
+      if (isOptional) return true;
       throw new UnauthorizedException('Authentication required');
     }
 
@@ -55,6 +62,8 @@ export class AuthGuard implements CanActivate {
       authenticatedRequest.auth = { sessionId: session.id };
       return true;
     } catch {
+      // An invalid or expired cookie on an optional route is just anonymous.
+      if (isOptional) return true;
       throw new UnauthorizedException('Authentication required');
     }
   }

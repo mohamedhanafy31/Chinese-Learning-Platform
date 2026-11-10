@@ -293,3 +293,142 @@ export type PublicLesson = z.infer<typeof publicLessonSchema>;
 export type PublicLevel = z.infer<typeof publicLevelSchema>;
 export type PublicLevelDetail = z.infer<typeof publicLevelDetailSchema>;
 export type PublicLevelsResponse = z.infer<typeof publicLevelsResponseSchema>;
+
+// ---------------------------------------------------------------------------
+// Learning (enrollments, access, students)
+// ---------------------------------------------------------------------------
+
+export const EnrollmentSource = {
+  PURCHASE: 'PURCHASE',
+  ADMIN: 'ADMIN',
+} as const;
+
+export type EnrollmentSource =
+  (typeof EnrollmentSource)[keyof typeof EnrollmentSource];
+
+export const MAX_REVOKE_REASON_LENGTH = 500;
+export const MAX_STUDENTS_PAGE_SIZE = 50;
+export const DEFAULT_STUDENTS_PAGE_SIZE = 20;
+export const MAX_STUDENT_QUERY_LENGTH = 200;
+
+export const enrollmentSourceSchema = z.enum(EnrollmentSource);
+
+/** One level a learner owns, as listed on their dashboard. */
+export const myLevelSchema = z.object({
+  slug: slugSchema,
+  /** Public position, or null once the level is archived. */
+  number: z.number().int().min(1).nullable(),
+  hanzi: z.string(),
+  title: localizedTextSchema,
+  summary: localizedTextSchema,
+  coverImage: imageRefSchema.nullable(),
+  lessonCount: z.number().int().min(0),
+  archived: z.boolean(),
+  enrolledAt: z.string(),
+});
+
+export const myLevelsResponseSchema = z.object({
+  levels: z.array(myLevelSchema),
+});
+
+/** The full level an enrolled learner may read, archived levels included. */
+export const myLevelDetailSchema = myLevelSchema.extend({
+  topics: levelTopicsSchema,
+  priceMinor: priceMinorSchema,
+  currency: z.string(),
+  lessons: z.array(publicLessonSchema),
+});
+
+export const lessonAccessSchema = z.enum(['open', 'preview', 'locked']);
+
+export const levelAccessResponseSchema = z.object({
+  enrolled: z.boolean(),
+  lessons: z.array(z.object({ id: z.uuid(), access: lessonAccessSchema })),
+});
+
+const emptyToUndefined = (value: unknown): unknown =>
+  value === '' ? undefined : value;
+
+export const adminStudentsQuerySchema = z.object({
+  query: z.string().trim().max(MAX_STUDENT_QUERY_LENGTH).default(''),
+  page: z.preprocess(
+    emptyToUndefined,
+    z.coerce.number().int().min(1).max(100_000).default(1),
+  ),
+  pageSize: z.preprocess(
+    emptyToUndefined,
+    z.coerce
+      .number()
+      .int()
+      .min(1)
+      .max(MAX_STUDENTS_PAGE_SIZE)
+      .default(DEFAULT_STUDENTS_PAGE_SIZE),
+  ),
+});
+
+export const adminStudentSchema = z.object({
+  id: z.uuid(),
+  name: z.string(),
+  email: z.string(),
+  phone: z.string(),
+  createdAt: z.string(),
+  activeEnrollments: z.number().int().min(0),
+});
+
+export const adminStudentsResponseSchema = z.object({
+  students: z.array(adminStudentSchema),
+  total: z.number().int().min(0),
+  page: z.number().int().min(1),
+  pageSize: z.number().int().min(1),
+});
+
+export const adminEnrollmentSchema = z.object({
+  id: z.uuid(),
+  levelId: z.uuid(),
+  level: z.object({
+    slug: z.string(),
+    hanzi: z.string(),
+    title: localizedTextSchema,
+  }),
+  source: enrollmentSourceSchema,
+  grantedByName: z.string().nullable(),
+  createdAt: z.string(),
+  revokedAt: z.string().nullable(),
+  revokeReason: z.string().nullable(),
+});
+
+export const adminStudentDetailSchema = adminStudentSchema.extend({
+  enrollments: z.array(adminEnrollmentSchema),
+});
+
+export const grantEnrollmentRequestSchema = z.object({
+  levelId: z.uuid(),
+});
+
+export const revokeEnrollmentRequestSchema = z
+  .object({
+    reason: z
+      .string()
+      .trim()
+      .max(MAX_REVOKE_REASON_LENGTH)
+      .optional()
+      .transform((value) => (value ? value : undefined)),
+  })
+  .default({ reason: undefined });
+
+export type MyLevel = z.infer<typeof myLevelSchema>;
+export type MyLevelsResponse = z.infer<typeof myLevelsResponseSchema>;
+export type MyLevelDetail = z.infer<typeof myLevelDetailSchema>;
+export type LessonAccess = z.infer<typeof lessonAccessSchema>;
+export type LevelAccessResponse = z.infer<typeof levelAccessResponseSchema>;
+export type AdminStudentsQuery = z.infer<typeof adminStudentsQuerySchema>;
+export type AdminStudent = z.infer<typeof adminStudentSchema>;
+export type AdminStudentsResponse = z.infer<typeof adminStudentsResponseSchema>;
+export type AdminEnrollment = z.infer<typeof adminEnrollmentSchema>;
+export type AdminStudentDetail = z.infer<typeof adminStudentDetailSchema>;
+export type GrantEnrollmentRequest = z.infer<
+  typeof grantEnrollmentRequestSchema
+>;
+export type RevokeEnrollmentRequest = z.infer<
+  typeof revokeEnrollmentRequestSchema
+>;

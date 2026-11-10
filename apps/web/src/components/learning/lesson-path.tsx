@@ -3,7 +3,7 @@ import Link from 'next/link';
 
 import { Seal } from '@/components/porcelain/seal';
 
-export type PathState = 'done' | 'next' | 'locked' | 'preview';
+export type PathState = 'done' | 'next' | 'locked' | 'preview' | 'open';
 
 export interface PathLesson {
   id: string;
@@ -20,6 +20,7 @@ export interface PathLabels {
   next: string;
   locked: string;
   preview: string;
+  open: string;
   start: string;
   sealedBy: string;
 }

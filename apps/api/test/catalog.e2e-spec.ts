@@ -132,6 +132,7 @@ describe('catalog API (e2e)', () => {
   });
 
   beforeEach(async () => {
+    await prisma.enrollment.deleteMany();
     await prisma.lesson.deleteMany();
     await prisma.level.deleteMany();
     await prisma.passwordReset.deleteMany();

@@ -220,7 +220,7 @@ Gates for every task (written into AGENTS.md):
 | M12 | Progress + sequential unlocking + completion rule (90 % video + quizzes passed) + student dashboard | integration + Playwright |
 | M13 | Admin students page, audit log view, polish, empty/error/loading states | |
 | M14 | Production hardening: local nightly pg_dump + restore doc, log rotation, resource limits, non-root containers, DEPLOY.md, go-live checklist | full prod stack boots locally from a clean checkout |
-| M15 | **Deploy to the Hostinger VPS** (last step, decision 2026-11-10): provision, Cloudflare DNS + origin cert, `.env`, first admin, real Bunny + Paymob test-mode runs, go-live | live behind Cloudflare |
+| M15 | **Deploy to the Hostinger VPS** (last step, decision 2026-11-10): provision, Cloudflare DNS + origin cert, Caddy `trusted_proxies` for Cloudflare ranges (so per-IP throttling sees real visitors), `.env`, first admin, real Bunny + Paymob test-mode runs, go-live | live behind Cloudflare |
 
 Workflow per milestone: I write a self-contained brief → an implementer (M0–M2: Codex `gpt-5.6-sol` high; from M3: a Sonnet 5.5 subagent at medium effort) implements without committing → I re-run all gates, read the full diff against the brief, check security paths → fix small issues → commit → start the next milestone automatically. Everything is built and verified locally; VPS deployment is the final milestone (M15). I stop only for things only you can provide (credentials, VPS access, assets, decisions).
 

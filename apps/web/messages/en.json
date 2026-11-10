@@ -58,7 +58,8 @@
     "start": "Start",
     "sealedBy": "Completed, sealed by Mazen",
     "lessonNumber": "Lesson {n}",
-    "minutes": "{count} min"
+    "minutes": "{count} min",
+    "open": "Open"
   },
   "Level": {
     "back": "All levels",
@@ -70,7 +71,10 @@
     "comingSoon": "Buying opens soon.",
     "unavailableTitle": "This level could not be loaded",
     "unavailableBody": "Please try again in a moment.",
-    "includesEmpty": "The topics of this level will be listed here."
+    "includesEmpty": "The topics of this level will be listed here.",
+    "enrolled": "You are enrolled in this level",
+    "enrolledNote": "Every lesson is open for you.",
+    "archivedNote": "This level is archived, and you keep your access."
   },
   "Auth": {
     "loginTitle": "Welcome back",
@@ -135,7 +139,13 @@
     "browse": "Browse the levels",
     "logout": "Log out",
     "loggingOut": "Logging out…",
-    "logoutError": "We could not log you out. Try again."
+    "logoutError": "We could not log you out. Try again.",
+    "myLevels": "My levels",
+    "lessonsCount": "{count} lessons",
+    "goToLevel": "Go to level",
+    "goToLevelNamed": "Go to level: {title}",
+    "archived": "Archived · you keep access",
+    "loadError": "We could not load your levels. Refresh the page to try again."
   },
   "Admin": {
     "title": "Admin",
@@ -147,7 +157,8 @@
     "manageLevels": "Manage levels",
     "nav": {
       "label": "Admin sections",
-      "levels": "Levels"
+      "levels": "Levels",
+      "students": "Students"
     },
     "status": {
       "draft": "Draft",
@@ -266,7 +277,9 @@
       "notFound": "This item no longer exists.",
       "forbidden": "You do not have permission to do this.",
       "rateLimited": "Too many requests. Wait a minute, then try again.",
-      "retry": "Something went wrong. Check your connection and try again."
+      "retry": "Something went wrong. Check your connection and try again.",
+      "notStudent": "Only students can be enrolled in a level.",
+      "levelNotGrantable": "Only published or archived levels can be granted."
     },
     "lifecycle": {
       "publish": "Publish",
@@ -290,6 +303,67 @@
       "confirmDelete": "Delete permanently",
       "deleting": "Deleting…",
       "cancel": "Cancel"
+    },
+    "students": {
+      "title": "Students",
+      "intro": "Find a student, then open their profile to grant or revoke a level.",
+      "searchLabel": "Search students",
+      "searchHelper": "By name, email address or phone number.",
+      "searchSubmit": "Search",
+      "searchClear": "Clear search",
+      "results": "{count} students",
+      "resultsFor": "{count} students for “{query}”",
+      "empty": "No students have registered yet.",
+      "emptySearch": "No student matches this search.",
+      "listLabel": "Students, newest first",
+      "joined": "Joined {date}",
+      "activeCount": "Active levels: {count}",
+      "pagination": "Pages",
+      "previous": "Previous",
+      "next": "Next",
+      "pageInfo": "Page {page} of {pages}"
+    },
+    "student": {
+      "back": "All students",
+      "profile": "Profile",
+      "email": "Email address",
+      "phone": "Phone",
+      "enrollmentsTitle": "Levels",
+      "enrollmentsEmpty": "This student has no levels yet.",
+      "listLabel": "Enrollments",
+      "source": "Source",
+      "sourcePURCHASE": "Purchase",
+      "sourceADMIN": "Granted by an admin",
+      "grantedBy": "Granted by {name}",
+      "noGrantedBy": "No granting admin recorded",
+      "enrolledOn": "Enrolled {date}",
+      "statusActive": "Active",
+      "statusRevoked": "Revoked",
+      "revokedOn": "Revoked {date}",
+      "reasonLine": "Reason: {reason}",
+      "noReason": "No reason given",
+      "grantTitle": "Grant a level",
+      "grantIntro": "Giving a level opens all of its lessons for this student.",
+      "grantLabel": "Level",
+      "grantPlaceholder": "Choose a level",
+      "grantSubmit": "Grant level",
+      "granting": "Granting…",
+      "granted": "Level granted.",
+      "grantNone": "This student already has every published level.",
+      "grantArchivedSuffix": "archived",
+      "grantChoose": "Choose a level to grant.",
+      "revoke": "Revoke…",
+      "revokeLabel": "Revoke “{title}”",
+      "revokeTitle": "Revoke this level?",
+      "revokeBody": "This student will lose access to “{title}”. You can grant it again at any time.",
+      "reasonField": "Reason (optional)",
+      "reasonHelper": "Kept in the record, for example a refund. Up to 500 characters.",
+      "reasonTooLong": "Use at most 500 characters.",
+      "confirmRevoke": "Revoke access",
+      "revoking": "Revoking…",
+      "revoked": "Access revoked.",
+      "cancel": "Cancel",
+      "joinedLabel": "Joined"
     }
   },
   "Metadata": {
@@ -305,7 +379,9 @@
     "adminLevelEdit": "Edit level · Admin · Mazen Chinese",
     "adminLessonNew": "New lesson · Admin · Mazen Chinese",
     "adminLessonEdit": "Edit lesson · Admin · Mazen Chinese",
-    "levelDescriptionFallback": "A level of Mazen's Chinese course for Arabic speakers."
+    "levelDescriptionFallback": "A level of Mazen's Chinese course for Arabic speakers.",
+    "adminStudents": "Students · Admin · Mazen Chinese",
+    "adminStudent": "Student · Admin · Mazen Chinese"
   },
   "NotFound": {
     "title": "Page not found",

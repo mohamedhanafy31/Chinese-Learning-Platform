@@ -260,6 +260,7 @@ The level's lessons as one unbroken cobalt band: a 4px `cobalt` spine on the inl
 - **Next:** `seal` node with a 4px `glaze` ring and a play icon, the row lifted on `glaze-bright` with the next-lesson shadow, and the cinnabar start pill.
 - **Unfired / locked:** a 2px dashed `unfired` node on glaze with a lock icon, title, meta and state label in `unfired-ink`, and hanzi at `unfired` 70%. Not a link.
 - **Preview:** a 2px solid `cobalt` node on glaze with a play icon, and the text label in `cobalt`.
+- **Open:** for an enrolled learner, the same node as preview (2px solid `cobalt`, play icon), labelled "Open" (متاح, 可学习). Sequential unlocking (M12) later turns these into fired, next and unfired.
 - Every row carries a screen-reader state label. Rows that are links get a `glaze-bright`/70% hover.
 - **Progress bar (level page):** one 10px pill segment per lesson. Fired is `deep`, next is `seal`, preview is `cobalt-mid`, and locked is a dashed `unfired` outline. Above it is a tabular count ("أكملت ٢ من ٥").
 

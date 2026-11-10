@@ -122,6 +122,7 @@ describe('media images (e2e)', () => {
   });
 
   beforeEach(async () => {
+    await prisma.enrollment.deleteMany();
     await prisma.lesson.deleteMany();
     await prisma.level.deleteMany();
     await prisma.mediaAsset.deleteMany();
