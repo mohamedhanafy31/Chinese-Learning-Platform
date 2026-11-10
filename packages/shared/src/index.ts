@@ -86,10 +86,176 @@ export type ForgotPasswordRequest = z.infer<typeof forgotPasswordRequestSchema>;
 export type ResetPasswordRequest = z.infer<typeof resetPasswordRequestSchema>;
 export type UserResponse = z.infer<typeof userResponseSchema>;
 
+const localizedStringSchema = z.string().trim().min(1).max(2000);
+
 export const localizedTextSchema = z.object({
-  ar: z.string().optional(),
-  en: z.string(),
-  zh: z.string().optional(),
+  ar: localizedStringSchema.optional(),
+  en: localizedStringSchema,
+  zh: localizedStringSchema.optional(),
 });
 
 export type LocalizedText = z.infer<typeof localizedTextSchema>;
+
+// ---------------------------------------------------------------------------
+// Catalog (levels and lessons)
+// ---------------------------------------------------------------------------
+
+export const SLUG_MIN_LENGTH = 2;
+export const SLUG_MAX_LENGTH = 64;
+export const MAX_LEVEL_TOPICS = 12;
+export const MAX_PRICE_MINOR = 10_000_000;
+export const DEFAULT_CURRENCY = 'EGP';
+/** Upper bound on rows in one reorder payload (levels, or lessons per level). */
+export const MAX_ORDER_IDS = 500;
+
+export const slugSchema = z
+  .string()
+  .min(SLUG_MIN_LENGTH)
+  .max(SLUG_MAX_LENGTH)
+  .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/);
+
+function codePointLength(value: string): number {
+  return Array.from(value).length;
+}
+
+const hanziSchema = z
+  .string()
+  .trim()
+  .min(1)
+  .refine((value) => codePointLength(value) <= 8, {
+    message: 'Must be at most 8 characters',
+  });
+
+/** Integer EGP piasters. `null` means the price has not been announced. */
+export const priceMinorSchema = z
+  .number()
+  .int()
+  .min(0)
+  .max(MAX_PRICE_MINOR)
+  .nullable();
+
+export const levelTopicsSchema = z
+  .array(localizedTextSchema)
+  .max(MAX_LEVEL_TOPICS);
+
+export const createLevelRequestSchema = z.object({
+  slug: slugSchema,
+  hanzi: hanziSchema,
+  title: localizedTextSchema,
+  summary: localizedTextSchema,
+  topics: levelTopicsSchema.default([]),
+  priceMinor: priceMinorSchema.default(null),
+});
+
+export const updateLevelRequestSchema = z.object({
+  slug: slugSchema.optional(),
+  hanzi: hanziSchema.optional(),
+  title: localizedTextSchema.optional(),
+  summary: localizedTextSchema.optional(),
+  topics: levelTopicsSchema.optional(),
+  priceMinor: priceMinorSchema.optional(),
+});
+
+export const createLessonRequestSchema = z.object({
+  title: localizedTextSchema,
+  description: localizedTextSchema.nullable().default(null),
+  hanzi: hanziSchema.nullable().default(null),
+  isFreePreview: z.boolean().default(false),
+});
+
+export const updateLessonRequestSchema = z.object({
+  title: localizedTextSchema.optional(),
+  description: localizedTextSchema.nullable().optional(),
+  hanzi: hanziSchema.nullable().optional(),
+  isFreePreview: z.boolean().optional(),
+});
+
+export const reorderRequestSchema = z.object({
+  ids: z.array(z.uuid()).max(MAX_ORDER_IDS),
+});
+
+const timestampSchema = z.string();
+
+export const adminLessonSchema = z.object({
+  id: z.uuid(),
+  levelId: z.uuid(),
+  title: localizedTextSchema,
+  description: localizedTextSchema.nullable(),
+  hanzi: z.string().nullable(),
+  sortOrder: z.number().int(),
+  isPublished: z.boolean(),
+  isFreePreview: z.boolean(),
+  firstPublishedAt: timestampSchema.nullable(),
+  archivedAt: timestampSchema.nullable(),
+  createdAt: timestampSchema,
+  updatedAt: timestampSchema,
+});
+
+export const adminLevelSchema = z.object({
+  id: z.uuid(),
+  slug: slugSchema,
+  hanzi: z.string(),
+  title: localizedTextSchema,
+  summary: localizedTextSchema,
+  topics: levelTopicsSchema,
+  priceMinor: priceMinorSchema,
+  currency: z.string(),
+  sortOrder: z.number().int(),
+  isPublished: z.boolean(),
+  firstPublishedAt: timestampSchema.nullable(),
+  archivedAt: timestampSchema.nullable(),
+  createdAt: timestampSchema,
+  updatedAt: timestampSchema,
+  lessonCount: z.number().int().min(0),
+});
+
+export const adminLevelDetailSchema = adminLevelSchema.extend({
+  lessons: z.array(adminLessonSchema),
+});
+
+export const adminLevelsResponseSchema = z.object({
+  levels: z.array(adminLevelSchema),
+});
+
+export const publicLessonSchema = z.object({
+  id: z.uuid(),
+  number: z.number().int().min(1),
+  title: localizedTextSchema,
+  description: localizedTextSchema.nullable(),
+  hanzi: z.string().nullable(),
+  isFreePreview: z.boolean(),
+});
+
+export const publicLevelSchema = z.object({
+  slug: slugSchema,
+  number: z.number().int().min(1),
+  hanzi: z.string(),
+  title: localizedTextSchema,
+  summary: localizedTextSchema,
+  topics: levelTopicsSchema,
+  priceMinor: priceMinorSchema,
+  currency: z.string(),
+  lessonCount: z.number().int().min(0),
+});
+
+export const publicLevelDetailSchema = publicLevelSchema.extend({
+  lessons: z.array(publicLessonSchema),
+});
+
+export const publicLevelsResponseSchema = z.object({
+  levels: z.array(publicLevelSchema),
+});
+
+export type CreateLevelRequest = z.infer<typeof createLevelRequestSchema>;
+export type UpdateLevelRequest = z.infer<typeof updateLevelRequestSchema>;
+export type CreateLessonRequest = z.infer<typeof createLessonRequestSchema>;
+export type UpdateLessonRequest = z.infer<typeof updateLessonRequestSchema>;
+export type ReorderRequest = z.infer<typeof reorderRequestSchema>;
+export type AdminLesson = z.infer<typeof adminLessonSchema>;
+export type AdminLevel = z.infer<typeof adminLevelSchema>;
+export type AdminLevelDetail = z.infer<typeof adminLevelDetailSchema>;
+export type AdminLevelsResponse = z.infer<typeof adminLevelsResponseSchema>;
+export type PublicLesson = z.infer<typeof publicLessonSchema>;
+export type PublicLevel = z.infer<typeof publicLevelSchema>;
+export type PublicLevelDetail = z.infer<typeof publicLevelDetailSchema>;
+export type PublicLevelsResponse = z.infer<typeof publicLevelsResponseSchema>;

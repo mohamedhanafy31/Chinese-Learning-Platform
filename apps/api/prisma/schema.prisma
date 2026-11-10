@@ -58,3 +58,43 @@ model PasswordReset {
 
   @@index([userId])
 }
+
+model Level {
+  id               String    @id @default(uuid()) @db.Uuid
+  slug             String    @unique
+  hanzi            String
+  title            Json
+  summary          Json
+  topics           Json
+  priceMinor       Int?
+  currency         String    @default("EGP")
+  sortOrder        Int
+  isPublished      Boolean   @default(false)
+  firstPublishedAt DateTime?
+  archivedAt       DateTime?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+  lessons          Lesson[]
+
+  @@unique([sortOrder])
+  @@index([isPublished, archivedAt, sortOrder])
+}
+
+model Lesson {
+  id               String    @id @default(uuid()) @db.Uuid
+  levelId          String    @db.Uuid
+  title            Json
+  description      Json?
+  hanzi            String?
+  sortOrder        Int
+  isPublished      Boolean   @default(false)
+  isFreePreview    Boolean   @default(false)
+  firstPublishedAt DateTime?
+  archivedAt       DateTime?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+  level            Level     @relation(fields: [levelId], references: [id], onDelete: Restrict)
+
+  @@unique([levelId, sortOrder])
+  @@index([levelId, isPublished, archivedAt, sortOrder])
+}

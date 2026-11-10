@@ -14,12 +14,13 @@
     "prebuild": "prisma generate",
     "build": "tsup src/main.ts src/identity/admin-create.cli.ts --format esm --platform node --target node22 --out-dir dist --sourcemap --clean",
     "admin:create": "node dist/identity/admin-create.cli.js",
-    "lint": "eslint src test prisma.config.ts",
+    "lint": "eslint src test prisma prisma.config.ts",
     "typecheck": "prisma generate && tsc --noEmit -p tsconfig.json",
     "test": "NODE_OPTIONS=--experimental-vm-modules jest --config jest.config.cjs --runInBand",
     "pretest:integration": "DATABASE_URL=\"${DATABASE_URL_TEST:-postgresql://postgres:postgres@localhost:5433/app_test?schema=public}\" prisma migrate deploy && pnpm build",
     "test:integration": "NODE_OPTIONS=--experimental-vm-modules jest --config jest.integration.config.cjs --runInBand",
-    "prisma:validate": "prisma validate"
+    "prisma:validate": "prisma validate",
+    "db:seed": "tsx prisma/seed.ts"
   },
   "dependencies": {
     "@app/shared": "workspace:*",

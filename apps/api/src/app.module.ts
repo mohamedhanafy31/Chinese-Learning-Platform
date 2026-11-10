@@ -9,6 +9,7 @@ import { AppThrottlerGuard } from './common/guards/app-throttler.guard';
 import { AuthGuard } from './common/guards/auth.guard';
 import { OriginGuard } from './common/guards/origin.guard';
 import { RolesGuard } from './common/guards/roles.guard';
+import { CatalogModule } from './catalog/catalog.module';
 import { ConfigModule } from './config/config.module';
 import { HealthModule } from './health/health.module';
 import { IdentityModule } from './identity/identity.module';
@@ -61,6 +62,7 @@ import { PrismaModule } from './prisma/prisma.module';
     ]),
     PrismaModule,
     IdentityModule,
+    CatalogModule,
     HealthModule,
   ],
   providers: [
