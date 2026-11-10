@@ -209,7 +209,7 @@ Gates for every task (written into AGENTS.md):
 | M2 | Identity web: auth pages, server-side api helper forwarding cookies, refresh handling, middleware redirects, layouts per route group | Playwright: register → login → logout |
 | M3 | Catalog API: Level/Lesson schema, admin CRUD, reorder, archive, public catalog endpoints | integration tests |
 | M4 | Images: MediaAsset + upload + sharp; catalog admin UI + public catalog pages (SEO) | covers render; Playwright admin creates level |
-| — | **Staging smoke #1** on the VPS (cookies, Caddy, Cloudflare) | login works behind Cloudflare |
+| — | **Local production-stack smoke** (`docker compose` prod images + Caddy on localhost) | login, catalog and media work through Caddy locally |
 | M5 | Learning core: Enrollment + ContentAccessPolicy + admin manual grant/revoke + student "My levels" | policy unit tests |
 | M6 | Video domain + LocalProvider (multipart upload, Range streaming), admin uploader, student player page | Range integration tests |
 | M7 | BunnyProvider (create/TUS signature/webhook/reconcile/signed embed) + diagnostics page | mocked-HTTP tests; real run once you provide credentials |
@@ -219,9 +219,10 @@ Gates for every task (written into AGENTS.md):
 | M11 | Billing UI: buy button, checkout redirect, result page, admin orders; **real Paymob test-mode payment** | test card purchase enrolls the student |
 | M12 | Progress + sequential unlocking + completion rule (90 % video + quizzes passed) + student dashboard | integration + Playwright |
 | M13 | Admin students page, audit log view, polish, empty/error/loading states | |
-| M14 | Production hardening: local nightly pg_dump + restore doc, log rotation, resource limits, non-root containers, DEPLOY.md, go-live checklist | stack boots from a clean VPS |
+| M14 | Production hardening: local nightly pg_dump + restore doc, log rotation, resource limits, non-root containers, DEPLOY.md, go-live checklist | full prod stack boots locally from a clean checkout |
+| M15 | **Deploy to the Hostinger VPS** (last step, decision 2026-11-10): provision, Cloudflare DNS + origin cert, `.env`, first admin, real Bunny + Paymob test-mode runs, go-live | live behind Cloudflare |
 
-Workflow per milestone: I write a self-contained brief → Codex (`gpt-5.6-sol`, effort `high`) implements without committing → I re-run all gates, read the full diff against the brief, check security paths → fix small issues or send a delta brief to the same Codex session → commit. You review at milestone boundaries (I'll ping you after M0, M4/staging, M7, M11, M14).
+Workflow per milestone: I write a self-contained brief → an implementer (M0–M2: Codex `gpt-5.6-sol` high; from M3: a Sonnet 5.5 subagent at medium effort) implements without committing → I re-run all gates, read the full diff against the brief, check security paths → fix small issues → commit → start the next milestone automatically. Everything is built and verified locally; VPS deployment is the final milestone (M15). I stop only for things only you can provide (credentials, VPS access, assets, decisions).
 
 Prerequisite: `git init` in this folder (Codex needs a git repo); optionally a private GitHub repo for CI.
 
