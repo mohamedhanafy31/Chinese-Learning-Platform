@@ -13,18 +13,16 @@ import {
   primaryButtonClass,
   secondaryLinkClass,
 } from '@/components/admin/classes';
-import {
-  LessonPlayer,
-  VideoPlaceholder,
-} from '@/components/video/lesson-player';
+import { LessonStage } from '@/components/learning/lesson-stage';
 import { SessionRecovery } from '@/components/video/session-recovery';
 import { getPublicLevel } from '@/lib/catalog';
-import { getPlayback } from '@/lib/learning';
+import { getMyLevel, getPlayback } from '@/lib/learning';
+import { pathStateFor } from '@/lib/lesson-access';
 import { pick } from '@/lib/localized';
 import { numberFormat } from '@/lib/numbers';
 import { getLessonQuizzes } from '@/lib/quiz';
 import { getCurrentUser } from '@/lib/session';
-import type { PathLesson, PathState } from '@/components/learning/lesson-path';
+import type { PathLesson } from '@/components/learning/lesson-path';
 
 interface LessonPageProps {
   params: Promise<{ locale: Locale; levelSlug: string; lessonId: string }>;
@@ -52,12 +50,6 @@ export async function generateMetadata({
 }
 
 type Context = PlaybackResponse | PlaybackNoVideo;
-
-const siblingState: Record<'open' | 'preview' | 'locked', PathState> = {
-  open: 'open',
-  preview: 'preview',
-  locked: 'locked',
-};
 
 /** A centred card for the viewers who cannot watch (signed out, not enrolled, error). */
 function MessageCard({
@@ -163,6 +155,44 @@ export default async function LessonPage({
     );
   }
 
+  if (result.status === 'sequence-locked') {
+    // Name the lesson to finish first: an enrolled learner may read their
+    // own level, so the title comes from there.
+    const slug = result.levelSlug ?? levelSlug;
+    const owned = await getMyLevel(slug);
+    const required = owned?.lessons.find(
+      (lesson) => lesson.id === result.requiredLessonId,
+    );
+    return (
+      <MessageCard
+        title={
+          required
+            ? t('sequenceTitle', { lesson: pick(required.title, locale) })
+            : t('sequenceTitleGeneric')
+        }
+        body={t('sequenceBody')}
+        actions={
+          <>
+            {result.requiredLessonId ? (
+              <Link
+                href={`/${locale}/learn/${slug}/${result.requiredLessonId}`}
+                className={primaryButtonClass}
+              >
+                {t('openRequired')}
+              </Link>
+            ) : null}
+            <Link
+              href={`/${locale}/levels/${slug}`}
+              className={secondaryLinkClass}
+            >
+              {t('backToLevel')}
+            </Link>
+          </>
+        }
+      />
+    );
+  }
+
   const data: Context = result.data;
   if (data.level.slug !== levelSlug) notFound();
 
@@ -191,7 +221,7 @@ export default async function LessonPage({
     number: tPath('lessonNumber', { n: nf.format(sibling.number) }),
     title: pick(sibling.title, locale),
     hanzi: sibling.hanzi ?? '',
-    state: siblingState[sibling.access],
+    state: pathStateFor({ isFreePreview: false }, sibling.access),
     href: hrefFor(sibling.id),
     current: sibling.id === data.lesson.id,
   }));
@@ -267,23 +297,18 @@ export default async function LessonPage({
 
       <div className="mt-4 grid gap-10 lg:grid-cols-[minmax(0,1fr)_22rem] lg:gap-14">
         <article className="min-w-0">
-          {result.status === 'ok' ? (
-            <LessonPlayer
-              label={
-                result.data.video.provider === 'BUNNY'
-                  ? title
-                  : t('playerLabel')
-              }
-              video={result.data.video}
-              poster={result.data.poster}
-              unsupported={t('unsupported')}
-            />
-          ) : (
-            <VideoPlaceholder
-              title={t('comingSoonTitle')}
-              body={t('comingSoonBody')}
-            />
-          )}
+          <LessonStage
+            levelSlug={data.level.slug}
+            lessonId={data.lesson.id}
+            label={
+              result.status === 'ok' && result.data.video.provider === 'BUNNY'
+                ? title
+                : t('playerLabel')
+            }
+            poster={data.poster}
+            progress={data.progress}
+            video={result.status === 'ok' ? result.data.video : null}
+          />
 
           {previousLink || nextLink ? (
             <nav

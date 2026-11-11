@@ -195,8 +195,11 @@ test.describe.serial('enrollments: grant, learn, revoke', () => {
       .getByRole('list', { name: 'دروس هذا المستوى' })
       .getByRole('listitem');
     await expect(open).toHaveCount(2);
-    await expect(open.nth(0)).toContainText('متاح');
-    await expect(open.nth(1)).toContainText('متاح');
+    // M12: the free preview stays "free" (outside the sequence) and the first
+    // regular lesson is the single next one. Nothing is done yet: link
+    // prefetching must not complete lessons.
+    await expect(open.nth(0)).toContainText('مجاني');
+    await expect(open.nth(1)).toContainText('التالي');
   });
 
   test('admin revokes with a reason; access falls back to previews', async () => {
@@ -284,7 +287,7 @@ test.describe.serial('enrollments: grant, learn, revoke', () => {
         .getByRole('list', { name: 'دروس هذا المستوى' })
         .getByRole('listitem')
         .nth(1),
-    ).toContainText('متاح');
+    ).toContainText('التالي');
 
     // Everyone else gets a 404 from the API. (The web page itself serves the
     // cached public detail for up to a minute, so it is not asserted here.)

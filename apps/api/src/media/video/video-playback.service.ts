@@ -1,7 +1,6 @@
 import { Inject, Injectable, NotFoundException } from '@nestjs/common';
 import {
   VideoStatus,
-  type LessonAccess,
   type PlaybackResponse,
   type PublicUser,
 } from '@app/shared';
@@ -14,10 +13,12 @@ import {
 } from '../../catalog/catalog.mapper';
 import {
   decideLesson,
-  type AccessDecision,
+  pathAccess,
+  sequenceState,
 } from '../../learning/content-access';
 import { ContentAccessPolicy } from '../../learning/content-access.policy';
 import { PrismaService } from '../../prisma/prisma.service';
+import { ProgressService } from '../../progress/progress.service';
 import { toImageRef } from '../media-url';
 
 /** The 404 raised when the lesson is open to the viewer but has no video. */
@@ -33,17 +34,13 @@ export class NoVideoError extends NotFoundException {
   }
 }
 
-function siblingAccess(decision: AccessDecision): LessonAccess {
-  if (!decision.allowed) return 'locked';
-  return decision.reason === 'free-preview' ? 'preview' : 'open';
-}
-
 @Injectable()
 export class VideoPlaybackService {
   constructor(
     @Inject(PrismaService) private readonly prisma: PrismaService,
     @Inject(ContentAccessPolicy) private readonly policy: ContentAccessPolicy,
     @Inject(VideoProviders) private readonly providers: VideoProviders,
+    @Inject(ProgressService) private readonly progress: ProgressService,
   ) {}
 
   /** What the lesson page needs to play one lesson, or the reason it cannot. */
@@ -56,10 +53,8 @@ export class VideoPlaybackService {
       include: { level: true, thumbnail: true, activeVideo: true },
     });
     if (!lesson) throw new NotFoundException('Lesson not found');
-    assertWatchable(
-      await this.policy.forLesson(user, lessonId),
-      lesson.level.slug,
-    );
+    const decision = await this.policy.forLesson(user, lessonId);
+    assertWatchable(decision, lesson.level.slug);
 
     const [visible, enrollment] = await Promise.all([
       this.prisma.lesson.findMany({
@@ -75,18 +70,38 @@ export class VideoPlaybackService {
           })
         : null,
     ]);
+    // Read only: this GET is prefetched by Next links, so it must never
+    // complete anything (the lesson page reports an opening by POST).
+    const progress = user
+      ? await this.progress.lessonView(user.id, lesson.id)
+      : null;
+    // An enrolled learner's siblings follow the sequence (done, next, a later
+    // free preview, locked); staff see everything open.
+    const states = new Map(
+      sequenceState(
+        visible,
+        user
+          ? await this.progress.completedLessonIds(
+              user.id,
+              visible.map(({ id }) => id),
+            )
+          : new Set<string>(),
+        new Set(visible.filter((l) => l.isFreePreview).map((l) => l.id)),
+      ).map(({ id, state }) => [id, state]),
+    );
     const siblings = visible.map((sibling, index) => ({
       id: sibling.id,
       number: index + 1,
       title: parseLocalizedText(sibling.title),
       hanzi: sibling.hanzi,
-      access: siblingAccess(
+      access: pathAccess(
         decideLesson({
           user,
           lesson: sibling,
           level: lesson.level,
           enrollment,
         }),
+        states.get(sibling.id),
       ),
     }));
     // An unpublished lesson only an admin can open is not in the list; number
@@ -113,6 +128,7 @@ export class VideoPlaybackService {
       },
       poster: toImageRef(lesson.thumbnail)?.url ?? null,
       siblings,
+      progress,
     };
 
     const video = lesson.activeVideo;

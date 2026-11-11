@@ -14,7 +14,10 @@ import {
   isActiveEnrollment,
   isLevelPubliclyVisible,
   isLevelReadableByEnrollees,
+  pathAccess,
+  sequenceState,
 } from './content-access';
+import { summariseLevel, type LevelProgressSummary } from './level-progress';
 import {
   lessonImageInclude,
   levelImageInclude,
@@ -25,6 +28,7 @@ import {
 import type { LevelRow } from '../catalog/catalog.mapper';
 import { toImageRef } from '../media/media-url';
 import { PrismaService } from '../prisma/prisma.service';
+import { ProgressService } from '../progress/progress.service';
 
 const visibleLessons = {
   where: { isPublished: true, archivedAt: null },
@@ -38,7 +42,10 @@ const readableLevel = {
 
 @Injectable()
 export class LearningReadService {
-  constructor(@Inject(PrismaService) private readonly prisma: PrismaService) {}
+  constructor(
+    @Inject(PrismaService) private readonly prisma: PrismaService,
+    @Inject(ProgressService) private readonly progress: ProgressService,
+  ) {}
 
   /** Public numbering: the position among published, non-archived levels. */
   private async publicNumbers(): Promise<Map<string, number>> {
@@ -55,6 +62,7 @@ export class LearningReadService {
     lessonCount: number,
     enrolledAt: Date,
     numbers: Map<string, number>,
+    summary: LevelProgressSummary,
   ): MyLevel {
     return {
       slug: row.slug,
@@ -66,6 +74,19 @@ export class LearningReadService {
       lessonCount,
       archived: row.archivedAt !== null,
       enrolledAt: enrolledAt.toISOString(),
+      progress: {
+        completed: summary.completed,
+        total: summary.total,
+        nextLessonId: summary.nextLessonId,
+        nextLesson: summary.nextLesson
+          ? {
+              id: summary.nextLesson.id,
+              number: summary.nextLesson.number,
+              title: parseLocalizedText(summary.nextLesson.title),
+            }
+          : null,
+        lessons: summary.lessons,
+      },
     };
   }
 
@@ -79,16 +100,29 @@ export class LearningReadService {
           level: {
             include: {
               ...levelImageInclude,
-              _count: { select: { lessons: { where: visibleLessons.where } } },
+              lessons: {
+                ...visibleLessons,
+                select: { id: true, title: true, isFreePreview: true },
+              },
             },
           },
         },
       }),
     ]);
+    const completed = await this.progress.completedLessonIds(
+      userId,
+      rows.flatMap(({ level }) => level.lessons.map(({ id }) => id)),
+    );
     return {
       levels: rows.map(({ level, createdAt }) => {
-        const { _count, ...row } = level;
-        return this.toMyLevel(row, _count.lessons, createdAt, numbers);
+        const { lessons, ...row } = level;
+        return this.toMyLevel(
+          row,
+          lessons.length,
+          createdAt,
+          numbers,
+          summariseLevel(lessons, completed),
+        );
       }),
     };
   }
@@ -109,8 +143,18 @@ export class LearningReadService {
     if (!enrollment) throw new NotFoundException('Level not found');
     const numbers = await this.publicNumbers();
     const { lessons, ...row } = enrollment.level;
+    const completed = await this.progress.completedLessonIds(
+      userId,
+      lessons.map(({ id }) => id),
+    );
     return {
-      ...this.toMyLevel(row, lessons.length, enrollment.createdAt, numbers),
+      ...this.toMyLevel(
+        row,
+        lessons.length,
+        enrollment.createdAt,
+        numbers,
+        summariseLevel(lessons, completed),
+      ),
       topics: parseTopics(row.topics),
       priceMinor: row.priceMinor,
       currency: row.currency,
@@ -150,9 +194,27 @@ export class LearningReadService {
     // without an enrollment would see (their own access goes through
     // `ContentAccessPolicy` on the lesson itself).
     const viewer = user ? { id: user.id, role: Role.STUDENT } : null;
+    const enrolled =
+      isActiveEnrollment(enrollment) && isLevelReadableByEnrollees(level);
+    // An enrolled learner's lessons follow the sequence (done, next, preview,
+    // locked); everyone else sees a free preview or locked.
+    const completed =
+      enrolled && user
+        ? await this.progress.completedLessonIds(
+            user.id,
+            level.lessons.map(({ id }) => id),
+          )
+        : new Set<string>();
+    const states = new Map(
+      sequenceState(
+        level.lessons,
+        completed,
+        new Set(level.lessons.filter((l) => l.isFreePreview).map((l) => l.id)),
+      ).map(({ id, state }) => [id, state]),
+    );
+    const summary = enrolled ? summariseLevel(level.lessons, completed) : null;
     return {
-      enrolled:
-        isActiveEnrollment(enrollment) && isLevelReadableByEnrollees(level),
+      enrolled,
       lessons: level.lessons.map((lesson) => {
         const decision = decideLesson({
           user: viewer,
@@ -160,13 +222,16 @@ export class LearningReadService {
           level,
           enrollment,
         });
-        const access = !decision.allowed
-          ? 'locked'
-          : decision.reason === 'free-preview'
-            ? 'preview'
-            : 'open';
-        return { id: lesson.id, access };
+        return {
+          id: lesson.id,
+          access: pathAccess(decision, states.get(lesson.id)),
+        };
       }),
+      progress: summary && {
+        completed: summary.completed,
+        total: summary.total,
+        nextLessonId: summary.nextLessonId,
+      },
     };
   }
 }

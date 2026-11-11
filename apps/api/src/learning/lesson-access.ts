@@ -20,7 +20,9 @@ const DEFAULT_MESSAGES: LessonAccessMessages = {
  * Maps a `ContentAccessPolicy` decision onto the HTTP answer shared by every
  * lesson-bound feature (video playback and streaming, quizzes): unavailable is
  * a 404 (the lesson is not revealed), signed-out is a 401, signed-in without
- * access is a 403 that names the level so the UI can offer its page.
+ * access is a 403 that names the level so the UI can offer its page. An
+ * enrolled learner who has not finished the earlier lessons gets a 403
+ * `sequence-locked` that also names the lesson to finish first.
  */
 export function assertLessonAccess(
   decision: AccessDecision,
@@ -43,6 +45,15 @@ export function assertLessonAccess(
         message: messages.notEnrolled,
         reason: 'not-enrolled',
         levelSlug,
+      });
+    case 'sequence-locked':
+      throw new ForbiddenException({
+        statusCode: 403,
+        error: 'Forbidden',
+        message: 'Finish the earlier lesson first',
+        reason: 'sequence-locked',
+        levelSlug,
+        requiredLessonId: decision.requiredLessonId,
       });
     default:
       throw new NotFoundException('Lesson not found');

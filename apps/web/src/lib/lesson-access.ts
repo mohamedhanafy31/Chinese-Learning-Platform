@@ -2,25 +2,40 @@ import type { LessonAccess, LevelAccessResponse } from '@app/shared';
 
 import type { PathState } from '@/components/learning/lesson-path';
 
+const STATE_OF: Record<LessonAccess, PathState> = {
+  open: 'open',
+  preview: 'preview',
+  locked: 'locked',
+  done: 'done',
+  next: 'next',
+};
+
 /**
- * Maps what the API says a viewer may do onto the lesson path's visual state.
- * Without an access answer (anonymous fallback, or the access call failed) a
- * free preview stays a preview and every other lesson is locked.
+ * Maps what the API says a viewer may do onto the lesson path's visual state
+ * (DESIGN.md, Lesson Path): `done` is fired and sealed, `next` is the single
+ * cinnabar row, `locked` is unfired, `preview` is a free lesson and `open` is
+ * staff access. Without an access answer (anonymous fallback, or the access
+ * call failed) a free preview stays a preview and every other lesson is locked.
  */
 export function pathStateFor(
   lesson: { isFreePreview: boolean },
   access: LessonAccess | undefined,
 ): PathState {
-  if (access === 'open') return 'open';
-  if (access === 'preview') return 'preview';
-  if (access === 'locked') return 'locked';
+  if (access) return STATE_OF[access];
   return lesson.isFreePreview ? 'preview' : 'locked';
 }
 
 export function accessById(
-  response: LevelAccessResponse | null,
+  response: Pick<LevelAccessResponse, 'lessons'> | null,
 ): Map<string, LessonAccess> {
   return new Map(
     (response?.lessons ?? []).map((lesson) => [lesson.id, lesson.access]),
   );
+}
+
+/** The progress bar's segments: one per lesson, in the path's terms. */
+export function progressSegments(
+  lessons: readonly { id: string; access: LessonAccess }[],
+): { id: string; state: PathState }[] {
+  return lessons.map(({ id, access }) => ({ id, state: STATE_OF[access] }));
 }

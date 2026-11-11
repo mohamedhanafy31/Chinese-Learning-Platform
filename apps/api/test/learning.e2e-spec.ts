@@ -533,6 +533,7 @@ describe('learning API (e2e)', () => {
         'hanzi',
         'lessonCount',
         'number',
+        'progress',
         'slug',
         'summary',
         'title',
@@ -593,7 +594,7 @@ describe('learning API (e2e)', () => {
     const anonymous = await accessOf(undefined, slug)
       .expect(200)
       .expect('Cache-Control', 'private, no-store');
-    expect(keys(anonymous.body)).toEqual(['enrolled', 'lessons']);
+    expect(keys(anonymous.body)).toEqual(['enrolled', 'lessons', 'progress']);
     expect(keys(anonymous.body.lessons[0])).toEqual(['access', 'id']);
     expect(anonymous.body).toEqual({
       enrolled: false,
@@ -601,6 +602,7 @@ describe('learning API (e2e)', () => {
         { id: level.preview, access: 'preview' },
         { id: level.locked, access: 'locked' },
       ],
+      progress: null,
     });
     // The unpublished lesson never appears.
     expect(JSON.stringify(anonymous.body)).not.toContain(level.hidden);
@@ -610,9 +612,15 @@ describe('learning API (e2e)', () => {
     );
 
     const ownerBody = (await accessOf(owner, slug).expect(200)).body;
+    // M12: an enrolled learner sees the sequence, not `open`: the free preview
+    // stays a preview, the first regular lesson is the next one.
     expect(ownerBody).toEqual({
       enrolled: true,
-      lessons: ids.map((id) => ({ id, access: 'open' })),
+      lessons: [
+        { id: level.preview, access: 'preview' },
+        { id: level.locked, access: 'next' },
+      ],
+      progress: { completed: 0, total: 2, nextLessonId: level.locked },
     });
 
     // Staff get the learner view here: no enrollment, previews and locks.
@@ -645,7 +653,7 @@ describe('learning API (e2e)', () => {
     await verb('lessons', level.hidden, 'unpublish');
     await verb('lessons', level.locked, 'archive');
     expect((await accessOf(owner, slug).expect(200)).body.lessons).toEqual([
-      { id: level.preview, access: 'open' },
+      { id: level.preview, access: 'next' },
     ]);
     await verb('lessons', level.locked, 'unarchive');
 
@@ -674,9 +682,10 @@ describe('learning API (e2e)', () => {
     expect(kept).toEqual({
       enrolled: true,
       lessons: [
-        { id: level.preview, access: 'open' },
-        { id: level.locked, access: 'open' },
+        { id: level.preview, access: 'preview' },
+        { id: level.locked, access: 'next' },
       ],
+      progress: { completed: 0, total: 2, nextLessonId: level.locked },
     });
 
     // Unarchived but pulled back to draft: unavailable to owners as well.

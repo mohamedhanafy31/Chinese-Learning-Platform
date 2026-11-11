@@ -7,6 +7,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 
 import {
   OrderStatus,
+  myLevelsResponseSchema,
   orderSummarySchema,
   type Locale,
   type OrderSummary,
@@ -28,10 +29,13 @@ function isTerminal(status: OrderSummary['status']): boolean {
 
 export function ResultStatus({
   initialOrder,
+  initialStartHref = null,
   locale,
   pollWindowMs = DEFAULT_POLL_WINDOW_MS,
 }: {
   initialOrder: OrderSummary;
+  /** The bought level's next lesson, when the server already knows it. */
+  initialStartHref?: string | null;
   locale: Locale;
   /** Test seam for fake timers; production uses the required 60-second window. */
   pollWindowMs?: number;
@@ -39,6 +43,7 @@ export function ResultStatus({
   const t = useTranslations('Billing.result');
   const [order, setOrder] = useState(initialOrder);
   const [timedOut, setTimedOut] = useState(false);
+  const [startHref, setStartHref] = useState(initialStartHref);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const elapsedRef = useRef(0);
   const mountedRef = useRef(true);
@@ -143,6 +148,28 @@ export function ResultStatus({
     return () => cancelAnimationFrame(frame);
   }, [order.status]);
 
+  // An order that became paid while this page was open: now that the learner
+  // owns the level, look up the lesson to start with (the level page is the
+  // fallback if that fails).
+  useEffect(() => {
+    if (order.status !== OrderStatus.PAID || startHref) return;
+    let cancelled = false;
+    void apiFetch<unknown>('/api/v1/me/levels').then((result) => {
+      if (cancelled || !result.ok) return;
+      const parsed = myLevelsResponseSchema.safeParse(result.data);
+      const next = parsed.success
+        ? parsed.data.levels.find((level) => level.slug === order.levelSlug)
+            ?.progress.nextLessonId
+        : null;
+      if (next) {
+        setStartHref(`/${locale}/learn/${order.levelSlug}/${next}`);
+      }
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [locale, order.levelSlug, order.status, startHref]);
+
   const title = pick(order.levelTitle, locale);
   const levelHref = `/${locale}/levels/${order.levelSlug}`;
 
@@ -167,7 +194,7 @@ export function ResultStatus({
         </div>
         <div className="mt-10 flex flex-wrap items-center gap-x-6 gap-y-3">
           <Link
-            href={levelHref}
+            href={startHref ?? levelHref}
             className="inline-flex min-h-14 items-center justify-center rounded-full bg-deep px-8 text-lg font-semibold text-glaze transition-colors hover:bg-cobalt"
           >
             {t('start')}

@@ -74,8 +74,14 @@
     "unavailableBody": "حاول مجدداً بعد قليل.",
     "includesEmpty": "ستُعرض موضوعات هذا المستوى هنا.",
     "enrolled": "أنت مسجّل في هذا المستوى",
-    "enrolledNote": "جميع الدروس متاحة لك.",
+    "enrolledNote": "تُفتح دروسك واحداً بعد الآخر.",
     "archivedNote": "هذا المستوى مؤرشف، وما زال وصولك إليه قائماً."
+  },
+  "Progress": {
+    "count": "أكملت {completed} من {total}",
+    "bar": "تقدّمك في هذا المستوى",
+    "levelComplete": "اكتمل المستوى",
+    "continue": "تابع: {lesson}"
   },
   "Watch": {
     "backToLevel": "العودة إلى المستوى",
@@ -96,7 +102,17 @@
     "errorTitle": "تعذّر تحميل هذا الدرس",
     "errorBody": "حاول مرة أخرى بعد قليل.",
     "unsupported": "متصفحك لا يستطيع تشغيل هذا الفيديو.",
-    "restoring": "جارٍ التحقق من جلستك…"
+    "restoring": "جارٍ التحقق من جلستك…",
+    "requirementsLabel": "متطلبات الدرس",
+    "requireVideo": "الفيديو: شاهدت {percent}",
+    "requireQuizzes": "الاختبارات: اجتزت {passed} من {total}",
+    "complete": "اكتمل الدرس",
+    "nextLesson": "الدرس التالي",
+    "levelFinished": "أنهيت كل دروس هذا المستوى.",
+    "sequenceTitle": "أنهِ «{lesson}» أولاً",
+    "sequenceTitleGeneric": "أنهِ الدرس السابق أولاً",
+    "sequenceBody": "تُفتح الدروس واحداً بعد الآخر. شاهد الدرس السابق واجتز اختباراته لتفتح هذا الدرس.",
+    "openRequired": "اذهب إلى ذلك الدرس"
   },
   "Auth": {
     "loginTitle": "مرحباً بعودتك",

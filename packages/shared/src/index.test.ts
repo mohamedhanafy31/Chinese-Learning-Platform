@@ -10,6 +10,7 @@ import {
   phoneSchema,
   questionRequestSchema,
   registerRequestSchema,
+  reportProgressRequestSchema,
   revokeEnrollmentRequestSchema,
 } from './index';
 
@@ -263,5 +264,32 @@ describe('assessment contracts', () => {
       options: [{ id, text: { en: 'A' }, isCorrect: true }],
     });
     expect(JSON.stringify(parsed)).not.toMatch(/isCorrect|explanation|secret/);
+  });
+});
+
+describe('reportProgressRequestSchema', () => {
+  it('accepts integer and one-decimal second ranges', () => {
+    expect(
+      reportProgressRequestSchema.parse({
+        segments: [
+          [0, 10],
+          [12.5, 20.1],
+        ],
+        positionSec: 20,
+        durationSec: 95,
+      }).segments,
+    ).toHaveLength(2);
+  });
+
+  it.each([
+    { segments: [[0, 5.123]], positionSec: 5 },
+    { segments: [[-1, 5]], positionSec: 5 },
+    { segments: [[0, 5000000]], positionSec: 5 },
+    { segments: Array.from({ length: 21 }, () => [0, 1]), positionSec: 1 },
+    { segments: [[0, 1, 2]], positionSec: 1 },
+    { segments: [], positionSec: -3 },
+    { positionSec: 3 },
+  ])('rejects %j', (body) => {
+    expect(reportProgressRequestSchema.safeParse(body).success).toBe(false);
   });
 });

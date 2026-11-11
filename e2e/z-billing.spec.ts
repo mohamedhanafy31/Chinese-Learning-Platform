@@ -236,10 +236,8 @@ test.describe
     await expect(paid).toContainText(/[٠-٩]/);
     await expect(page.getByRole('img', { name: 'بختم مازن' })).toBeVisible();
 
+    // M12: "Start the first lesson" goes straight to the level's next lesson.
     await page.getByRole('link', { name: 'ابدأ الدرس الأول' }).click();
-    await expect(page).toHaveURL(new RegExp(`/ar/levels/${paidSlug}$`));
-    await expect(page.getByTestId('level-enrolled')).toBeVisible();
-    await page.getByRole('link', { name: new RegExp(lessonTitle) }).click();
     await expect(page).toHaveURL(
       new RegExp(`/ar/learn/${paidSlug}/[0-9a-f-]{36}$`),
     );

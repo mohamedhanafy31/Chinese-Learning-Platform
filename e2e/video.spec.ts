@@ -329,15 +329,17 @@ test.describe
   });
 
   test('a lesson without a video says it is coming soon, and the Arabic page mirrors', async () => {
-    // Gamma's video was removed above.
-    await studentPage.goto(`/ar/learn/${slug}/${lessons.gamma}`);
-    await expect(studentPage.locator('html')).toHaveAttribute('dir', 'rtl');
-    await expect(studentPage.getByTestId('video-coming-soon')).toContainText(
+    // Gamma's video was removed above. M12: it is read as the admin now,
+    // because the enrolled student has not finished Beta, so for them Gamma
+    // is sequence-locked (covered by z-progress.spec.ts).
+    await adminPage.goto(`/ar/learn/${slug}/${lessons.gamma}`);
+    await expect(adminPage.locator('html')).toHaveAttribute('dir', 'rtl');
+    await expect(adminPage.getByTestId('video-coming-soon')).toContainText(
       'الفيديو قادم قريباً',
     );
     await expect(
-      studentPage.getByRole('heading', { name: lessonGamma, level: 1 }),
+      adminPage.getByRole('heading', { name: lessonGamma, level: 1 }),
     ).toBeVisible();
-    await expect(studentPage.getByTestId('lesson-video')).toHaveCount(0);
+    await expect(adminPage.getByTestId('lesson-video')).toHaveCount(0);
   });
 });

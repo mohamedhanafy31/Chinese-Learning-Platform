@@ -691,13 +691,14 @@ describe('local video (e2e)', () => {
           durationSec: null,
         },
         poster: null,
+        progress: null,
         siblings: [
           { id: f.preview, number: 1, access: 'preview' },
           { id: f.locked, number: 2, access: 'locked' },
         ],
       });
       expect(Object.keys(free.body as Json).sort()).toEqual(
-        ['level', 'lesson', 'poster', 'siblings', 'video'].sort(),
+        ['level', 'lesson', 'poster', 'progress', 'siblings', 'video'].sort(),
       );
 
       // Anonymous on a locked lesson, then signed in but not enrolled.
@@ -735,8 +736,10 @@ describe('local video (e2e)', () => {
           mime: 'video/webm',
         },
         siblings: [
-          { id: f.preview, access: 'open' },
-          { id: f.locked, access: 'open' },
+          // M12: the free preview stays a preview, the first regular lesson
+          // is the next one (was `open` before sequential unlocking).
+          { id: f.preview, access: 'preview' },
+          { id: f.locked, access: 'next' },
         ],
       });
       await call(

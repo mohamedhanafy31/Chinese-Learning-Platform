@@ -79,6 +79,11 @@ export type PlaybackResult =
   | { status: 'no-video'; data: PlaybackNoVideo }
   | { status: 'login-required' }
   | { status: 'not-enrolled'; levelSlug: string | null }
+  | {
+      status: 'sequence-locked';
+      levelSlug: string | null;
+      requiredLessonId: string | null;
+    }
   | { status: 'not-found' }
   | { status: 'error' };
 
@@ -104,10 +109,17 @@ export const getPlayback = cache(
     if (response.status === 401) return { status: 'login-required' };
     if (response.status === 403) {
       const parsed = playbackDeniedSchema.safeParse(body);
-      return {
-        status: 'not-enrolled',
-        levelSlug: parsed.success ? (parsed.data.levelSlug ?? null) : null,
-      };
+      const levelSlug = parsed.success ? (parsed.data.levelSlug ?? null) : null;
+      // The previous lesson is not finished yet: a different gate from not
+      // owning the level, so the page can point at the lesson to finish.
+      if (parsed.success && parsed.data.reason === 'sequence-locked') {
+        return {
+          status: 'sequence-locked',
+          levelSlug,
+          requiredLessonId: parsed.data.requiredLessonId ?? null,
+        };
+      }
+      return { status: 'not-enrolled', levelSlug };
     }
     if (response.status === 404) {
       const parsed = playbackNoVideoSchema.safeParse(body);

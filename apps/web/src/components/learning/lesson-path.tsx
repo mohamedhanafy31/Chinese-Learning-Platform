@@ -132,9 +132,9 @@ export function LessonPath({
             ) : null}
 
             <span className="flex shrink-0 items-center gap-2">
-              {fired ? (
+              {fired && !current ? (
                 <Seal size={30} label={labels.sealedBy} />
-              ) : next ? (
+              ) : next && !current ? (
                 <span className="rounded-full bg-seal px-4 py-2 text-sm font-semibold text-glaze">
                   {labels.start}
                 </span>

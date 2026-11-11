@@ -37,6 +37,7 @@ import type { QuizAttempt } from '../generated/prisma/client';
 import { ContentAccessPolicy } from '../learning/content-access.policy';
 import { assertLessonAccess } from '../learning/lesson-access';
 import { PrismaService } from '../prisma/prisma.service';
+import { ProgressService } from '../progress/progress.service';
 
 /** Attempts one learner may submit per rolling minute, across all quizzes. */
 export const ATTEMPTS_PER_MINUTE = 10;
@@ -58,6 +59,7 @@ export class AssessmentLearnerService {
   constructor(
     @Inject(PrismaService) private readonly prisma: PrismaService,
     @Inject(ContentAccessPolicy) private readonly policy: ContentAccessPolicy,
+    @Inject(ProgressService) private readonly progress: ProgressService,
   ) {}
 
   /** Live quizzes of one lesson, with the signed-in learner's progress on each. */
@@ -154,11 +156,11 @@ export class AssessmentLearnerService {
     id: string,
     input: SubmitAttemptRequest,
   ): Promise<SubmitAttemptResponse> {
-    await this.findOpenQuiz(user, id, false);
+    const openQuiz = await this.findOpenQuiz(user, id, false);
     await this.assertWithinRate(user.id);
 
     try {
-      return await this.prisma.$transaction(async (tx) => {
+      const response = await this.prisma.$transaction(async (tx) => {
         // Read inside the transaction so grading and the snapshot see the
         // same questions, even if an admin edits the quiz meanwhile.
         const quiz = await tx.quiz.findUnique({ where: { id } });
@@ -224,6 +226,12 @@ export class AssessmentLearnerService {
           })),
         };
       });
+      // A passing attempt may complete the lesson (and unlock the next one),
+      // so it is re-evaluated in this same request.
+      if (response.attempt.passed) {
+        await this.progress.reevaluate(user.id, openQuiz.lessonId);
+      }
+      return response;
     } catch (error) {
       // The quiz was deleted between the access check and the insert.
       if (

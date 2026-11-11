@@ -9,19 +9,23 @@ import {
   LevelAccessController,
   MyLevelsController,
 } from './learner.controller';
+import { ProgressController } from '../progress/progress.controller';
+import { ProgressService } from '../progress/progress.service';
 
 @Module({
   controllers: [
     AdminStudentsController,
     MyLevelsController,
     LevelAccessController,
+    ProgressController,
   ],
   providers: [
     AdminStudentsService,
     ContentAccessPolicy,
     EnrollmentService,
     LearningReadService,
+    ProgressService,
   ],
-  exports: [ContentAccessPolicy, EnrollmentService],
+  exports: [ContentAccessPolicy, EnrollmentService, ProgressService],
 })
 export class LearningModule {}

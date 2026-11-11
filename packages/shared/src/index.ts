@@ -303,6 +303,77 @@ export const uploadVideoFieldsSchema = z.object({
   ),
 });
 
+// ---------------------------------------------------------------------------
+// Progress (watch coverage, completion, sequence)
+// ---------------------------------------------------------------------------
+
+/**
+ * How a lesson shows on a path: `done` and `next` come from the sequence for
+ * an enrolled learner, `preview` is a free lesson, `open` is staff access.
+ */
+export const lessonAccessSchema = z.enum([
+  'open',
+  'preview',
+  'locked',
+  'done',
+  'next',
+]);
+
+/** A lesson is "complete" at this share of the video watched (and quizzes). */
+export const VIDEO_COMPLETE_PERCENT = 90;
+export const MAX_PROGRESS_SEGMENTS = 20;
+export const MAX_PROGRESS_SECONDS = 36_000;
+
+const progressSecondSchema = z
+  .number()
+  .min(0)
+  .max(MAX_PROGRESS_SECONDS)
+  .refine((value) => Math.abs(value * 10 - Math.round(value * 10)) < 1e-6, {
+    message: 'At most one decimal',
+  });
+
+/** One watched range `[from, to]` in seconds (integers or one decimal). */
+export const progressSegmentSchema = z.tuple([
+  progressSecondSchema,
+  progressSecondSchema,
+]);
+
+export const reportProgressRequestSchema = z.object({
+  segments: z.array(progressSegmentSchema).max(MAX_PROGRESS_SEGMENTS),
+  positionSec: z
+    .number()
+    .min(0)
+    .max(MAX_PROGRESS_SECONDS * 10),
+  /** The player's own duration; only used when the asset has none stored. */
+  durationSec: z
+    .number()
+    .min(0)
+    .max(MAX_PROGRESS_SECONDS * 10)
+    .optional(),
+});
+
+export const progressReportResponseSchema = z.object({
+  watchedPercent: z.number().int().min(0).max(100),
+  videoComplete: z.boolean(),
+  complete: z.boolean(),
+  nextLessonId: z.uuid().nullable(),
+});
+
+/** What the signed-in learner has done in one lesson. */
+export const lessonProgressSchema = z.object({
+  watchedPercent: z.number().int().min(0).max(100),
+  lastPositionSec: z.number().int().min(0),
+  videoComplete: z.boolean(),
+  complete: z.boolean(),
+  quizzes: z.object({
+    total: z.number().int().min(0),
+    passed: z.number().int().min(0),
+  }),
+  /** Whether the lesson has a video the learner must watch. */
+  hasVideo: z.boolean(),
+  nextLessonId: z.uuid().nullable(),
+});
+
 export const playbackLessonSchema = z.object({
   id: z.uuid(),
   number: z.number().int().min(1),
@@ -322,7 +393,7 @@ export const playbackSiblingSchema = z.object({
   number: z.number().int().min(1),
   title: localizedTextSchema,
   hanzi: z.string().nullable(),
-  access: z.enum(['open', 'preview', 'locked']),
+  access: lessonAccessSchema,
 });
 
 const playbackContextShape = {
@@ -330,6 +401,8 @@ const playbackContextShape = {
   level: playbackLevelSchema,
   poster: z.string().startsWith('/media/').nullable(),
   siblings: z.array(playbackSiblingSchema),
+  /** The signed-in viewer's progress; null for anonymous viewers. */
+  progress: lessonProgressSchema.nullable(),
 };
 
 export const localPlaybackSchema = z.object({
@@ -365,8 +438,10 @@ export const playbackNoVideoSchema = z.object({
 
 /** The 401/403 body: why the viewer is refused, and the level to offer. */
 export const playbackDeniedSchema = z.object({
-  reason: z.enum(['login-required', 'not-enrolled']),
+  reason: z.enum(['login-required', 'not-enrolled', 'sequence-locked']),
   levelSlug: slugSchema.optional(),
+  /** For `sequence-locked`: the earlier lesson to finish first. */
+  requiredLessonId: z.uuid().optional(),
 });
 
 export type AdminVideo = z.infer<typeof adminVideoSchema>;
@@ -598,6 +673,13 @@ export const MAX_STUDENT_QUERY_LENGTH = 200;
 
 export const enrollmentSourceSchema = z.enum(EnrollmentSource);
 
+/** Completed lessons of a level and where the learner continues. */
+export const levelProgressSchema = z.object({
+  completed: z.number().int().min(0),
+  total: z.number().int().min(0),
+  nextLessonId: z.uuid().nullable(),
+});
+
 /** One level a learner owns, as listed on their dashboard. */
 export const myLevelSchema = z.object({
   slug: slugSchema,
@@ -610,6 +692,17 @@ export const myLevelSchema = z.object({
   lessonCount: z.number().int().min(0),
   archived: z.boolean(),
   enrolledAt: z.string(),
+  progress: levelProgressSchema.extend({
+    nextLesson: z
+      .object({
+        id: z.uuid(),
+        number: z.number().int().min(1),
+        title: localizedTextSchema,
+      })
+      .nullable(),
+    /** Each visible lesson in order, in the sequence's terms. */
+    lessons: z.array(z.object({ id: z.uuid(), access: lessonAccessSchema })),
+  }),
 });
 
 export const myLevelsResponseSchema = z.object({
@@ -624,11 +717,11 @@ export const myLevelDetailSchema = myLevelSchema.extend({
   lessons: z.array(publicLessonSchema),
 });
 
-export const lessonAccessSchema = z.enum(['open', 'preview', 'locked']);
-
 export const levelAccessResponseSchema = z.object({
   enrolled: z.boolean(),
   lessons: z.array(z.object({ id: z.uuid(), access: lessonAccessSchema })),
+  /** The learner's progress; null unless they are enrolled. */
+  progress: levelProgressSchema.nullable(),
 });
 
 const emptyToUndefined = (value: unknown): unknown =>
@@ -705,6 +798,13 @@ export type MyLevel = z.infer<typeof myLevelSchema>;
 export type MyLevelsResponse = z.infer<typeof myLevelsResponseSchema>;
 export type MyLevelDetail = z.infer<typeof myLevelDetailSchema>;
 export type LessonAccess = z.infer<typeof lessonAccessSchema>;
+export type LevelProgress = z.infer<typeof levelProgressSchema>;
+export type ProgressSegment = z.infer<typeof progressSegmentSchema>;
+export type ReportProgressRequest = z.infer<typeof reportProgressRequestSchema>;
+export type ProgressReportResponse = z.infer<
+  typeof progressReportResponseSchema
+>;
+export type LessonProgress = z.infer<typeof lessonProgressSchema>;
 export type LevelAccessResponse = z.infer<typeof levelAccessResponseSchema>;
 export type AdminStudentsQuery = z.infer<typeof adminStudentsQuerySchema>;
 export type AdminStudent = z.infer<typeof adminStudentSchema>;

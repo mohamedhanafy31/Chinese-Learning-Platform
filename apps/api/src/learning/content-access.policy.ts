@@ -1,9 +1,12 @@
 import { Inject, Injectable, NotFoundException } from '@nestjs/common';
-import type { PublicUser } from '@app/shared';
+import { Role, type PublicUser } from '@app/shared';
 
 import {
   decideLesson,
   decideLevel,
+  firstIncompleteLesson,
+  isActiveEnrollment,
+  isLevelReadableByEnrollees,
   type AccessDecision,
   type AccessEnrollment,
 } from './content-access';
@@ -37,7 +40,72 @@ export class ContentAccessPolicy {
     });
     if (!lesson) throw new NotFoundException('Lesson not found');
     const enrollment = await this.findEnrollment(user, lesson.levelId);
-    return decideLesson({ user, lesson, level: lesson.level, enrollment });
+    const requiredLessonId = await this.sequenceBlock(
+      user,
+      lesson,
+      lesson.level,
+      enrollment,
+    );
+    return decideLesson({
+      user,
+      lesson,
+      level: lesson.level,
+      enrollment,
+      requiredLessonId,
+    });
+  }
+
+  /**
+   * The earlier visible lesson an enrolled learner still has to complete before
+   * this one, or null. Only looked up when it can matter: an active enrollment
+   * on a live, non-preview lesson that is not the first of the level.
+   */
+  private async sequenceBlock(
+    user: PublicUser | null,
+    lesson: {
+      levelId: string;
+      sortOrder: number;
+      isPublished: boolean;
+      archivedAt: Date | null;
+      isFreePreview: boolean;
+    },
+    level: { isPublished: boolean; archivedAt: Date | null },
+    enrollment: AccessEnrollment | null,
+  ): Promise<string | null> {
+    if (
+      !user ||
+      user.role === Role.ADMIN ||
+      lesson.isFreePreview ||
+      !lesson.isPublished ||
+      lesson.archivedAt !== null ||
+      !isActiveEnrollment(enrollment) ||
+      !isLevelReadableByEnrollees(level)
+    ) {
+      return null;
+    }
+    const earlier = await this.prisma.lesson.findMany({
+      where: {
+        levelId: lesson.levelId,
+        isPublished: true,
+        archivedAt: null,
+        sortOrder: { lt: lesson.sortOrder },
+      },
+      orderBy: { sortOrder: 'asc' },
+      select: { id: true, isFreePreview: true },
+    });
+    if (!earlier.some((lesson) => !lesson.isFreePreview)) return null;
+    const done = await this.prisma.lessonProgress.findMany({
+      where: {
+        userId: user.id,
+        lessonId: { in: earlier.map(({ id }) => id) },
+        completedAt: { not: null },
+      },
+      select: { lessonId: true },
+    });
+    return firstIncompleteLesson(
+      earlier,
+      new Set(done.map(({ lessonId }) => lessonId)),
+    );
   }
 
   async forLevel(

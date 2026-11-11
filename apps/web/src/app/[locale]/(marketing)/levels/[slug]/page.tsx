@@ -15,12 +15,13 @@ import {
 
 import { BuyLevel } from '@/components/billing/buy-level';
 import { LessonPath } from '@/components/learning/lesson-path';
+import { ProgressBar } from '@/components/learning/progress-bar';
 import { WriteOn } from '@/components/motion/write-on';
 import { Band } from '@/components/porcelain/band';
 import { SiteFooter } from '@/components/site-footer';
 import { SiteHeader } from '@/components/site-header';
 import { getPublicLevel } from '@/lib/catalog';
-import { accessById } from '@/lib/lesson-access';
+import { accessById, progressSegments } from '@/lib/lesson-access';
 import { getLevelAccess, getMyLevel } from '@/lib/learning';
 import { pick } from '@/lib/localized';
 import { numberFormat } from '@/lib/numbers';
@@ -147,11 +148,28 @@ export default async function LevelPage({
   if (!level) notFound();
   const enrolled = owned !== null || access?.enrolled === true;
   const archived = owned?.archived === true;
+  // The enrolled learner's sequence: done, next, preview and locked lessons.
   const lessonAccess: Map<string, LessonAccess> = owned
-    ? new Map(owned.lessons.map((lesson) => [lesson.id, 'open' as const]))
+    ? new Map(
+        owned.progress.lessons.map((lesson) => [lesson.id, lesson.access]),
+      )
     : accessById(access);
+  const enrolledProgress = owned
+    ? {
+        completed: owned.progress.completed,
+        total: owned.progress.total,
+        segments: progressSegments(owned.progress.lessons),
+      }
+    : access?.enrolled && access.progress
+      ? {
+          completed: access.progress.completed,
+          total: access.progress.total,
+          segments: progressSegments(access.lessons),
+        }
+      : null;
   const tHome = await getTranslations('Home');
   const tPath = await getTranslations('Path');
+  const tProgress = await getTranslations('Progress');
   const nf = numberFormat(locale);
   const lessons = await toCatalogPathLessons(
     level.lessons,
@@ -304,6 +322,30 @@ export default async function LevelPage({
               <h2 className="text-xl font-semibold text-deep">
                 {t('lessons')}
               </h2>
+              {enrolledProgress && lessons.length > 0 ? (
+                <div
+                  data-testid="level-progress"
+                  className="mt-5 max-w-[34rem]"
+                >
+                  <p className="mb-3 font-semibold text-deep tabular">
+                    {tProgress('count', {
+                      completed: nf.format(enrolledProgress.completed),
+                      total: nf.format(enrolledProgress.total),
+                    })}
+                  </p>
+                  <ProgressBar
+                    segments={enrolledProgress.segments}
+                    labels={{
+                      bar: tProgress('bar'),
+                      done: tPath('done'),
+                      next: tPath('next'),
+                      locked: tPath('locked'),
+                      preview: tPath('preview'),
+                      open: tPath('open'),
+                    }}
+                  />
+                </div>
+              ) : null}
               <div className="mt-6">
                 {lessons.length > 0 ? (
                   <LessonPath

@@ -63,21 +63,93 @@ describe('ResultStatus polling', () => {
   it('stops polling as soon as the order becomes paid', async () => {
     vi.stubGlobal(
       'fetch',
-      vi.fn().mockResolvedValue(
-        ok({
-          ...pending,
-          status: OrderStatus.PAID,
-          paidAt: pending.createdAt,
-        }),
+      vi.fn().mockImplementation(() =>
+        Promise.resolve(
+          ok({
+            ...pending,
+            status: OrderStatus.PAID,
+            paidAt: pending.createdAt,
+          }),
+        ),
       ),
     );
     show();
     await act(() => vi.advanceTimersByTimeAsync(2000));
     expect(screen.getByTestId('billing-paid')).toBeVisible();
     expect(screen.getByTestId('purchase-seal')).toBeVisible();
-    expect(fetch).toHaveBeenCalledTimes(1);
+    // One order poll, then (M12) one look-up of the lesson to start with.
+    const calls = () => vi.mocked(fetch).mock.calls.map(([url]) => String(url));
+    expect(calls()).toEqual([
+      expect.stringContaining('/api/v1/billing/orders/'),
+      '/api/v1/me/levels',
+    ]);
     await act(() => vi.advanceTimersByTimeAsync(20_000));
-    expect(fetch).toHaveBeenCalledTimes(1);
+    expect(calls()).toHaveLength(2);
+  });
+
+  it('starts at the next lesson of the bought level', async () => {
+    const lessonId = '00000000-0000-4000-8000-0000000000aa';
+    const levels = {
+      levels: [
+        {
+          slug: 'starter',
+          number: 1,
+          hanzi: '入门',
+          title: { en: 'Starter Chinese' },
+          summary: { en: 'Summary' },
+          coverImage: null,
+          lessonCount: 2,
+          archived: false,
+          enrolledAt: pending.createdAt,
+          progress: {
+            completed: 0,
+            total: 2,
+            nextLessonId: lessonId,
+            nextLesson: {
+              id: lessonId,
+              number: 1,
+              title: { en: 'First lesson' },
+            },
+            lessons: [{ id: lessonId, access: 'next' }],
+          },
+        },
+      ],
+    };
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockImplementation((url: string) =>
+        Promise.resolve(
+          url === '/api/v1/me/levels'
+            ? new Response(JSON.stringify(levels), { status: 200 })
+            : ok({
+                ...pending,
+                status: OrderStatus.PAID,
+                paidAt: pending.createdAt,
+              }),
+        ),
+      ),
+    );
+    show();
+    await act(() => vi.advanceTimersByTimeAsync(2000));
+    expect(
+      screen.getByRole('link', { name: 'Start the first lesson' }),
+    ).toHaveAttribute('href', `/en/learn/starter/${lessonId}`);
+  });
+
+  it('uses the lesson the server already found', () => {
+    vi.stubGlobal('fetch', vi.fn());
+    show({
+      initialOrder: {
+        ...pending,
+        status: OrderStatus.PAID,
+        paidAt: pending.createdAt,
+      },
+      initialStartHref: '/en/learn/starter/abc',
+    });
+    expect(
+      screen.getByRole('link', { name: 'Start the first lesson' }),
+    ).toHaveAttribute('href', '/en/learn/starter/abc');
+    expect(fetch).not.toHaveBeenCalled();
   });
 
   it('times out after 60 seconds of visible polling', async () => {

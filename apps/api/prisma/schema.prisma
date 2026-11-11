@@ -30,6 +30,7 @@ model User {
   revokedEnrollments Enrollment[]    @relation("EnrollmentRevokedBy")
   quizAttempts       QuizAttempt[]
   orders             Order[]
+  lessonProgress     LessonProgress[]
 }
 
 model Session {
@@ -128,6 +129,7 @@ model Lesson {
   activeVideo      VideoAsset?  @relation("ActiveVideo", fields: [activeVideoId], references: [id], onDelete: SetNull)
   videos           VideoAsset[] @relation("LessonVideos")
   quizzes          Quiz[]
+  progress         LessonProgress[]
 
   @@unique([levelId, sortOrder])
   @@index([levelId, isPublished, archivedAt, sortOrder])
@@ -333,4 +335,29 @@ model QuizAttempt {
   quiz         Quiz     @relation(fields: [quizId], references: [id], onDelete: Restrict)
 
   @@index([userId, quizId, createdAt])
+}
+
+/// One learner's watch coverage and completion of one lesson. `completedAt` is
+/// sticky: once set it is never cleared, even if a quiz is added later. The
+/// lesson FK cascades (a lesson is only hard-deleted while it was never
+/// published, and its progress goes with it); the user FK restricts.
+model LessonProgress {
+  userId           String    @db.Uuid
+  lessonId         String    @db.Uuid
+  /// Merged, sorted `[from, to]` second ranges actually watched (<= 200).
+  watchedSegments  Json      @default("[]")
+  watchedSec       Int       @default(0)
+  durationSec      Int?
+  lastPositionSec  Int       @default(0)
+  videoCompletedAt DateTime?
+  completedAt      DateTime?
+  lastReportAt     DateTime?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+  user             User      @relation(fields: [userId], references: [id], onDelete: Restrict)
+  lesson           Lesson    @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+
+  @@id([userId, lessonId])
+  @@index([userId, completedAt])
+  @@index([lessonId])
 }

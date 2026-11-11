@@ -7,7 +7,10 @@ import { getTranslations, setRequestLocale } from 'next-intl/server';
 import type { Locale } from '@app/shared';
 
 import { LogoutButton } from '@/components/auth/logout-button';
+import { ProgressBar } from '@/components/learning/progress-bar';
 import { WriteOn } from '@/components/motion/write-on';
+import { Seal } from '@/components/porcelain/seal';
+import { progressSegments } from '@/lib/lesson-access';
 import { getMyLevels } from '@/lib/learning';
 import { pick } from '@/lib/localized';
 import { numberFormat } from '@/lib/numbers';
@@ -32,6 +35,8 @@ export default async function DashboardPage({
   setRequestLocale(locale);
   const user = await requireUser(locale, `/${locale}/dashboard`);
   const t = await getTranslations('Dashboard');
+  const tProgress = await getTranslations('Progress');
+  const tPath = await getTranslations('Path');
   const result = await getMyLevels();
   const nf = numberFormat(locale);
 
@@ -81,6 +86,10 @@ export default async function DashboardPage({
         >
           {result.levels.map((level) => {
             const title = pick(level.title, locale);
+            const { progress } = level;
+            const finished =
+              progress.total > 0 && progress.completed === progress.total;
+            const next = progress.nextLesson;
             return (
               <li
                 key={level.slug}
@@ -117,6 +126,30 @@ export default async function DashboardPage({
                           count: nf.format(level.lessonCount),
                         })}
                       </p>
+                      {progress.total > 0 ? (
+                        <div className="mt-3 max-w-[26rem]">
+                          <p
+                            data-testid="level-count"
+                            className="mb-2 text-sm font-semibold text-deep tabular"
+                          >
+                            {tProgress('count', {
+                              completed: nf.format(progress.completed),
+                              total: nf.format(progress.total),
+                            })}
+                          </p>
+                          <ProgressBar
+                            segments={progressSegments(progress.lessons)}
+                            labels={{
+                              bar: tProgress('bar'),
+                              done: tPath('done'),
+                              next: tPath('next'),
+                              locked: tPath('locked'),
+                              preview: tPath('preview'),
+                              open: tPath('open'),
+                            }}
+                          />
+                        </div>
+                      ) : null}
                       {level.archived ? (
                         <p className="mt-2 inline-flex items-center gap-1.5 rounded-full border-2 border-dashed border-unfired px-3 py-1 text-sm font-semibold text-unfired-ink">
                           <Archive
@@ -128,11 +161,36 @@ export default async function DashboardPage({
                       ) : null}
                     </div>
                   </div>
-                  <div className="col-span-2 sm:col-span-1">
+                  <div className="col-span-2 flex flex-col items-start gap-3 sm:col-span-1 sm:items-end">
+                    {next ? (
+                      <Link
+                        data-testid="continue-lesson"
+                        href={`/${locale}/learn/${level.slug}/${next.id}`}
+                        className="inline-flex min-h-14 max-w-full items-center rounded-full bg-deep px-8 text-lg font-semibold text-glaze transition-colors hover:bg-cobalt"
+                      >
+                        <span className="truncate">
+                          {tProgress('continue', {
+                            lesson: pick(next.title, locale),
+                          })}
+                        </span>
+                      </Link>
+                    ) : finished ? (
+                      <p
+                        data-testid="level-complete"
+                        className="inline-flex min-h-14 items-center gap-3 text-lg font-semibold text-deep"
+                      >
+                        <Seal size={30} label={tPath('sealedBy')} />
+                        {tProgress('levelComplete')}
+                      </p>
+                    ) : null}
                     <Link
                       href={`/${locale}/levels/${level.slug}`}
                       aria-label={t('goToLevelNamed', { title })}
-                      className="inline-flex min-h-14 items-center rounded-full bg-deep px-8 text-lg font-semibold text-glaze transition-colors hover:bg-cobalt"
+                      className={
+                        next || finished
+                          ? 'inline-flex min-h-11 items-center text-cobalt underline decoration-wash-strong underline-offset-8 transition-colors hover:text-deep'
+                          : 'inline-flex min-h-14 items-center rounded-full bg-deep px-8 text-lg font-semibold text-glaze transition-colors hover:bg-cobalt'
+                      }
                     >
                       {t('goToLevel')}
                     </Link>

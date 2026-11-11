@@ -74,8 +74,14 @@
     "unavailableBody": "Please try again in a moment.",
     "includesEmpty": "The topics of this level will be listed here.",
     "enrolled": "You are enrolled in this level",
-    "enrolledNote": "Every lesson is open for you.",
+    "enrolledNote": "Your lessons open one after another.",
     "archivedNote": "This level is archived, and you keep your access."
+  },
+  "Progress": {
+    "count": "You completed {completed} of {total}",
+    "bar": "Progress in this level",
+    "levelComplete": "Level complete",
+    "continue": "Continue: {lesson}"
   },
   "Watch": {
     "backToLevel": "Back to the level",
@@ -96,7 +102,17 @@
     "errorTitle": "This lesson could not be loaded",
     "errorBody": "Please try again in a moment.",
     "unsupported": "Your browser cannot play this video.",
-    "restoring": "Checking your session…"
+    "restoring": "Checking your session…",
+    "requirementsLabel": "Lesson requirements",
+    "requireVideo": "Video {percent} watched",
+    "requireQuizzes": "Quizzes {passed} of {total} passed",
+    "complete": "Lesson complete",
+    "nextLesson": "Next lesson",
+    "levelFinished": "You have finished every lesson in this level.",
+    "sequenceTitle": "Finish {lesson} first",
+    "sequenceTitleGeneric": "Finish the earlier lesson first",
+    "sequenceBody": "Lessons open one after another. Watch the earlier lesson and pass its quizzes to unlock this one.",
+    "openRequired": "Go to that lesson"
   },
   "Auth": {
     "loginTitle": "Welcome back",

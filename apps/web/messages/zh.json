@@ -74,8 +74,14 @@
     "unavailableBody": "请稍后再试。",
     "includesEmpty": "本级别的主题将在这里列出。",
     "enrolled": "你已加入本级别",
-    "enrolledNote": "所有课程都已为你开放。",
+    "enrolledNote": "课程会按顺序依次解锁。",
     "archivedNote": "本级别已归档，你仍可继续学习。"
+  },
+  "Progress": {
+    "count": "已完成 {completed} / {total} 课",
+    "bar": "本级别学习进度",
+    "levelComplete": "本级别已完成",
+    "continue": "继续：{lesson}"
   },
   "Watch": {
     "backToLevel": "返回该级别",
@@ -96,7 +102,17 @@
     "errorTitle": "无法加载这节课",
     "errorBody": "请稍后再试。",
     "unsupported": "你的浏览器无法播放此视频。",
-    "restoring": "正在检查你的登录状态…"
+    "restoring": "正在检查你的登录状态…",
+    "requirementsLabel": "本课要求",
+    "requireVideo": "视频已观看 {percent}",
+    "requireQuizzes": "测验已通过 {passed} / {total}",
+    "complete": "本课已完成",
+    "nextLesson": "下一课",
+    "levelFinished": "你已完成本级别的所有课程。",
+    "sequenceTitle": "请先完成“{lesson}”",
+    "sequenceTitleGeneric": "请先完成上一课",
+    "sequenceBody": "课程按顺序解锁。看完上一课并通过其测验，才能解锁这一课。",
+    "openRequired": "前往那一课"
   },
   "Auth": {
     "loginTitle": "欢迎回来",
