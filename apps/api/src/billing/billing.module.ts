@@ -30,6 +30,6 @@ import { LearningModule } from '../learning/learning.module';
     BillingExpiryService,
     BillingReportService,
   ],
-  exports: [BillingExpiryService],
+  exports: [BillingExpiryService, BillingService, BillingReportService],
 })
 export class BillingModule {}

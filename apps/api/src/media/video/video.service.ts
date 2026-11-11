@@ -38,6 +38,7 @@ import { toAdminVideo } from './video-mapper';
 import { VideoProviders } from './video-providers';
 import type { Environment } from '../../config/environment';
 import { MediaStorage } from '../media-storage';
+import { AuditService } from '../../audit/audit.service';
 import { PrismaService } from '../../prisma/prisma.service';
 import { WebhookProvider } from '../../generated/prisma/client';
 
@@ -53,6 +54,7 @@ export class VideoService implements OnModuleInit {
     @Inject(VideoProviders) private readonly providers: VideoProviders,
     @Inject(BunnyVideoService) private readonly bunny: BunnyVideoService,
     @Inject(MediaStorage) private readonly storage: MediaStorage,
+    @Inject(AuditService) private readonly audit: AuditService,
     @Inject(ConfigService)
     private readonly config: ConfigService<Environment, true>,
   ) {}
@@ -89,6 +91,12 @@ export class VideoService implements OnModuleInit {
     });
   }
 
+  /** The active provider and whether it is the development-only one. */
+  summary(): { active: ProviderReadiness['active']; devOnly: boolean } {
+    const readiness = this.providerReadiness();
+    return { active: readiness.active, devOnly: this.isDevOnly(readiness) };
+  }
+
   async diagnostics(): Promise<VideoDiagnostics> {
     const readiness = this.providerReadiness();
     const [local, bunny, processing, failed, lastWebhook] = await Promise.all([
@@ -119,9 +127,10 @@ export class VideoService implements OnModuleInit {
   }
 
   /** Starts a direct-to-Bunny TUS upload (409 unless Bunny is active). */
-  createBunnyUpload(
+  async createBunnyUpload(
     lessonId: string,
     body: unknown,
+    actorId: string,
   ): Promise<BunnyUploadTicket> {
     const parsed = createBunnyUploadRequestSchema.safeParse(body ?? {});
     if (!parsed.success) {
@@ -130,11 +139,19 @@ export class VideoService implements OnModuleInit {
         issues: parsed.error.issues,
       });
     }
-    return this.bunny.createUpload(
+    const ticket = await this.bunny.createUpload(
       lessonId,
       parsed.data,
       this.config.get('VIDEO_MAX_BYTES', { infer: true }),
     );
+    await this.audit.record(this.prisma, {
+      actorId,
+      action: 'video.upload_bunny',
+      entity: 'Lesson',
+      entityId: lessonId,
+      data: { assetId: ticket.assetId },
+    });
+    return ticket;
   }
 
   /** The browser finished its TUS upload. */
@@ -157,6 +174,7 @@ export class VideoService implements OnModuleInit {
     lessonId: string,
     file: StoredVideoUpload | undefined,
     fields: unknown,
+    actorId: string,
   ): Promise<UploadedVideo> {
     if (!file) throw new BadRequestException('A file is required');
     // The multipart route is always local, even once Bunny is configured.
@@ -211,6 +229,17 @@ export class VideoService implements OnModuleInit {
         if (lesson.activeVideo) {
           await tx.videoAsset.delete({ where: { id: lesson.activeVideo.id } });
         }
+        await this.audit.record(tx, {
+          actorId,
+          action: 'video.upload_local',
+          entity: 'Lesson',
+          entityId: lessonId,
+          data: {
+            assetId: created.id,
+            sizeBytes: stored.sizeBytes,
+            replaced: lesson.activeVideo !== null,
+          },
+        });
         return { row: created, previous: lesson.activeVideo };
       });
 
@@ -233,7 +262,7 @@ export class VideoService implements OnModuleInit {
    * Clears the lesson's video and every pending or failed upload, deleting the
    * assets and their stored videos (files or Bunny videos). Idempotent.
    */
-  async removeActive(lessonId: string): Promise<void> {
+  async removeActive(lessonId: string, actorId: string): Promise<void> {
     const removed = await this.prisma.$transaction(async (tx) => {
       await tx.$executeRaw`SELECT 1 FROM "Lesson" WHERE id = ${lessonId}::uuid FOR UPDATE`;
       const lesson = await tx.lesson.findUnique({
@@ -248,6 +277,13 @@ export class VideoService implements OnModuleInit {
         data: { activeVideoId: null },
       });
       await tx.videoAsset.deleteMany({ where: { lessonId } });
+      await this.audit.record(tx, {
+        actorId,
+        action: 'video.remove',
+        entity: 'Lesson',
+        entityId: lessonId,
+        data: { assets: assets.length },
+      });
       return assets;
     });
     await this.discardAssets(removed);

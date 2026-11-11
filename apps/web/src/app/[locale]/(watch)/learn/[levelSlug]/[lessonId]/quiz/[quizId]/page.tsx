@@ -104,7 +104,12 @@ export default async function QuizPage({
           />
         </div>
 
-        <AttemptHistory attempts={attempts} basePath={here} locale={locale} />
+        <AttemptHistory
+          attempts={attempts}
+          basePath={here}
+          locale={locale}
+          showEmpty
+        />
       </div>
     </div>
   );

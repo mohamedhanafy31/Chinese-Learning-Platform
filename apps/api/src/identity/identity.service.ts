@@ -29,6 +29,7 @@ import type { MailService } from './mail.service';
 import { PasswordService } from './password.service';
 import { toPublicUser } from './public-user';
 import type { Environment } from '../config/environment';
+import type { Prisma } from '../generated/prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 
 export interface SessionMetadata {
@@ -283,29 +284,37 @@ export class IdentityService {
 
     const passwordHash = await this.passwords.hash(input.password);
     await this.prisma.$transaction(async (transaction) => {
-        const claimed = await transaction.passwordReset.updateMany({
-          where: {
-            id: reset.id,
-            usedAt: null,
-            expiresAt: { gt: now },
-          },
-          data: { usedAt: now },
-        });
-        if (claimed.count !== 1) {
-          throw new BadRequestException('Invalid password reset request');
-        }
-        await transaction.user.update({
-          where: { id: reset.userId },
-          data: { passwordHash },
-        });
-        await transaction.session.updateMany({
-          where: { userId: reset.userId, revokedAt: null },
-          data: { revokedAt: now },
-        });
+      const claimed = await transaction.passwordReset.updateMany({
+        where: {
+          id: reset.id,
+          usedAt: null,
+          expiresAt: { gt: now },
+        },
+        data: { usedAt: now },
+      });
+      if (claimed.count !== 1) {
+        throw new BadRequestException('Invalid password reset request');
+      }
+      await transaction.user.update({
+        where: { id: reset.userId },
+        data: { passwordHash },
+      });
+      await transaction.session.updateMany({
+        where: { userId: reset.userId, revokedAt: null },
+        data: { revokedAt: now },
+      });
     });
   }
 
-  async deactivateUser(id: string): Promise<PublicUser> {
+  /**
+   * Deactivates the account and revokes every one of its sessions in one
+   * transaction. `inTransaction` runs inside it too, for callers that must
+   * commit something (an audit row) with the change.
+   */
+  async deactivateUser(
+    id: string,
+    inTransaction?: (tx: Prisma.TransactionClient) => Promise<void>,
+  ): Promise<PublicUser> {
     const now = this.clock.now();
     return this.prisma.$transaction(async (transaction) => {
       const user = await transaction.user.update({
@@ -316,6 +325,22 @@ export class IdentityService {
         where: { userId: id, revokedAt: null },
         data: { revokedAt: now },
       });
+      await inTransaction?.(transaction);
+      return toPublicUser(user);
+    });
+  }
+
+  /** Lets a deactivated account sign in again (with a fresh session). */
+  async reactivateUser(
+    id: string,
+    inTransaction?: (tx: Prisma.TransactionClient) => Promise<void>,
+  ): Promise<PublicUser> {
+    return this.prisma.$transaction(async (transaction) => {
+      const user = await transaction.user.update({
+        where: { id },
+        data: { isActive: true },
+      });
+      await inTransaction?.(transaction);
       return toPublicUser(user);
     });
   }

@@ -132,7 +132,7 @@ test.describe.serial('catalog admin and public catalog', () => {
       [lessonBeta, false],
     ] as const) {
       await page.goto(levelUrl);
-      await page.getByRole('link', { name: 'Add lesson' }).click();
+      await page.getByRole('link', { name: 'Add lesson' }).first().click();
       await expect(page).toHaveURL(/\/lessons\/new$/);
       await page
         .getByRole('group', { name: 'Lesson title' })

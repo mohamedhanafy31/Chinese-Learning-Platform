@@ -13,6 +13,7 @@ import { pick } from '@/lib/localized';
 import { paymentCard } from '@/lib/payment-card';
 import { formatEgp } from '@/lib/price';
 import { requireUser } from '@/lib/protected-session';
+import { EmptyState } from '@/components/ui/empty-state';
 
 export async function generateMetadata({
   params,
@@ -110,9 +111,7 @@ export default async function AdminOrderPage({
         {t('transactionsTitle')}
       </h2>
       {order.transactions.length === 0 ? (
-        <p className="mt-4 rounded-2xl border-2 border-dashed border-unfired px-6 py-10 text-center text-lg text-unfired-ink">
-          {t('transactionsEmpty')}
-        </p>
+        <EmptyState className="mt-4" body={t('transactionsEmpty')} />
       ) : (
         <div className="mt-4 overflow-x-auto">
           <table className="w-full min-w-[64rem] border-t-2 border-cobalt text-start">

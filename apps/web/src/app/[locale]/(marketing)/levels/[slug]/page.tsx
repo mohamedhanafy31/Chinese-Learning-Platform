@@ -30,6 +30,7 @@ import { formatEgp } from '@/lib/price';
 import { absoluteUrl } from '@/lib/site-url';
 import { getBillingAvailability } from '@/lib/billing';
 import { getCurrentUser } from '@/lib/session';
+import { EmptyState } from '@/components/ui/empty-state';
 
 /** What the page renders: the public detail, or an owned (maybe archived) level. */
 type LevelView = Pick<
@@ -362,9 +363,7 @@ export default async function LevelPage({
                     }}
                   />
                 ) : (
-                  <p className="rounded-2xl border-2 border-dashed border-unfired px-6 py-10 text-center text-lg text-cobalt">
-                    {t('empty')}
-                  </p>
+                  <EmptyState body={t('empty')} />
                 )}
               </div>
             </div>

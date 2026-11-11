@@ -331,6 +331,7 @@ describe('billing API (e2e)', () => {
     await prisma.mediaAsset.deleteMany();
     await prisma.passwordReset.deleteMany();
     await prisma.session.deleteMany();
+    await prisma.auditLog.deleteMany();
     await prisma.user.deleteMany();
   }
 

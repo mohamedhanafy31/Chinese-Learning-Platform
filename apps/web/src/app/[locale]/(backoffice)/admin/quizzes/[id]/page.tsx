@@ -4,10 +4,11 @@ import { getTranslations, setRequestLocale } from 'next-intl/server';
 
 import type { Locale } from '@app/shared';
 
+import { AuditHistory } from '@/components/admin/audit-history';
 import { QuestionsList } from '@/components/admin/questions-list';
 import { QuizLifecycle } from '@/components/admin/quiz-lifecycle';
 import { QuizSettingsForm } from '@/components/admin/quiz-settings-form';
-import { getAdminLesson, getAdminQuiz } from '@/lib/admin-api';
+import { getAdminLesson, getAdminQuiz, getRecentAudit } from '@/lib/admin-api';
 import { pick } from '@/lib/localized';
 import { formatPercent, numberFormat } from '@/lib/numbers';
 import { requireUser } from '@/lib/protected-session';
@@ -34,7 +35,10 @@ export default async function EditQuizPage({
   setRequestLocale(locale);
   await requireUser(locale, `/${locale}/admin/quizzes/${id}`, true);
   const t = await getTranslations('Admin.quiz');
-  const quiz = await getAdminQuiz(id);
+  const [quiz, history] = await Promise.all([
+    getAdminQuiz(id),
+    getRecentAudit('Quiz', id),
+  ]);
   const lesson = await getAdminLesson(quiz.lessonId);
   const title = pick(quiz.title, locale);
   const nf = numberFormat(locale);
@@ -97,6 +101,13 @@ export default async function EditQuizPage({
           questions={quiz.questions}
         />
       </div>
+
+      <AuditHistory
+        entries={history}
+        entity="Quiz"
+        entityId={quiz.id}
+        locale={locale}
+      />
     </section>
   );
 }

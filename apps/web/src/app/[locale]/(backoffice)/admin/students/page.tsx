@@ -1,4 +1,10 @@
-import { ChevronLeft, ChevronRight, Search } from 'lucide-react';
+import {
+  ChevronLeft,
+  ChevronRight,
+  CircleCheck,
+  CircleSlash,
+  Search,
+} from 'lucide-react';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
@@ -16,6 +22,8 @@ import { formatDate } from '@/lib/format';
 import { numberFormat } from '@/lib/numbers';
 import { requireUser } from '@/lib/protected-session';
 import { parsePage, studentsHref, totalPages } from '@/lib/students-paging';
+import { EmptyState } from '@/components/ui/empty-state';
+import { Notice } from '@/components/ui/notice';
 
 export async function generateMetadata({
   params,
@@ -44,9 +52,9 @@ export default async function AdminStudentsPage({
   const queryParam = Array.isArray(raw.query) ? raw.query[0] : raw.query;
   const query = (queryParam ?? '').trim().slice(0, 200);
   const page = parsePage(raw.page);
-  const result = await getAdminStudents({ query, page });
-  const pages = totalPages(result.total, result.pageSize);
-  if (page > pages) redirect(studentsHref(locale, query, pages));
+  const result = await getAdminStudents({ query, page }).catch(() => null);
+  const pages = result ? totalPages(result.total, result.pageSize) : 1;
+  if (result && page > pages) redirect(studentsHref(locale, query, pages));
 
   return (
     <section className="mx-auto max-w-[1100px] px-4 py-14 sm:px-8 lg:py-20">
@@ -98,104 +106,146 @@ export default async function AdminStudentsPage({
         ) : null}
       </form>
 
-      <p
-        role="status"
-        className="mt-10 text-sm font-semibold tabular text-cobalt"
-      >
-        {query
-          ? t('resultsFor', { count: nf.format(result.total), query })
-          : t('results', { count: nf.format(result.total) })}
-      </p>
-
-      {result.students.length === 0 ? (
-        <p className="mt-4 rounded-2xl border-2 border-dashed border-unfired px-6 py-12 text-center text-lg leading-[1.8] text-unfired-ink">
-          {query ? t('emptySearch') : t('empty')}
-        </p>
+      {result === null ? (
+        <div className="mt-10">
+          <Notice role="alert">{t('loadError')}</Notice>
+        </div>
       ) : (
-        <ul
-          aria-label={t('listLabel')}
-          className="mt-4 border-t-2 border-cobalt"
-        >
-          {result.students.map((student) => (
-            <li key={student.id} className="border-b border-wash">
-              <div className="grid items-center gap-x-6 gap-y-2 py-5 sm:grid-cols-[minmax(0,1fr)_auto] sm:px-2">
-                <div className="min-w-0">
-                  <Link
-                    href={`/${locale}/admin/students/${student.id}`}
-                    className="text-xl font-semibold text-deep underline decoration-wash-strong underline-offset-4 hover:decoration-deep"
-                  >
-                    {student.name}
-                  </Link>
-                  <p className="mt-1 break-words text-cobalt">
-                    <span dir="ltr" className="inline-block">
-                      {student.email}
-                    </span>
-                  </p>
-                  <p className="mt-1 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-cobalt">
-                    <span dir="ltr" className="tabular">
-                      {student.phone}
-                    </span>
-                    <span className="tabular">
-                      {t('joined', {
-                        date: formatDate(student.createdAt, locale),
-                      })}
-                    </span>
-                  </p>
-                </div>
-                <p className="text-sm font-semibold tabular text-deep">
-                  {t('activeCount', {
-                    count: nf.format(student.activeEnrollments),
-                  })}
-                </p>
-              </div>
-            </li>
-          ))}
-        </ul>
-      )}
-
-      {pages > 1 ? (
-        <nav
-          aria-label={t('pagination')}
-          className="mt-8 flex flex-wrap items-center justify-between gap-4"
-        >
-          {page > 1 ? (
-            <Link
-              rel="prev"
-              href={studentsHref(locale, query, page - 1)}
-              className={secondaryLinkClass}
-            >
-              <ChevronLeft
-                aria-hidden="true"
-                className="me-1 size-5 rtl:-scale-x-100"
-              />
-              {t('previous')}
-            </Link>
-          ) : (
-            <span aria-hidden="true" />
-          )}
-          <p className="text-sm font-semibold tabular text-deep">
-            {t('pageInfo', {
-              page: nf.format(page),
-              pages: nf.format(pages),
-            })}
+        <>
+          <p
+            role="status"
+            className="mt-10 text-sm font-semibold tabular text-cobalt"
+          >
+            {query
+              ? t('resultsFor', { count: nf.format(result.total), query })
+              : t('results', { count: nf.format(result.total) })}
           </p>
-          {page < pages ? (
-            <Link
-              rel="next"
-              href={studentsHref(locale, query, page + 1)}
-              className={secondaryLinkClass}
-            >
-              {t('next')}
-              <ChevronRight
-                aria-hidden="true"
-                className="ms-1 size-5 rtl:-scale-x-100"
-              />
-            </Link>
+
+          {result.students.length === 0 ? (
+            <EmptyState
+              className="mt-4"
+              body={query ? t('emptySearch') : t('empty')}
+              action={
+                query
+                  ? {
+                      href: `/${locale}/admin/students`,
+                      label: t('searchClear'),
+                    }
+                  : { href: `/${locale}/admin/levels`, label: t('emptyAction') }
+              }
+            />
           ) : (
-            <span aria-hidden="true" />
+            <ul
+              aria-label={t('listLabel')}
+              className="mt-4 border-t-2 border-cobalt"
+            >
+              {result.students.map((student) => (
+                <li key={student.id} className="border-b border-wash">
+                  <div className="grid items-center gap-x-6 gap-y-2 py-5 sm:grid-cols-[minmax(0,1fr)_auto] sm:px-2">
+                    <div className="min-w-0">
+                      <Link
+                        href={`/${locale}/admin/students/${student.id}`}
+                        className="text-xl font-semibold text-deep underline decoration-wash-strong underline-offset-4 hover:decoration-deep"
+                      >
+                        {student.name}
+                      </Link>
+                      <p className="mt-1 break-words text-cobalt">
+                        <span dir="ltr" className="inline-block">
+                          {student.email}
+                        </span>
+                      </p>
+                      <p className="mt-1 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-cobalt">
+                        <span dir="ltr" className="tabular">
+                          {student.phone}
+                        </span>
+                        <span className="tabular">
+                          {t('joined', {
+                            date: formatDate(student.createdAt, locale),
+                          })}
+                        </span>
+                      </p>
+                    </div>
+                    <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+                      {student.isActive ? (
+                        <span
+                          data-testid="active-badge"
+                          className="inline-flex items-center gap-1.5 rounded-full bg-deep px-3 py-1 text-sm font-semibold text-glaze"
+                        >
+                          <CircleCheck
+                            aria-hidden="true"
+                            className="size-4 shrink-0"
+                          />
+                          {t('accountActive')}
+                        </span>
+                      ) : (
+                        <span
+                          data-testid="deactivated-badge"
+                          className="inline-flex items-center gap-1.5 rounded-full border-2 border-dashed border-unfired px-3 py-1 text-sm font-semibold text-unfired-ink"
+                        >
+                          <CircleSlash
+                            aria-hidden="true"
+                            className="size-4 shrink-0"
+                          />
+                          {t('deactivated')}
+                        </span>
+                      )}
+                      <p className="text-sm font-semibold tabular text-deep">
+                        {t('activeCount', {
+                          count: nf.format(student.activeEnrollments),
+                        })}
+                      </p>
+                    </div>
+                  </div>
+                </li>
+              ))}
+            </ul>
           )}
-        </nav>
-      ) : null}
+
+          {pages > 1 ? (
+            <nav
+              aria-label={t('pagination')}
+              className="mt-8 flex flex-wrap items-center justify-between gap-4"
+            >
+              {page > 1 ? (
+                <Link
+                  rel="prev"
+                  href={studentsHref(locale, query, page - 1)}
+                  className={secondaryLinkClass}
+                >
+                  <ChevronLeft
+                    aria-hidden="true"
+                    className="me-1 size-5 rtl:-scale-x-100"
+                  />
+                  {t('previous')}
+                </Link>
+              ) : (
+                <span aria-hidden="true" />
+              )}
+              <p className="text-sm font-semibold tabular text-deep">
+                {t('pageInfo', {
+                  page: nf.format(page),
+                  pages: nf.format(pages),
+                })}
+              </p>
+              {page < pages ? (
+                <Link
+                  rel="next"
+                  href={studentsHref(locale, query, page + 1)}
+                  className={secondaryLinkClass}
+                >
+                  {t('next')}
+                  <ChevronRight
+                    aria-hidden="true"
+                    className="ms-1 size-5 rtl:-scale-x-100"
+                  />
+                </Link>
+              ) : (
+                <span aria-hidden="true" />
+              )}
+            </nav>
+          ) : null}
+        </>
+      )}
     </section>
   );
 }

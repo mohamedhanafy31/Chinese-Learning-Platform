@@ -4,12 +4,14 @@ import { getTranslations, setRequestLocale } from 'next-intl/server';
 
 import type { Locale } from '@app/shared';
 
+import { AuditHistory } from '@/components/admin/audit-history';
 import { LessonsList } from '@/components/admin/lessons-list';
 import { LevelForm } from '@/components/admin/level-form';
 import { LifecycleActions } from '@/components/admin/lifecycle-actions';
-import { getAdminLevel } from '@/lib/admin-api';
+import { getAdminLevel, getRecentAudit } from '@/lib/admin-api';
 import { pick } from '@/lib/localized';
 import { requireUser } from '@/lib/protected-session';
+import { EmptyState } from '@/components/ui/empty-state';
 
 export async function generateMetadata({
   params,
@@ -18,7 +20,10 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { locale } = await params;
   const t = await getTranslations({ locale, namespace: 'Metadata' });
-  return { title: t('adminLevelEdit'), robots: { index: false, follow: false } };
+  return {
+    title: t('adminLevelEdit'),
+    robots: { index: false, follow: false },
+  };
 }
 
 export default async function EditLevelPage({
@@ -31,7 +36,10 @@ export default async function EditLevelPage({
   await requireUser(locale, `/${locale}/admin/levels/${id}`, true);
   const t = await getTranslations('Admin.levelPage');
   const tLessons = await getTranslations('Admin.lessons');
-  const level = await getAdminLevel(id);
+  const [level, history] = await Promise.all([
+    getAdminLevel(id),
+    getRecentAudit('Level', id),
+  ]);
   const title = pick(level.title, locale);
   const { lessons, ...levelOnly } = level;
 
@@ -86,9 +94,13 @@ export default async function EditLevelPage({
         </div>
         <div className="mt-6">
           {lessons.length === 0 ? (
-            <p className="rounded-2xl border-2 border-dashed border-unfired px-6 py-10 text-center text-lg text-unfired-ink">
-              {tLessons('empty')}
-            </p>
+            <EmptyState
+              body={tLessons('empty')}
+              action={{
+                href: `/${locale}/admin/levels/${level.id}/lessons/new`,
+                label: tLessons('add'),
+              }}
+            />
           ) : (
             <LessonsList lessons={lessons} levelId={level.id} locale={locale} />
           )}
@@ -98,6 +110,13 @@ export default async function EditLevelPage({
       <div className="mt-16">
         <LevelForm level={levelOnly} locale={locale} />
       </div>
+
+      <AuditHistory
+        entries={history}
+        entity="Level"
+        entityId={level.id}
+        locale={locale}
+      />
     </section>
   );
 }

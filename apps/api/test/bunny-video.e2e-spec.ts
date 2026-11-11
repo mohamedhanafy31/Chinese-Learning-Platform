@@ -437,6 +437,7 @@ describe('bunny video (e2e)', () => {
     await prisma.level.deleteMany();
     await prisma.passwordReset.deleteMany();
     await prisma.session.deleteMany();
+    await prisma.auditLog.deleteMany();
     await prisma.user.deleteMany();
     for (const name of await readdir(videosDir)) {
       await rm(path.join(videosDir, name), { force: true });

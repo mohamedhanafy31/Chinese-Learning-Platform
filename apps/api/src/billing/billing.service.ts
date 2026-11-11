@@ -17,6 +17,7 @@ import type {
   CheckoutResponse,
   OrderSummary,
 } from './billing.types';
+import { mapOrder } from './order-mapper';
 import { PaymobClient } from './paymob/paymob.client';
 import { PaymobConfig } from './paymob/paymob.config';
 import { buildCheckoutUrl, splitName } from './paymob/paymob-utils';
@@ -351,23 +352,6 @@ export class BillingService {
       })),
     };
   }
-}
-
-function mapOrder(
-  row: Order & { level: { slug: string; title: Prisma.JsonValue } },
-): OrderSummary {
-  return {
-    id: row.id,
-    status: row.status,
-    levelId: row.levelId,
-    levelSlug: row.level.slug,
-    levelTitle: parseLocalizedText(row.level.title),
-    amountMinor: row.amountMinor,
-    currency: row.currency,
-    createdAt: row.createdAt.toISOString(),
-    paidAt: row.paidAt?.toISOString() ?? null,
-    expiresAt: row.expiresAt.toISOString(),
-  };
 }
 
 function checkoutResponse(

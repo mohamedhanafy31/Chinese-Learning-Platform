@@ -232,7 +232,8 @@
         "EXPIRED": "منتهي الصلاحية",
         "CANCELED": "ملغي",
         "REFUNDED": "مسترد"
-      }
+      },
+      "loadError": "تعذّر تحميل طلباتك الآن. أعد تحميل الصفحة للمحاولة مرة أخرى."
     }
   },
   "Admin": {
@@ -248,7 +249,8 @@
       "levels": "المستويات",
       "students": "الطلاب",
       "orders": "الطلبات",
-      "diagnostics": "تشخيص الفيديو"
+      "diagnostics": "تشخيص الفيديو",
+      "audit": "سجل التغييرات"
     },
     "status": {
       "draft": "مسودة",
@@ -472,7 +474,11 @@
       "pagination": "الصفحات",
       "previous": "السابق",
       "next": "التالي",
-      "pageInfo": "الصفحة {page} من {pages}"
+      "pageInfo": "الصفحة {page} من {pages}",
+      "deactivated": "معطَّل",
+      "accountActive": "حساب نشط",
+      "loadError": "تعذّر تحميل الطلاب الآن. أعد تحميل الصفحة للمحاولة مرة أخرى.",
+      "emptyAction": "اذهب إلى المستويات"
     },
     "student": {
       "back": "كل الطلاب",
@@ -514,7 +520,23 @@
       "revoking": "جارٍ السحب…",
       "revoked": "تم سحب الوصول.",
       "cancel": "إلغاء",
-      "joinedLabel": "تاريخ الانضمام"
+      "joinedLabel": "تاريخ الانضمام",
+      "accountActive": "حساب نشط",
+      "accountDeactivated": "حساب معطَّل",
+      "deactivateAction": "تعطيل الحساب…",
+      "deactivateTitle": "تعطيل هذا الحساب؟",
+      "deactivateBody": "سيُسجَّل خروج {name} من كل الأجهزة ولن يستطيع الدخول حتى تعيد تفعيل الحساب. تبقى مستوياته وتقدّمه محفوظة.",
+      "deactivateConfirm": "تعطيل الحساب",
+      "deactivatePending": "جارٍ التعطيل…",
+      "reactivateAction": "إعادة تفعيل الحساب…",
+      "reactivateTitle": "إعادة تفعيل هذا الحساب؟",
+      "reactivateBody": "سيستطيع {name} الدخول مرة أخرى بكلمة مروره.",
+      "reactivateConfirm": "إعادة تفعيل الحساب",
+      "reactivatePending": "جارٍ التفعيل…",
+      "progressLine": "أكمل {done} من {total} دروس",
+      "ordersTitle": "الطلبات",
+      "ordersEmpty": "لم يُجرِ هذا الطالب أي طلب.",
+      "ordersLabel": "الطلبات، الأحدث أولًا"
     },
     "orders": {
       "title": "الطلبات",
@@ -562,7 +584,8 @@
       "pagination": "صفحات الطلبات",
       "previous": "السابق",
       "next": "التالي",
-      "pageInfo": "الصفحة {page} من {pages}"
+      "pageInfo": "الصفحة {page} من {pages}",
+      "emptyAction": "اذهب إلى المستويات"
     },
     "order": {
       "back": "كل الطلبات",
@@ -726,6 +749,63 @@
       "points": "النقاط",
       "pointsHelper": "عدد صحيح من ١ إلى ١٠٠.",
       "saveQuestion": "احفظ السؤال"
+    },
+    "overview": {
+      "title": "نظرة سريعة",
+      "unavailable": "تعذّر تحميل النظرة العامة الآن. أعد تحميل الصفحة للمحاولة مرة أخرى.",
+      "quickLinks": "انتقل إلى",
+      "stats": {
+        "students": "الطلاب",
+        "newStudents": "طلاب جدد",
+        "enrollments": "الاشتراكات النشطة",
+        "purchases": "المشتريات",
+        "revenue": "الإيرادات",
+        "pending": "طلبات معلّقة",
+        "callbacks": "إشعارات دفع تحتاج مراجعة"
+      },
+      "hints": {
+        "students": "كل الطلاب المسجّلين",
+        "newStudents": "سجّلوا خلال آخر ٣٠ يومًا",
+        "enrollments": "مستويات يستطيع الطلاب فتحها الآن",
+        "purchases": "طلبات مدفوعة خلال آخر ٣٠ يومًا",
+        "revenue": "طلبات مدفوعة خلال آخر ٣٠ يومًا",
+        "pending": "عمليات شراء تنتظر الدفع",
+        "callbacks": "آخر ٢٤ ساعة، راجع التشخيص"
+      },
+      "warnings": {
+        "payments": {
+          "title": "الدفع غير مُعدّ بعد",
+          "body": "خدمة Paymob غير مُعدّة على هذا الخادم، لذا لا يستطيع الطلاب شراء المستويات. ما زال بإمكانك منح المستويات يدويًا."
+        },
+        "video": {
+          "title": "الفيديو يُخزَّن على هذا الخادم",
+          "body": "خدمة Bunny Stream غير مُعدّة، فتستخدم الدروس تخزين الفيديو المحلي المخصّص للتطوير فقط. أعدّ Bunny قبل الإطلاق."
+        }
+      }
+    },
+    "audit": {
+      "title": "سجل التغييرات",
+      "intro": "كل تغيير يجريه أحد المشرفين، الأحدث أولًا. لا تُعدَّل السجلات ولا تُحذف.",
+      "entity": "نوع العنصر",
+      "anyEntity": "الكل",
+      "action": "رمز الإجراء",
+      "actionHelper": "مثال: level.publish",
+      "actor": "المشرف",
+      "actorHelper": "الاسم أو البريد الإلكتروني.",
+      "from": "من",
+      "to": "إلى",
+      "submit": "تصفية",
+      "clear": "مسح التصفية",
+      "loadError": "تعذّر تحميل السجل الآن. أعد تحميل الصفحة للمحاولة مرة أخرى.",
+      "results": "{count} سجل",
+      "empty": "لم يُسجَّل شيء بعد. ستظهر هنا التغييرات التي تجري في لوحة الإدارة.",
+      "emptyFiltered": "لا يوجد سجل يطابق هذه التصفية.",
+      "emptyAction": "اذهب إلى المستويات",
+      "listLabel": "سجلات التغييرات، الأحدث أولًا",
+      "pagination": "الصفحات",
+      "previous": "السابق",
+      "next": "التالي",
+      "pageInfo": "الصفحة {page} من {pages}"
     }
   },
   "Metadata": {
@@ -754,7 +834,8 @@
     "quiz": "اختبار · مازن للصينية",
     "quizNamed": "{quiz} · اختبار · مازن للصينية",
     "quizAttempt": "مراجعة · {quiz} · مازن للصينية",
-    "adminQuizEdit": "تعديل الاختبار · الإدارة · مازن للصينية"
+    "adminQuizEdit": "تعديل الاختبار · الإدارة · مازن للصينية",
+    "adminAudit": "سجل التغييرات · الإدارة · مازن للصينية"
   },
   "NotFound": {
     "title": "الصفحة غير موجودة",
@@ -807,6 +888,95 @@
     "errorTitle": "تعذّر تحميل هذا الاختبار",
     "errorBody": "حاول مجدداً بعد قليل.",
     "quizFallback": "اختبار",
-    "attemptOn": "محاولة بتاريخ {date}"
+    "attemptOn": "محاولة بتاريخ {date}",
+    "historyEmpty": "لا محاولات بعد. أجب عن الأسئلة أعلاه ثم أرسل لتظهر نتيجتك الأولى هنا."
+  },
+  "Errors": {
+    "title": "حدث خطأ ما",
+    "body": "تعذّر عرض هذه الصفحة. المشكلة من جانبنا وليست منك. جرّب مرة أخرى أو عُد إلى الصفحة الرئيسية.",
+    "tryAgain": "حاول مرة أخرى",
+    "home": "العودة إلى الصفحة الرئيسية"
+  },
+  "Loading": {
+    "label": "جارٍ التحميل…"
+  },
+  "Audit": {
+    "yes": "نعم",
+    "no": "لا",
+    "by": "بواسطة {name}",
+    "details": "الحقول التي تغيّرت",
+    "changedOnly": "تغيّر",
+    "fromTo": "{from} ← {to}",
+    "historyTitle": "السجل",
+    "historyLabel": "آخر التغييرات",
+    "historyEmpty": "لم يتغيّر شيء هنا بعد.",
+    "historyError": "تعذّر تحميل السجل الآن. أعد تحميل الصفحة للمحاولة مرة أخرى.",
+    "fullLog": "افتح السجل الكامل",
+    "removedItem": "عنصر لم يعد موجودًا",
+    "entities": {
+      "Level": "مستوى",
+      "Lesson": "درس",
+      "Quiz": "اختبار",
+      "Student": "طالب",
+      "Image": "صورة"
+    },
+    "fields": {
+      "slug": "المعرّف في الرابط",
+      "hanzi": "الحروف الصينية",
+      "title": "العنوان",
+      "summary": "الملخص",
+      "topics": "الموضوعات",
+      "priceMinor": "السعر",
+      "coverImageId": "صورة الغلاف",
+      "description": "الوصف",
+      "isFreePreview": "المعاينة المجانية",
+      "thumbnailId": "الصورة المصغّرة",
+      "passingScore": "درجة النجاح",
+      "type": "نوع السؤال",
+      "prompt": "نص السؤال",
+      "imageId": "الصورة",
+      "explanation": "الشرح",
+      "points": "النقاط",
+      "reason": "السبب"
+    },
+    "actions": {
+      "level_create": "أنشأ المستوى «{name}»",
+      "level_update": "عدّل المستوى «{name}»",
+      "level_publish": "نشر المستوى «{name}»",
+      "level_unpublish": "ألغى نشر المستوى «{name}»",
+      "level_archive": "أرشف المستوى «{name}»",
+      "level_unarchive": "استعاد المستوى «{name}» من الأرشيف",
+      "level_delete": "حذف المستوى «{name}»",
+      "level_reorder": "أعاد ترتيب المستويات",
+      "lesson_create": "أنشأ الدرس «{name}»",
+      "lesson_update": "عدّل الدرس «{name}»",
+      "lesson_free_preview": "غيّر المعاينة المجانية للدرس «{name}»",
+      "lesson_publish": "نشر الدرس «{name}»",
+      "lesson_unpublish": "ألغى نشر الدرس «{name}»",
+      "lesson_archive": "أرشف الدرس «{name}»",
+      "lesson_unarchive": "استعاد الدرس «{name}» من الأرشيف",
+      "lesson_delete": "حذف الدرس «{name}»",
+      "lesson_reorder": "أعاد ترتيب دروس المستوى «{name}»",
+      "image_upload": "رفع صورة",
+      "video_upload_local": "رفع فيديو إلى الدرس «{name}»",
+      "video_upload_bunny": "بدأ رفع فيديو إلى الدرس «{name}»",
+      "video_remove": "أزال فيديو الدرس «{name}»",
+      "quiz_create": "أنشأ الاختبار «{name}»",
+      "quiz_update": "عدّل الاختبار «{name}»",
+      "quiz_archive": "أرشف الاختبار «{name}»",
+      "quiz_restore": "استعاد الاختبار «{name}»",
+      "quiz_delete": "حذف الاختبار «{name}»",
+      "quiz_reorder": "أعاد ترتيب اختبارات الدرس «{name}»",
+      "question_create": "أضاف سؤالًا إلى الاختبار «{name}»",
+      "question_update": "عدّل سؤالًا في الاختبار «{name}»",
+      "question_delete": "حذف سؤالًا من الاختبار «{name}»",
+      "question_reorder": "أعاد ترتيب أسئلة الاختبار «{name}»",
+      "enrollment_grant": "منح مستوى للطالب {name}",
+      "enrollment_revoke": "سحب مستوى من الطالب {name}",
+      "enrollment_reactivate": "أعاد منح مستوى للطالب {name}",
+      "student_deactivate": "عطّل حساب الطالب {name}",
+      "student_reactivate": "أعاد تفعيل حساب الطالب {name}",
+      "unknown": "{action}: {name}"
+    }
   }
 }

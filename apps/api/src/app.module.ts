@@ -10,6 +10,7 @@ import { AuthGuard } from './common/guards/auth.guard';
 import { OriginGuard } from './common/guards/origin.guard';
 import { RolesGuard } from './common/guards/roles.guard';
 import { AssessmentModule } from './assessment/assessment.module';
+import { AuditModule } from './audit/audit.module';
 import { BillingModule } from './billing/billing.module';
 import { CatalogModule } from './catalog/catalog.module';
 import { ConfigModule } from './config/config.module';
@@ -18,6 +19,7 @@ import { IdentityModule } from './identity/identity.module';
 import { LearningModule } from './learning/learning.module';
 import { MediaModule } from './media/media.module';
 import { VideoModule } from './media/video/video.module';
+import { OverviewModule } from './overview/overview.module';
 import { PrismaModule } from './prisma/prisma.module';
 
 @Module({
@@ -66,6 +68,7 @@ import { PrismaModule } from './prisma/prisma.module';
       },
     ]),
     PrismaModule,
+    AuditModule,
     IdentityModule,
     MediaModule,
     CatalogModule,
@@ -73,6 +76,7 @@ import { PrismaModule } from './prisma/prisma.module';
     AssessmentModule,
     BillingModule,
     VideoModule,
+    OverviewModule,
     HealthModule,
   ],
   providers: [

@@ -16,6 +16,8 @@ import type {
   UpdateLevelRequest,
 } from '@app/shared';
 
+import { diffAudit, diffData } from '../audit/audit-diff';
+import { AuditService } from '../audit/audit.service';
 import { assertCompleteOrder } from './catalog-order';
 import {
   lessonAdminInclude,
@@ -63,11 +65,38 @@ function isUniqueViolation(error: unknown): boolean {
 
 const SLUG_TAKEN = 'A level with this slug already exists';
 
+const LEVEL_AUDIT_FIELDS = [
+  'slug',
+  'hanzi',
+  'title',
+  'summary',
+  'topics',
+  'priceMinor',
+  'coverImageId',
+] as const;
+const LEVEL_AUDIT_VALUES = [
+  'slug',
+  'hanzi',
+  'title',
+  'priceMinor',
+  'coverImageId',
+];
+
+const LESSON_AUDIT_FIELDS = [
+  'title',
+  'description',
+  'hanzi',
+  'isFreePreview',
+  'thumbnailId',
+] as const;
+const LESSON_AUDIT_VALUES = ['title', 'hanzi', 'isFreePreview', 'thumbnailId'];
+
 @Injectable()
 export class CatalogAdminService {
   constructor(
     @Inject(PrismaService) private readonly prisma: PrismaService,
     @Inject(VideoService) private readonly videos: VideoService,
+    @Inject(AuditService) private readonly audit: AuditService,
   ) {}
 
   // ----- levels ------------------------------------------------------------
@@ -103,7 +132,10 @@ export class CatalogAdminService {
     };
   }
 
-  async createLevel(input: CreateLevelRequest): Promise<AdminLevel> {
+  async createLevel(
+    input: CreateLevelRequest,
+    actorId: string,
+  ): Promise<AdminLevel> {
     try {
       return await this.prisma.$transaction(async (tx) => {
         await lockScope(tx, LEVELS_LOCK_KEY);
@@ -129,6 +161,13 @@ export class CatalogAdminService {
           },
           include: levelImageInclude,
         });
+        await this.audit.record(tx, {
+          actorId,
+          action: 'level.create',
+          entity: 'Level',
+          entityId: row.id,
+          data: { slug: row.slug, priceMinor: row.priceMinor },
+        });
         return toAdminLevel(row, 0);
       });
     } catch (error) {
@@ -140,6 +179,7 @@ export class CatalogAdminService {
   async updateLevel(
     id: string,
     input: UpdateLevelRequest,
+    actorId: string,
   ): Promise<AdminLevel> {
     try {
       return await this.prisma.$transaction(async (tx) => {
@@ -171,6 +211,21 @@ export class CatalogAdminService {
             _count: { select: { lessons: true } },
           },
         });
+        const diff = diffAudit(
+          current,
+          row,
+          LEVEL_AUDIT_FIELDS,
+          LEVEL_AUDIT_VALUES,
+        );
+        if (diff.changed.length > 0) {
+          await this.audit.record(tx, {
+            actorId,
+            action: 'level.update',
+            entity: 'Level',
+            entityId: id,
+            data: diffData(diff),
+          });
+        }
         const { _count, ...level } = row;
         return toAdminLevel(level, _count.lessons);
       });
@@ -180,7 +235,7 @@ export class CatalogAdminService {
     }
   }
 
-  async deleteLevel(id: string): Promise<void> {
+  async deleteLevel(id: string, actorId: string): Promise<void> {
     await this.prisma.$transaction(async (tx) => {
       // Taking the lesson-scope lock keeps a concurrent lesson create from
       // slipping in between the "no lessons" check and the delete.
@@ -199,31 +254,45 @@ export class CatalogAdminService {
         );
       }
       await tx.level.delete({ where: { id } });
+      await this.audit.record(tx, {
+        actorId,
+        action: 'level.delete',
+        entity: 'Level',
+        entityId: id,
+        data: { slug: level.slug },
+      });
     });
   }
 
-  publishLevel(id: string): Promise<AdminLevel> {
-    return this.updateLevelState(id, (level) => ({
+  publishLevel(id: string, actorId: string): Promise<AdminLevel> {
+    return this.updateLevelState(id, actorId, 'level.publish', (level) => ({
       isPublished: true,
       firstPublishedAt: level.firstPublishedAt ?? new Date(),
     }));
   }
 
-  unpublishLevel(id: string): Promise<AdminLevel> {
-    return this.updateLevelState(id, () => ({ isPublished: false }));
+  unpublishLevel(id: string, actorId: string): Promise<AdminLevel> {
+    return this.updateLevelState(id, actorId, 'level.unpublish', () => ({
+      isPublished: false,
+    }));
   }
 
-  archiveLevel(id: string): Promise<AdminLevel> {
-    return this.updateLevelState(id, (level) => ({
+  archiveLevel(id: string, actorId: string): Promise<AdminLevel> {
+    return this.updateLevelState(id, actorId, 'level.archive', (level) => ({
       archivedAt: level.archivedAt ?? new Date(),
     }));
   }
 
-  unarchiveLevel(id: string): Promise<AdminLevel> {
-    return this.updateLevelState(id, () => ({ archivedAt: null }));
+  unarchiveLevel(id: string, actorId: string): Promise<AdminLevel> {
+    return this.updateLevelState(id, actorId, 'level.unarchive', () => ({
+      archivedAt: null,
+    }));
   }
 
-  async reorderLevels(ids: string[]): Promise<AdminLevelsResponse> {
+  async reorderLevels(
+    ids: string[],
+    actorId: string,
+  ): Promise<AdminLevelsResponse> {
     await this.prisma.$transaction(async (tx) => {
       await lockScope(tx, LEVELS_LOCK_KEY);
       const rows = await tx.level.findMany({ select: { id: true } });
@@ -245,6 +314,13 @@ export class CatalogAdminService {
           data: { sortOrder: index + 1 },
         });
       }
+      await this.audit.record(tx, {
+        actorId,
+        action: 'level.reorder',
+        entity: 'Level',
+        entityId: 'all',
+        data: { order: ids },
+      });
     });
     return this.listLevels();
   }
@@ -254,6 +330,7 @@ export class CatalogAdminService {
   async createLesson(
     levelId: string,
     input: CreateLessonRequest,
+    actorId: string,
   ): Promise<AdminLesson> {
     return this.prisma.$transaction(async (tx) => {
       await lockScope(tx, lessonsLockKey(levelId));
@@ -277,6 +354,13 @@ export class CatalogAdminService {
         },
         include: lessonAdminInclude,
       });
+      await this.audit.record(tx, {
+        actorId,
+        action: 'lesson.create',
+        entity: 'Lesson',
+        entityId: row.id,
+        data: { levelId, isFreePreview: row.isFreePreview },
+      });
       return toAdminLesson(row);
     });
   }
@@ -293,29 +377,52 @@ export class CatalogAdminService {
   async updateLesson(
     id: string,
     input: UpdateLessonRequest,
+    actorId: string,
   ): Promise<AdminLesson> {
-    await this.findLessonOrThrow(this.prisma, id);
-    await this.assertImageExists(this.prisma, input.thumbnailId);
-    const row = await this.prisma.lesson.update({
-      where: { id },
-      data: {
-        title: input.title ? toJson(input.title) : undefined,
-        description:
-          input.description === undefined
-            ? undefined
-            : input.description === null
-              ? Prisma.DbNull
-              : toJson(input.description),
-        hanzi: input.hanzi,
-        isFreePreview: input.isFreePreview,
-        thumbnailId: input.thumbnailId,
-      },
-      include: lessonAdminInclude,
+    return this.prisma.$transaction(async (tx) => {
+      await lockLessonRow(tx, id);
+      const current = await this.findLessonOrThrow(tx, id);
+      await this.assertImageExists(tx, input.thumbnailId);
+      const row = await tx.lesson.update({
+        where: { id },
+        data: {
+          title: input.title ? toJson(input.title) : undefined,
+          description:
+            input.description === undefined
+              ? undefined
+              : input.description === null
+                ? Prisma.DbNull
+                : toJson(input.description),
+          hanzi: input.hanzi,
+          isFreePreview: input.isFreePreview,
+          thumbnailId: input.thumbnailId,
+        },
+        include: lessonAdminInclude,
+      });
+      const diff = diffAudit(
+        current,
+        row,
+        LESSON_AUDIT_FIELDS,
+        LESSON_AUDIT_VALUES,
+      );
+      if (diff.changed.length > 0) {
+        await this.audit.record(tx, {
+          actorId,
+          // Flipping only the free-preview switch is its own action.
+          action:
+            diff.changed.length === 1 && diff.changed[0] === 'isFreePreview'
+              ? 'lesson.free_preview'
+              : 'lesson.update',
+          entity: 'Lesson',
+          entityId: id,
+          data: { levelId: current.levelId, ...diffData(diff) },
+        });
+      }
+      return toAdminLesson(row);
     });
-    return toAdminLesson(row);
   }
 
-  async deleteLesson(id: string): Promise<void> {
+  async deleteLesson(id: string, actorId: string): Promise<void> {
     const removedVideos = await this.prisma.$transaction(async (tx) => {
       const lesson = await this.findLessonOrThrow(tx, id);
       await lockScope(tx, lessonsLockKey(lesson.levelId));
@@ -335,35 +442,47 @@ export class CatalogAdminService {
       // Bunny videos) are removed once the delete has committed.
       const videos = await tx.videoAsset.findMany({ where: { lessonId: id } });
       await tx.lesson.delete({ where: { id } });
+      await this.audit.record(tx, {
+        actorId,
+        action: 'lesson.delete',
+        entity: 'Lesson',
+        entityId: id,
+        data: { levelId: current.levelId },
+      });
       return videos;
     });
     await this.videos.discardAssets(removedVideos);
   }
 
-  publishLesson(id: string): Promise<AdminLesson> {
-    return this.updateLessonState(id, (lesson) => ({
+  publishLesson(id: string, actorId: string): Promise<AdminLesson> {
+    return this.updateLessonState(id, actorId, 'lesson.publish', (lesson) => ({
       isPublished: true,
       firstPublishedAt: lesson.firstPublishedAt ?? new Date(),
     }));
   }
 
-  unpublishLesson(id: string): Promise<AdminLesson> {
-    return this.updateLessonState(id, () => ({ isPublished: false }));
+  unpublishLesson(id: string, actorId: string): Promise<AdminLesson> {
+    return this.updateLessonState(id, actorId, 'lesson.unpublish', () => ({
+      isPublished: false,
+    }));
   }
 
-  archiveLesson(id: string): Promise<AdminLesson> {
-    return this.updateLessonState(id, (lesson) => ({
+  archiveLesson(id: string, actorId: string): Promise<AdminLesson> {
+    return this.updateLessonState(id, actorId, 'lesson.archive', (lesson) => ({
       archivedAt: lesson.archivedAt ?? new Date(),
     }));
   }
 
-  unarchiveLesson(id: string): Promise<AdminLesson> {
-    return this.updateLessonState(id, () => ({ archivedAt: null }));
+  unarchiveLesson(id: string, actorId: string): Promise<AdminLesson> {
+    return this.updateLessonState(id, actorId, 'lesson.unarchive', () => ({
+      archivedAt: null,
+    }));
   }
 
   async reorderLessons(
     levelId: string,
     ids: string[],
+    actorId: string,
   ): Promise<AdminLevelDetail['lessons']> {
     await this.prisma.$transaction(async (tx) => {
       await lockScope(tx, lessonsLockKey(levelId));
@@ -388,6 +507,13 @@ export class CatalogAdminService {
           data: { sortOrder: index + 1 },
         });
       }
+      await this.audit.record(tx, {
+        actorId,
+        action: 'lesson.reorder',
+        entity: 'Level',
+        entityId: levelId,
+        data: { order: ids },
+      });
     });
     return (await this.getLevel(levelId)).lessons;
   }
@@ -420,6 +546,8 @@ export class CatalogAdminService {
 
   private updateLevelState(
     id: string,
+    actorId: string,
+    action: string,
     data: (level: {
       archivedAt: Date | null;
       firstPublishedAt: Date | null;
@@ -436,6 +564,19 @@ export class CatalogAdminService {
           _count: { select: { lessons: true } },
         },
       });
+      // Repeating a transition that already holds changes nothing to record.
+      if (
+        current.isPublished !== row.isPublished ||
+        (current.archivedAt === null) !== (row.archivedAt === null)
+      ) {
+        await this.audit.record(tx, {
+          actorId,
+          action,
+          entity: 'Level',
+          entityId: id,
+          data: { slug: row.slug },
+        });
+      }
       const { _count, ...level } = row;
       return toAdminLevel(level, _count.lessons);
     });
@@ -443,6 +584,8 @@ export class CatalogAdminService {
 
   private updateLessonState(
     id: string,
+    actorId: string,
+    action: string,
     data: (lesson: {
       archivedAt: Date | null;
       firstPublishedAt: Date | null;
@@ -456,6 +599,18 @@ export class CatalogAdminService {
         data: data(current),
         include: lessonAdminInclude,
       });
+      if (
+        current.isPublished !== row.isPublished ||
+        (current.archivedAt === null) !== (row.archivedAt === null)
+      ) {
+        await this.audit.record(tx, {
+          actorId,
+          action,
+          entity: 'Lesson',
+          entityId: id,
+          data: { levelId: row.levelId },
+        });
+      }
       return toAdminLesson(row);
     });
   }

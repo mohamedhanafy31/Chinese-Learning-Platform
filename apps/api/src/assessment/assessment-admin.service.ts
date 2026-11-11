@@ -29,6 +29,8 @@ import {
   type QuizStats,
 } from './assessment.mapper';
 import { INVALID_OPTIONS_REASON, resolveOptions } from './quiz-rules';
+import { diffAudit, diffData } from '../audit/audit-diff';
+import { AuditService } from '../audit/audit.service';
 import { assertCompleteOrder } from '../catalog/catalog-order';
 import { Prisma } from '../generated/prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
@@ -63,7 +65,10 @@ function unprocessable(reason: string, message: string): never {
 
 @Injectable()
 export class AssessmentAdminService {
-  constructor(@Inject(PrismaService) private readonly prisma: PrismaService) {}
+  constructor(
+    @Inject(PrismaService) private readonly prisma: PrismaService,
+    @Inject(AuditService) private readonly audit: AuditService,
+  ) {}
 
   // ----- quizzes -----------------------------------------------------------
 
@@ -85,6 +90,7 @@ export class AssessmentAdminService {
   createQuiz(
     lessonId: string,
     input: CreateQuizRequest,
+    actorId: string,
   ): Promise<AdminQuizSummary> {
     return this.prisma.$transaction(async (tx) => {
       await lockScope(tx, quizzesLockKey(lessonId));
@@ -102,6 +108,13 @@ export class AssessmentAdminService {
           passingScore: input.passingScore,
           sortOrder: (_max.sortOrder ?? 0) + 1,
         },
+      });
+      await this.audit.record(tx, {
+        actorId,
+        action: 'quiz.create',
+        entity: 'Quiz',
+        entityId: row.id,
+        data: { lessonId, passingScore: row.passingScore },
       });
       return toAdminQuizSummary(row, {
         questionCount: 0,
@@ -124,10 +137,14 @@ export class AssessmentAdminService {
     return toAdminQuizDetail(quiz, questions, _count.attempts);
   }
 
-  updateQuiz(id: string, input: UpdateQuizRequest): Promise<AdminQuizSummary> {
+  updateQuiz(
+    id: string,
+    input: UpdateQuizRequest,
+    actorId: string,
+  ): Promise<AdminQuizSummary> {
     return this.prisma.$transaction(async (tx) => {
       await lockQuizRow(tx, id);
-      await this.findQuizOrThrow(tx, id);
+      const current = await this.findQuizOrThrow(tx, id);
       const row = await tx.quiz.update({
         where: { id },
         data: {
@@ -139,6 +156,21 @@ export class AssessmentAdminService {
           passingScore: input.passingScore,
         },
       });
+      const diff = diffAudit(
+        current,
+        row,
+        ['title', 'description', 'passingScore'],
+        ['title', 'passingScore'],
+      );
+      if (diff.changed.length > 0) {
+        await this.audit.record(tx, {
+          actorId,
+          action: 'quiz.update',
+          entity: 'Quiz',
+          entityId: id,
+          data: diffData(diff),
+        });
+      }
       return this.summaryOf(tx, row);
     });
   }
@@ -152,6 +184,7 @@ export class AssessmentAdminService {
   async reorderQuizzes(
     lessonId: string,
     ids: string[],
+    actorId: string,
   ): Promise<AdminQuizzesResponse> {
     await this.prisma.$transaction(async (tx) => {
       await lockScope(tx, quizzesLockKey(lessonId));
@@ -178,12 +211,24 @@ export class AssessmentAdminService {
           data: { sortOrder: slots[index] },
         });
       }
+      await this.audit.record(tx, {
+        actorId,
+        action: 'quiz.reorder',
+        entity: 'Lesson',
+        entityId: lessonId,
+        data: { order: ids },
+      });
     });
     return this.listQuizzes(lessonId);
   }
 
-  archiveQuiz(id: string): Promise<AdminQuizSummary> {
-    return this.setArchived(id, (current) => current ?? new Date());
+  archiveQuiz(id: string, actorId: string): Promise<AdminQuizSummary> {
+    return this.setArchived(
+      id,
+      actorId,
+      'quiz.archive',
+      (current) => current ?? new Date(),
+    );
   }
 
   /**
@@ -191,11 +236,11 @@ export class AssessmentAdminService {
    * quizzes keep their `sortOrder` and reorders never reuse it, so the slot is
    * always free and the quiz returns to where it was.
    */
-  restoreQuiz(id: string): Promise<AdminQuizSummary> {
-    return this.setArchived(id, () => null);
+  restoreQuiz(id: string, actorId: string): Promise<AdminQuizSummary> {
+    return this.setArchived(id, actorId, 'quiz.restore', () => null);
   }
 
-  async deleteQuiz(id: string): Promise<void> {
+  async deleteQuiz(id: string, actorId: string): Promise<void> {
     await this.prisma.$transaction(async (tx) => {
       const quiz = await this.findQuizOrThrow(tx, id);
       await lockScope(tx, quizzesLockKey(quiz.lessonId));
@@ -213,6 +258,13 @@ export class AssessmentAdminService {
         });
       }
       await tx.quiz.delete({ where: { id } });
+      await this.audit.record(tx, {
+        actorId,
+        action: 'quiz.delete',
+        entity: 'Quiz',
+        entityId: id,
+        data: { lessonId: quiz.lessonId },
+      });
     });
   }
 
@@ -221,6 +273,7 @@ export class AssessmentAdminService {
   createQuestion(
     quizId: string,
     input: QuestionRequest,
+    actorId: string,
   ): Promise<AdminQuestion> {
     return this.prisma.$transaction(async (tx) => {
       await lockScope(tx, questionsLockKey(quizId));
@@ -251,6 +304,13 @@ export class AssessmentAdminService {
         },
         include: questionInclude,
       });
+      await this.audit.record(tx, {
+        actorId,
+        action: 'question.create',
+        entity: 'Quiz',
+        entityId: quizId,
+        data: { questionId: row.id, type: row.type, points: row.points },
+      });
       return toAdminQuestion(row);
     });
   }
@@ -259,6 +319,7 @@ export class AssessmentAdminService {
   async replaceQuestion(
     id: string,
     input: QuestionRequest,
+    actorId: string,
   ): Promise<AdminQuestion> {
     const found = await this.prisma.question.findUnique({
       where: { id },
@@ -267,10 +328,7 @@ export class AssessmentAdminService {
     if (!found) throw new NotFoundException('Question not found');
     return this.prisma.$transaction(async (tx) => {
       await lockScope(tx, questionsLockKey(found.quizId));
-      const current = await tx.question.findUnique({
-        where: { id },
-        select: { id: true },
-      });
+      const current = await tx.question.findUnique({ where: { id } });
       if (!current) throw new NotFoundException('Question not found');
       const options = this.validate(input);
       await this.assertImage(tx, input.imageId);
@@ -294,12 +352,26 @@ export class AssessmentAdminService {
         },
         include: questionInclude,
       });
+      // Options are replaced wholesale, so they are named, never diffed.
+      const diff = diffAudit(
+        current,
+        row,
+        ['type', 'prompt', 'hanzi', 'imageId', 'explanation', 'points'],
+        ['type', 'hanzi', 'imageId', 'points'],
+      );
+      await this.audit.record(tx, {
+        actorId,
+        action: 'question.update',
+        entity: 'Quiz',
+        entityId: found.quizId,
+        data: { questionId: id, ...diffData(diff) },
+      });
       return toAdminQuestion(row);
     });
   }
 
   /** Allowed even with attempts: their snapshots keep the history. */
-  async deleteQuestion(id: string): Promise<void> {
+  async deleteQuestion(id: string, actorId: string): Promise<void> {
     const found = await this.prisma.question.findUnique({
       where: { id },
       select: { quizId: true },
@@ -307,13 +379,23 @@ export class AssessmentAdminService {
     if (!found) throw new NotFoundException('Question not found');
     await this.prisma.$transaction(async (tx) => {
       await lockScope(tx, questionsLockKey(found.quizId));
-      await tx.question.deleteMany({ where: { id } });
+      const { count } = await tx.question.deleteMany({ where: { id } });
+      if (count > 0) {
+        await this.audit.record(tx, {
+          actorId,
+          action: 'question.delete',
+          entity: 'Quiz',
+          entityId: found.quizId,
+          data: { questionId: id },
+        });
+      }
     });
   }
 
   async reorderQuestions(
     quizId: string,
     ids: string[],
+    actorId: string,
   ): Promise<AdminQuizDetail> {
     await this.prisma.$transaction(async (tx) => {
       await lockScope(tx, questionsLockKey(quizId));
@@ -338,6 +420,13 @@ export class AssessmentAdminService {
           data: { sortOrder: index + 1 },
         });
       }
+      await this.audit.record(tx, {
+        actorId,
+        action: 'question.reorder',
+        entity: 'Quiz',
+        entityId: quizId,
+        data: { order: ids },
+      });
     });
     return this.getQuiz(quizId);
   }
@@ -412,6 +501,8 @@ export class AssessmentAdminService {
 
   private setArchived(
     id: string,
+    actorId: string,
+    action: string,
     next: (current: Date | null) => Date | null,
   ): Promise<AdminQuizSummary> {
     return this.prisma.$transaction(async (tx) => {
@@ -424,6 +515,15 @@ export class AssessmentAdminService {
         where: { id },
         data: { archivedAt: next(current.archivedAt) },
       });
+      if ((current.archivedAt === null) !== (row.archivedAt === null)) {
+        await this.audit.record(tx, {
+          actorId,
+          action,
+          entity: 'Quiz',
+          entityId: id,
+          data: { lessonId: row.lessonId },
+        });
+      }
       return this.summaryOf(tx, row);
     });
   }

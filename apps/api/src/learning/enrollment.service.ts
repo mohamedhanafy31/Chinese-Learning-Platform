@@ -38,6 +38,29 @@ export class EnrollmentService {
     actorId?: string,
     orderId?: string,
   ): Promise<Enrollment> {
+    const { enrollment } = await this.grantWithOutcome(
+      tx,
+      userId,
+      levelId,
+      source,
+      actorId,
+      orderId,
+    );
+    return enrollment;
+  }
+
+  /** Like `grantInTransaction`, and says what happened (for the audit log). */
+  async grantWithOutcome(
+    tx: Prisma.TransactionClient,
+    userId: string,
+    levelId: string,
+    source: EnrollmentSource,
+    actorId?: string,
+    orderId?: string,
+  ): Promise<{
+    enrollment: Enrollment;
+    outcome: 'created' | 'reactivated' | 'unchanged';
+  }> {
     await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${`enrollment:${userId}:${levelId}`}))`;
     const level = await tx.level.findUnique({ where: { id: levelId } });
     if (!level) throw new NotFoundException('Level not found');
@@ -55,9 +78,11 @@ export class EnrollmentService {
     const existing = await tx.enrollment.findUnique({
       where: { userId_levelId: { userId, levelId } },
     });
-    if (existing && existing.revokedAt === null) return existing;
+    if (existing && existing.revokedAt === null) {
+      return { enrollment: existing, outcome: 'unchanged' };
+    }
     if (existing) {
-      return tx.enrollment.update({
+      const enrollment = await tx.enrollment.update({
         where: { id: existing.id },
         data: {
           source,
@@ -68,8 +93,9 @@ export class EnrollmentService {
           revokeReason: null,
         },
       });
+      return { enrollment, outcome: 'reactivated' };
     }
-    return tx.enrollment.create({
+    const enrollment = await tx.enrollment.create({
       data: {
         userId,
         levelId,
@@ -78,6 +104,7 @@ export class EnrollmentService {
         orderId: orderId ?? null,
       },
     });
+    return { enrollment, outcome: 'created' };
   }
 
   /** Idempotent. Revoking a missing or already revoked enrollment is a no-op. */
@@ -87,27 +114,39 @@ export class EnrollmentService {
     actorId: string,
     reason?: string,
   ): Promise<void> {
-    await this.prisma.$transaction(async (tx) => {
-      await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${`enrollment:${userId}:${levelId}`}))`;
-      const level = await tx.level.findUnique({
-        where: { id: levelId },
-        select: { id: true },
-      });
-      if (!level) throw new NotFoundException('Level not found');
-      const user = await tx.user.findUnique({
-        where: { id: userId },
-        select: { id: true },
-      });
-      if (!user) throw new NotFoundException('Student not found');
-      await tx.enrollment.updateMany({
-        where: { userId, levelId, revokedAt: null },
-        data: {
-          revokedAt: new Date(),
-          revokedById: actorId,
-          revokeReason: reason ?? null,
-        },
-      });
+    await this.prisma.$transaction((tx) =>
+      this.revokeInTransaction(tx, userId, levelId, actorId, reason),
+    );
+  }
+
+  /** Returns whether an active enrollment was actually revoked. */
+  async revokeInTransaction(
+    tx: Prisma.TransactionClient,
+    userId: string,
+    levelId: string,
+    actorId: string,
+    reason?: string,
+  ): Promise<boolean> {
+    await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${`enrollment:${userId}:${levelId}`}))`;
+    const level = await tx.level.findUnique({
+      where: { id: levelId },
+      select: { id: true },
     });
+    if (!level) throw new NotFoundException('Level not found');
+    const user = await tx.user.findUnique({
+      where: { id: userId },
+      select: { id: true },
+    });
+    if (!user) throw new NotFoundException('Student not found');
+    const { count } = await tx.enrollment.updateMany({
+      where: { userId, levelId, revokedAt: null },
+      data: {
+        revokedAt: new Date(),
+        revokedById: actorId,
+        revokeReason: reason ?? null,
+      },
+    });
+    return count > 0;
   }
 
   /** The enrollment if it exists and has not been revoked. */

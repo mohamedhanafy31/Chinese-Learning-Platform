@@ -18,6 +18,7 @@ import {
 import { detectImageType } from './image-format';
 import { MediaStorage } from './media-storage';
 import { mediaUrl } from './media-url';
+import { AuditService } from '../audit/audit.service';
 import { Prisma, MediaKind } from '../generated/prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 
@@ -45,9 +46,10 @@ export class ImagesService {
   constructor(
     @Inject(PrismaService) private readonly prisma: PrismaService,
     @Inject(MediaStorage) private readonly storage: MediaStorage,
+    @Inject(AuditService) private readonly audit: AuditService,
   ) {}
 
-  async upload(input: Buffer): Promise<UploadedImage> {
+  async upload(input: Buffer, actorId: string): Promise<UploadedImage> {
     if (detectImageType(input) === null) {
       throw new UnsupportedMediaTypeException(
         'Only JPEG, PNG and WebP images are accepted',
@@ -77,6 +79,14 @@ export class ImagesService {
           where: { checksum },
         });
       });
+
+    await this.audit.record(this.prisma, {
+      actorId,
+      action: 'image.upload',
+      entity: 'Image',
+      entityId: row.id,
+      data: { width: row.width, height: row.height, sizeBytes: row.sizeBytes },
+    });
 
     return {
       id: row.id,

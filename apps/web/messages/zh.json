@@ -232,7 +232,8 @@
         "EXPIRED": "已过期",
         "CANCELED": "已取消",
         "REFUNDED": "已退款"
-      }
+      },
+      "loadError": "暂时无法加载你的订单，请刷新页面重试。"
     }
   },
   "Admin": {
@@ -248,7 +249,8 @@
       "levels": "级别",
       "students": "学员",
       "orders": "订单",
-      "diagnostics": "视频诊断"
+      "diagnostics": "视频诊断",
+      "audit": "操作记录"
     },
     "status": {
       "draft": "草稿",
@@ -472,7 +474,11 @@
       "pagination": "分页",
       "previous": "上一页",
       "next": "下一页",
-      "pageInfo": "第 {page} 页，共 {pages} 页"
+      "pageInfo": "第 {page} 页，共 {pages} 页",
+      "deactivated": "已停用",
+      "accountActive": "账号正常",
+      "loadError": "暂时无法加载学员，请刷新页面重试。",
+      "emptyAction": "前往级别"
     },
     "student": {
       "back": "全部学员",
@@ -514,7 +520,23 @@
       "revoking": "正在收回…",
       "revoked": "已收回权限。",
       "cancel": "取消",
-      "joinedLabel": "加入日期"
+      "joinedLabel": "加入日期",
+      "accountActive": "账号正常",
+      "accountDeactivated": "账号已停用",
+      "deactivateAction": "停用账号…",
+      "deactivateTitle": "停用这个账号？",
+      "deactivateBody": "{name} 会在所有设备上被退出登录，在你重新启用账号之前无法登录。其级别和学习进度会保留。",
+      "deactivateConfirm": "停用账号",
+      "deactivatePending": "正在停用…",
+      "reactivateAction": "重新启用账号…",
+      "reactivateTitle": "重新启用这个账号？",
+      "reactivateBody": "{name} 将可以再次登录，需要用自己的密码登录。",
+      "reactivateConfirm": "重新启用账号",
+      "reactivatePending": "正在启用…",
+      "progressLine": "已完成 {done} / {total} 课",
+      "ordersTitle": "订单",
+      "ordersEmpty": "这位学员还没有下过订单。",
+      "ordersLabel": "订单，最新的在前"
     },
     "orders": {
       "title": "订单",
@@ -562,7 +584,8 @@
       "pagination": "订单分页",
       "previous": "上一页",
       "next": "下一页",
-      "pageInfo": "第 {page} 页，共 {pages} 页"
+      "pageInfo": "第 {page} 页，共 {pages} 页",
+      "emptyAction": "前往级别"
     },
     "order": {
       "back": "全部订单",
@@ -726,6 +749,63 @@
       "points": "分值",
       "pointsHelper": "1 到 100 的整数。",
       "saveQuestion": "保存题目"
+    },
+    "overview": {
+      "title": "概览",
+      "unavailable": "暂时无法加载概览，请刷新页面重试。",
+      "quickLinks": "前往",
+      "stats": {
+        "students": "学员",
+        "newStudents": "新增学员",
+        "enrollments": "有效选课",
+        "purchases": "购买",
+        "revenue": "收入",
+        "pending": "待支付订单",
+        "callbacks": "需检查的支付回调"
+      },
+      "hints": {
+        "students": "所有已注册学员",
+        "newStudents": "近 30 天注册",
+        "enrollments": "学员目前可学习的级别",
+        "purchases": "近 30 天已支付订单",
+        "revenue": "近 30 天已支付订单",
+        "pending": "仍在等待付款的结账",
+        "callbacks": "近 24 小时，详见诊断"
+      },
+      "warnings": {
+        "payments": {
+          "title": "尚未设置支付",
+          "body": "此服务器没有配置 Paymob，学员暂时无法购买级别。你仍可手动为学员开通级别。"
+        },
+        "video": {
+          "title": "视频存放在本服务器上",
+          "body": "尚未配置 Bunny Stream，课程使用仅限开发的本地视频存储。上线前请先设置 Bunny。"
+        }
+      }
+    },
+    "audit": {
+      "title": "操作记录",
+      "intro": "管理员做出的每一次更改，最新的在前。记录不会被修改或删除。",
+      "entity": "项目类型",
+      "anyEntity": "全部",
+      "action": "操作代码",
+      "actionHelper": "例如 level.publish。",
+      "actor": "管理员",
+      "actorHelper": "姓名或邮箱。",
+      "from": "起始日期",
+      "to": "截止日期",
+      "submit": "筛选",
+      "clear": "清除筛选",
+      "loadError": "暂时无法加载记录，请刷新页面重试。",
+      "results": "共 {count} 条记录",
+      "empty": "还没有任何记录。在管理后台所做的更改会显示在这里。",
+      "emptyFiltered": "没有符合筛选条件的记录。",
+      "emptyAction": "前往级别",
+      "listLabel": "操作记录，最新的在前",
+      "pagination": "分页",
+      "previous": "上一页",
+      "next": "下一页",
+      "pageInfo": "第 {page} 页，共 {pages} 页"
     }
   },
   "Metadata": {
@@ -754,7 +834,8 @@
     "quiz": "测验 · 马赞中文",
     "quizNamed": "{quiz} · 测验 · 马赞中文",
     "quizAttempt": "回顾 · {quiz} · 马赞中文",
-    "adminQuizEdit": "编辑测验 · 管理后台 · 马赞中文"
+    "adminQuizEdit": "编辑测验 · 管理后台 · 马赞中文",
+    "adminAudit": "操作记录 · 管理后台 · 马赞中文"
   },
   "NotFound": {
     "title": "页面未找到",
@@ -807,6 +888,95 @@
     "errorTitle": "无法加载这份测验",
     "errorBody": "请稍后再试。",
     "quizFallback": "测验",
-    "attemptOn": "{date} 的作答"
+    "attemptOn": "{date} 的作答",
+    "historyEmpty": "还没有作答记录。完成上面的题目并提交，第一次成绩会显示在这里。"
+  },
+  "Errors": {
+    "title": "出错了",
+    "body": "这个页面暂时无法显示，问题出在我们这边，不是你的原因。请重试，或回到首页。",
+    "tryAgain": "重试",
+    "home": "回到首页"
+  },
+  "Loading": {
+    "label": "加载中…"
+  },
+  "Audit": {
+    "yes": "是",
+    "no": "否",
+    "by": "操作人：{name}",
+    "details": "已更改的字段",
+    "changedOnly": "已更改",
+    "fromTo": "{from} → {to}",
+    "historyTitle": "操作记录",
+    "historyLabel": "最近的更改",
+    "historyEmpty": "这里还没有任何更改。",
+    "historyError": "暂时无法加载操作记录，请刷新页面重试。",
+    "fullLog": "查看完整记录",
+    "removedItem": "已不存在的项目",
+    "entities": {
+      "Level": "级别",
+      "Lesson": "课程",
+      "Quiz": "测验",
+      "Student": "学员",
+      "Image": "图片"
+    },
+    "fields": {
+      "slug": "网址标识",
+      "hanzi": "汉字",
+      "title": "标题",
+      "summary": "简介",
+      "topics": "主题",
+      "priceMinor": "价格",
+      "coverImageId": "封面图片",
+      "description": "说明",
+      "isFreePreview": "免费试看",
+      "thumbnailId": "缩略图",
+      "passingScore": "及格分",
+      "type": "题型",
+      "prompt": "题目",
+      "imageId": "图片",
+      "explanation": "解析",
+      "points": "分值",
+      "reason": "原因"
+    },
+    "actions": {
+      "level_create": "创建了级别「{name}」",
+      "level_update": "编辑了级别「{name}」",
+      "level_publish": "发布了级别「{name}」",
+      "level_unpublish": "取消发布了级别「{name}」",
+      "level_archive": "归档了级别「{name}」",
+      "level_unarchive": "将级别「{name}」从归档中恢复",
+      "level_delete": "删除了级别「{name}」",
+      "level_reorder": "调整了级别的顺序",
+      "lesson_create": "创建了课程「{name}」",
+      "lesson_update": "编辑了课程「{name}」",
+      "lesson_free_preview": "更改了课程「{name}」的免费试看",
+      "lesson_publish": "发布了课程「{name}」",
+      "lesson_unpublish": "取消发布了课程「{name}」",
+      "lesson_archive": "归档了课程「{name}」",
+      "lesson_unarchive": "将课程「{name}」从归档中恢复",
+      "lesson_delete": "删除了课程「{name}」",
+      "lesson_reorder": "调整了级别「{name}」中课程的顺序",
+      "image_upload": "上传了一张图片",
+      "video_upload_local": "向课程「{name}」上传了视频",
+      "video_upload_bunny": "开始向课程「{name}」上传视频",
+      "video_remove": "移除了课程「{name}」的视频",
+      "quiz_create": "创建了测验「{name}」",
+      "quiz_update": "编辑了测验「{name}」",
+      "quiz_archive": "归档了测验「{name}」",
+      "quiz_restore": "恢复了测验「{name}」",
+      "quiz_delete": "删除了测验「{name}」",
+      "quiz_reorder": "调整了课程「{name}」中测验的顺序",
+      "question_create": "向测验「{name}」添加了一道题",
+      "question_update": "编辑了测验「{name}」中的一道题",
+      "question_delete": "删除了测验「{name}」中的一道题",
+      "question_reorder": "调整了测验「{name}」中题目的顺序",
+      "enrollment_grant": "为学员 {name} 开通了一个级别",
+      "enrollment_revoke": "收回了学员 {name} 的一个级别",
+      "enrollment_reactivate": "重新为学员 {name} 开通了一个级别",
+      "student_deactivate": "停用了学员 {name} 的账号",
+      "student_reactivate": "重新启用了学员 {name} 的账号",
+      "unknown": "{action}：{name}"
+    }
   }
 }

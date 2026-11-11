@@ -2,6 +2,8 @@ import 'server-only';
 
 import { notFound } from 'next/navigation';
 import {
+  adminAuditResponseSchema,
+  adminOverviewSchema,
   adminLessonSchema,
   adminQuizDetailSchema,
   adminQuizzesResponseSchema,
@@ -10,6 +12,8 @@ import {
   adminStudentDetailSchema,
   adminStudentsResponseSchema,
   videoDiagnosticsSchema,
+  type AdminAuditResponse,
+  type AdminOverview,
   type AdminLesson,
   type AdminLevel,
   type AdminLevelDetail,
@@ -17,6 +21,7 @@ import {
   type AdminQuizSummary,
   type AdminStudentDetail,
   type AdminStudentsResponse,
+  type AuditEntry,
   type VideoDiagnostics,
   type z,
 } from '@app/shared';
@@ -89,4 +94,48 @@ export async function getAdminQuizzes(
 
 export function getAdminQuiz(id: string): Promise<AdminQuizDetail> {
   return adminGet(`/api/v1/admin/quizzes/${id}`, adminQuizDetailSchema);
+}
+
+/** The overview numbers; null when they cannot be read. */
+export async function getAdminOverview(): Promise<AdminOverview | null> {
+  try {
+    return await adminGet('/api/v1/admin/overview', adminOverviewSchema);
+  } catch {
+    return null;
+  }
+}
+
+export function getAdminAudit(params: {
+  entity?: string;
+  entityId?: string;
+  actor?: string;
+  action?: string;
+  from?: string;
+  to?: string;
+  page: number;
+  pageSize?: number;
+}): Promise<AdminAuditResponse> {
+  const search = new URLSearchParams();
+  for (const [key, value] of Object.entries(params)) {
+    if (value !== undefined && value !== '') search.set(key, String(value));
+  }
+  return adminGet(`/api/v1/admin/audit?${search}`, adminAuditResponseSchema);
+}
+
+/** The newest entries about one entity; null when they cannot be read. */
+export async function getRecentAudit(
+  entity: string,
+  entityId: string,
+): Promise<AuditEntry[] | null> {
+  try {
+    const { entries } = await getAdminAudit({
+      entity,
+      entityId,
+      page: 1,
+      pageSize: 10,
+    });
+    return entries;
+  } catch {
+    return null;
+  }
 }

@@ -7,6 +7,7 @@ import type { Locale } from '@app/shared';
 import { LevelsList } from '@/components/admin/levels-list';
 import { getAdminLevels } from '@/lib/admin-api';
 import { requireUser } from '@/lib/protected-session';
+import { EmptyState } from '@/components/ui/empty-state';
 
 export async function generateMetadata({
   params,
@@ -49,9 +50,13 @@ export default async function AdminLevelsPage({
       </div>
       <div className="mt-10">
         {levels.length === 0 ? (
-          <p className="rounded-2xl border-2 border-dashed border-unfired px-6 py-12 text-center text-lg leading-[1.8] text-unfired-ink">
-            {t('empty')}
-          </p>
+          <EmptyState
+            body={t('empty')}
+            action={{
+              href: `/${locale}/admin/levels/new`,
+              label: t('new'),
+            }}
+          />
         ) : (
           <LevelsList levels={levels} locale={locale} />
         )}

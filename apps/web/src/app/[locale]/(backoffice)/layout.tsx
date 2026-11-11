@@ -28,6 +28,7 @@ export default async function BackofficeLayout({
           { href: `/${locale}/admin/levels`, label: t('levels') },
           { href: `/${locale}/admin/students`, label: t('students') },
           { href: `/${locale}/admin/orders`, label: t('orders') },
+          { href: `/${locale}/admin/audit`, label: t('audit') },
           {
             href: `/${locale}/admin/settings/diagnostics`,
             label: t('diagnostics'),

@@ -31,6 +31,7 @@ model User {
   quizAttempts       QuizAttempt[]
   orders             Order[]
   lessonProgress     LessonProgress[]
+  auditLogs          AuditLog[]
 }
 
 model Session {
@@ -360,4 +361,21 @@ model LessonProgress {
   @@id([userId, lessonId])
   @@index([userId, completedAt])
   @@index([lessonId])
+}
+
+/// Append-only record of one admin mutation. Rows are never updated or
+/// deleted; `data` holds ids and non-secret changed fields only.
+model AuditLog {
+  id        String   @id @default(uuid()) @db.Uuid
+  actorId   String   @db.Uuid
+  action    String
+  entity    String
+  entityId  String
+  data      Json     @default("{}")
+  createdAt DateTime @default(now())
+  actor     User     @relation(fields: [actorId], references: [id], onDelete: Restrict)
+
+  @@index([createdAt])
+  @@index([entity, entityId, createdAt])
+  @@index([actorId, createdAt])
 }

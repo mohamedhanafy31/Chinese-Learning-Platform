@@ -24,6 +24,7 @@ import {
 } from '@/lib/orders-paging';
 import { formatEgp } from '@/lib/price';
 import { requireUser } from '@/lib/protected-session';
+import { EmptyState } from '@/components/ui/empty-state';
 
 export async function generateMetadata({
   params,
@@ -190,9 +191,14 @@ export default async function AdminOrdersPage({
       </p>
 
       {result.orders.length === 0 ? (
-        <p className="mt-4 rounded-2xl border-2 border-dashed border-unfired px-6 py-12 text-center text-lg text-unfired-ink">
-          {t('empty')}
-        </p>
+        <EmptyState
+          className="mt-4"
+          body={t('empty')}
+          action={{
+            href: `/${locale}/admin/levels`,
+            label: t('emptyAction'),
+          }}
+        />
       ) : (
         <div className="mt-4 overflow-x-auto">
           <table className="w-full min-w-[58rem] border-t-2 border-cobalt text-start">

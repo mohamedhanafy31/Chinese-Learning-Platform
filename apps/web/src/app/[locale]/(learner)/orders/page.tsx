@@ -10,6 +10,8 @@ import { formatDate } from '@/lib/format';
 import { pick } from '@/lib/localized';
 import { formatEgp } from '@/lib/price';
 import { requireUser } from '@/lib/protected-session';
+import { EmptyState } from '@/components/ui/empty-state';
+import { Notice } from '@/components/ui/notice';
 
 export async function generateMetadata({
   params,
@@ -31,7 +33,7 @@ export default async function OrdersPage({
   await requireUser(locale, `/${locale}/orders`);
   const [t, orders] = await Promise.all([
     getTranslations('Billing.orders'),
-    getOwnOrders(),
+    getOwnOrders().catch(() => null),
   ]);
 
   return (
@@ -43,16 +45,16 @@ export default async function OrdersPage({
         {t('intro')}
       </p>
 
-      {orders.length === 0 ? (
-        <div className="mt-10 rounded-2xl border-2 border-dashed border-unfired px-6 py-14 text-center">
-          <p className="text-lg text-unfired-ink">{t('empty')}</p>
-          <Link
-            href={`/${locale}#levels`}
-            className="mt-5 inline-flex min-h-11 items-center text-cobalt underline decoration-wash-strong underline-offset-8 hover:text-deep"
-          >
-            {t('browse')}
-          </Link>
+      {orders === null ? (
+        <div className="mt-10">
+          <Notice role="alert">{t('loadError')}</Notice>
         </div>
+      ) : orders.length === 0 ? (
+        <EmptyState
+          className="mt-10"
+          body={t('empty')}
+          action={{ href: `/${locale}#levels`, label: t('browse') }}
+        />
       ) : (
         <ul
           aria-label={t('listLabel')}

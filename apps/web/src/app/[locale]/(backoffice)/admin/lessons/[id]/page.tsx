@@ -4,6 +4,7 @@ import { getTranslations, setRequestLocale } from 'next-intl/server';
 
 import type { Locale } from '@app/shared';
 
+import { AuditHistory } from '@/components/admin/audit-history';
 import { LessonForm } from '@/components/admin/lesson-form';
 import { LifecycleActions } from '@/components/admin/lifecycle-actions';
 import { QuizzesPanel } from '@/components/admin/quizzes-panel';
@@ -13,6 +14,7 @@ import {
   getAdminLevel,
   getAdminQuizzes,
   getVideoDiagnostics,
+  getRecentAudit,
 } from '@/lib/admin-api';
 import { pick } from '@/lib/localized';
 import { requireUser } from '@/lib/protected-session';
@@ -41,10 +43,11 @@ export default async function EditLessonPage({
   await requireUser(locale, `/${locale}/admin/lessons/${id}`, true);
   const t = await getTranslations('Admin.lessons');
   const lesson = await getAdminLesson(id);
-  const [level, diagnostics, quizzes] = await Promise.all([
+  const [level, diagnostics, quizzes, history] = await Promise.all([
     getAdminLevel(lesson.levelId),
     getVideoDiagnostics(),
     getAdminQuizzes(id),
+    getRecentAudit('Lesson', id),
   ]);
   const title = pick(lesson.title, locale);
 
@@ -98,6 +101,13 @@ export default async function EditLessonPage({
       <div className="mt-14">
         <LessonForm levelId={level.id} lesson={lesson} locale={locale} />
       </div>
+
+      <AuditHistory
+        entries={history}
+        entity="Lesson"
+        entityId={lesson.id}
+        locale={locale}
+      />
     </section>
   );
 }

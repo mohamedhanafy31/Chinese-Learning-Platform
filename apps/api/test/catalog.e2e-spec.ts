@@ -137,6 +137,7 @@ describe('catalog API (e2e)', () => {
     await prisma.level.deleteMany();
     await prisma.passwordReset.deleteMany();
     await prisma.session.deleteMany();
+    await prisma.auditLog.deleteMany();
     await prisma.user.deleteMany();
     admin = await signIn('catalog-admin@example.com', Role.ADMIN);
     student = await signIn('catalog-student@example.com', Role.STUDENT);

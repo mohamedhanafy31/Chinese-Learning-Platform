@@ -67,6 +67,24 @@ export class AdminStudentsController {
     return this.students.grant(id, input.levelId, admin.id);
   }
 
+  @Post(':id/deactivate')
+  @HttpCode(HttpStatus.OK)
+  deactivate(
+    @Param('id', new ParseUUIDPipe()) id: string,
+    @CurrentUser() admin: PublicUser,
+  ): Promise<AdminStudentDetail> {
+    return this.students.deactivate(id, admin.id);
+  }
+
+  @Post(':id/reactivate')
+  @HttpCode(HttpStatus.OK)
+  reactivate(
+    @Param('id', new ParseUUIDPipe()) id: string,
+    @CurrentUser() admin: PublicUser,
+  ): Promise<AdminStudentDetail> {
+    return this.students.reactivate(id, admin.id);
+  }
+
   @Delete(':id/enrollments/:levelId')
   @HttpCode(HttpStatus.NO_CONTENT)
   revoke(

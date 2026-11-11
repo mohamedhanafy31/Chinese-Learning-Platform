@@ -6,6 +6,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useState } from 'react';
 
+import { EmptyState } from '@/components/ui/empty-state';
 import {
   adminQuizSummarySchema,
   z,
@@ -93,7 +94,7 @@ export function QuizzesPanel({
       </p>
 
       {items.length === 0 ? (
-        <p className="mt-6 text-cobalt">{t('empty')}</p>
+        <EmptyState className="mt-6" body={t('empty')} />
       ) : (
         <ol
           aria-label={t('listLabel')}

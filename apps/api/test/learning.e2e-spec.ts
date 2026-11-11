@@ -173,9 +173,20 @@ describe('learning API (e2e)', () => {
   });
 
   async function clean(): Promise<void> {
+    // This suite can run after the browser suite against the same app_test
+    // database, so remove every dependent row before its catalog fixtures.
+    await prisma.auditLog.deleteMany();
+    await prisma.paymentTransaction.deleteMany();
+    await prisma.order.deleteMany();
     await prisma.enrollment.deleteMany();
+    await prisma.quizAttempt.deleteMany();
+    await prisma.lessonProgress.deleteMany();
+    await prisma.videoAsset.deleteMany();
+    await prisma.quiz.deleteMany();
     await prisma.lesson.deleteMany();
     await prisma.level.deleteMany();
+    await prisma.mediaAsset.deleteMany();
+    await prisma.webhookEvent.deleteMany();
     await prisma.passwordReset.deleteMany();
     await prisma.session.deleteMany();
     await prisma.user.deleteMany();
@@ -239,11 +250,17 @@ describe('learning API (e2e)', () => {
         'email',
         'enrollments',
         'id',
+        'isActive',
         'name',
+        'orders',
         'phone',
+        'recentAudit',
       ].sort(),
     );
     expect(first.body.activeEnrollments).toBe(1);
+    expect(first.body.isActive).toBe(true);
+    expect(first.body.orders).toEqual([]);
+    expect(first.body.recentAudit).toHaveLength(1);
     expect(keys(first.body.enrollments[0])).toEqual(
       [
         'createdAt',
@@ -251,6 +268,7 @@ describe('learning API (e2e)', () => {
         'id',
         'level',
         'levelId',
+        'progress',
         'revokeReason',
         'revokedAt',
         'source',
@@ -261,6 +279,10 @@ describe('learning API (e2e)', () => {
       'slug',
       'title',
     ]);
+    expect(first.body.enrollments[0].progress).toEqual({
+      completed: 0,
+      total: 2,
+    });
     const enrollmentId = first.body.enrollments[0].id as string;
     expect(first.body.enrollments[0]).toMatchObject({
       levelId: level.id,
@@ -422,6 +444,7 @@ describe('learning API (e2e)', () => {
       'createdAt',
       'email',
       'id',
+      'isActive',
       'name',
       'phone',
     ]);

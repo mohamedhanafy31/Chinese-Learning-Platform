@@ -15,6 +15,7 @@ import { pick } from '@/lib/localized';
 import { numberFormat } from '@/lib/numbers';
 import { toSamplePathLessons } from '@/lib/path-lessons';
 import { formatEgp } from '@/lib/price';
+import { EmptyState } from '@/components/ui/empty-state';
 
 interface HomePageProps {
   params: Promise<{ locale: Locale }>;
@@ -92,7 +93,11 @@ export default async function HomePage({
           }}
         />
         <div data-reveal="band" className="bg-deep">
-          <Band kind="wave" ink="var(--color-wash-strong)" ground="var(--color-deep)" />
+          <Band
+            kind="wave"
+            ink="var(--color-wash-strong)"
+            ground="var(--color-deep)"
+          />
         </div>
 
         {/* the path */}
@@ -101,11 +106,18 @@ export default async function HomePage({
             <h2 className="font-display text-balance text-[clamp(2.25rem,4.5vw,3.75rem)] leading-[1.1] text-deep">
               <WriteOn text={t('pathTitle')} />
             </h2>
-            <p data-reveal="" style={{ '--reveal-delay': '300ms' } as React.CSSProperties} className="mt-6 max-w-[34rem] text-pretty text-lg leading-[1.85] text-cobalt">
+            <p
+              data-reveal=""
+              style={{ '--reveal-delay': '300ms' } as React.CSSProperties}
+              className="mt-6 max-w-[34rem] text-pretty text-lg leading-[1.85] text-cobalt"
+            >
               {t('pathBody')}
             </p>
             <div className="mt-8 flex items-center gap-3 text-cobalt">
-              <span data-reveal="seal" style={{ '--reveal-delay': '700ms' } as React.CSSProperties}>
+              <span
+                data-reveal="seal"
+                style={{ '--reveal-delay': '700ms' } as React.CSSProperties}
+              >
                 <Seal size={34} />
               </span>
               <span>{tPath('sealedBy')}</span>
@@ -141,7 +153,10 @@ export default async function HomePage({
             <h2 className="font-display text-[clamp(2rem,4vw,3.25rem)] leading-tight text-deep">
               <WriteOn text={t('stepsTitle')} />
             </h2>
-            <ol data-reveal="stagger" className="mt-12 grid gap-12 md:grid-cols-3 md:gap-0">
+            <ol
+              data-reveal="stagger"
+              className="mt-12 grid gap-12 md:grid-cols-3 md:gap-0"
+            >
               {steps.map((step, index) => (
                 <li
                   key={step.glyph}
@@ -154,7 +169,11 @@ export default async function HomePage({
                     aria-hidden="true"
                     className="font-brush block text-6xl leading-none text-cobalt"
                   >
-                    <WriteOn text={step.glyph} mode="char" delay={200 + index * 180} />
+                    <WriteOn
+                      text={step.glyph}
+                      mode="char"
+                      delay={200 + index * 180}
+                    />
                   </span>
                   <h3 className="mt-5 text-2xl font-semibold text-deep">
                     {step.title}
@@ -179,52 +198,58 @@ export default async function HomePage({
             </h2>
           </div>
           {plateLevels.length === 0 ? (
-            <p className="mt-10 rounded-2xl border-2 border-dashed border-unfired px-6 py-12 text-center text-lg leading-[1.8] text-unfired-ink">
-              {catalog.status === 'unavailable'
-                ? t('levelsUnavailable')
-                : t('levelsEmpty')}
-            </p>
+            <EmptyState
+              className="mt-10"
+              body={
+                catalog.status === 'unavailable'
+                  ? t('levelsUnavailable')
+                  : t('levelsEmpty')
+              }
+            />
           ) : (
-          <ul data-reveal="stagger" className="mt-10 border-t-2 border-cobalt">
-            {plateLevels.map((level, index) => (
-              <li
-                key={level.slug}
-                data-reveal-item=""
-                style={{ '--reveal-i': index } as React.CSSProperties}
-                className="border-b border-wash"
-              >
-                <Link
-                  href={level.href}
-                  className="group grid grid-cols-[6.5rem_minmax(0,1fr)] items-center gap-x-6 gap-y-2 py-8 transition-colors hover:bg-white sm:grid-cols-[9rem_minmax(0,1fr)_auto] sm:px-4"
+            <ul
+              data-reveal="stagger"
+              className="mt-10 border-t-2 border-cobalt"
+            >
+              {plateLevels.map((level, index) => (
+                <li
+                  key={level.slug}
+                  data-reveal-item=""
+                  style={{ '--reveal-i': index } as React.CSSProperties}
+                  className="border-b border-wash"
                 >
-                  <span
-                    lang="zh"
-                    aria-hidden="true"
-                    className="font-brush row-span-2 whitespace-nowrap text-5xl leading-none text-cobalt sm:row-span-1 sm:text-6xl"
+                  <Link
+                    href={level.href}
+                    className="group grid grid-cols-[6.5rem_minmax(0,1fr)] items-center gap-x-6 gap-y-2 py-8 transition-colors hover:bg-white sm:grid-cols-[9rem_minmax(0,1fr)_auto] sm:px-4"
                   >
-                    {level.hanzi}
-                  </span>
-                  <span className="min-w-0">
-                    <span className="block text-2xl font-semibold text-deep">
-                      {level.title}
+                    <span
+                      lang="zh"
+                      aria-hidden="true"
+                      className="font-brush row-span-2 whitespace-nowrap text-5xl leading-none text-cobalt sm:row-span-1 sm:text-6xl"
+                    >
+                      {level.hanzi}
                     </span>
-                    <span className="mt-1 block text-sm text-cobalt">
-                      {t('levelWord')} {level.number}
+                    <span className="min-w-0">
+                      <span className="block text-2xl font-semibold text-deep">
+                        {level.title}
+                      </span>
+                      <span className="mt-1 block text-sm text-cobalt">
+                        {t('levelWord')} {level.number}
+                      </span>
+                      <span className="mt-2 block max-w-[40rem] leading-relaxed text-cobalt">
+                        {level.summary}
+                      </span>
                     </span>
-                    <span className="mt-2 block max-w-[40rem] leading-relaxed text-cobalt">
-                      {level.summary}
+                    <span className="text-cobalt sm:text-end">
+                      <span className="block text-sm">{level.price}</span>
+                      <span className="mt-1 block font-semibold text-deep underline decoration-wash-strong underline-offset-4 group-hover:decoration-deep">
+                        {t('viewLevel')}
+                      </span>
                     </span>
-                  </span>
-                  <span className="text-cobalt sm:text-end">
-                    <span className="block text-sm">{level.price}</span>
-                    <span className="mt-1 block font-semibold text-deep underline decoration-wash-strong underline-offset-4 group-hover:decoration-deep">
-                      {t('viewLevel')}
-                    </span>
-                  </span>
-                </Link>
-              </li>
-            ))}
-          </ul>
+                  </Link>
+                </li>
+              ))}
+            </ul>
           )}
         </section>
 
@@ -238,7 +263,11 @@ export default async function HomePage({
               aria-label={t('portraitPlaceholder')}
             >
               <span>
-                <span lang="zh" aria-hidden="true" className="font-brush block text-8xl text-wash-strong">
+                <span
+                  lang="zh"
+                  aria-hidden="true"
+                  className="font-brush block text-8xl text-wash-strong"
+                >
                   马
                 </span>
                 <span className="mt-3 block text-sm text-wash">
@@ -250,7 +279,11 @@ export default async function HomePage({
               <h2 className="font-display text-[clamp(2.25rem,4.5vw,3.75rem)] leading-[1.1]">
                 <WriteOn text={t('aboutTitle')} />
               </h2>
-              <p data-reveal="" style={{ '--reveal-delay': '300ms' } as React.CSSProperties} className="mt-6 max-w-[36rem] text-lg leading-[1.85] text-wash">
+              <p
+                data-reveal=""
+                style={{ '--reveal-delay': '300ms' } as React.CSSProperties}
+                className="mt-6 max-w-[36rem] text-lg leading-[1.85] text-wash"
+              >
                 {t('aboutBody')}
               </p>
               <p className="mt-4 inline-block rounded-full border border-wash-strong px-3 py-1 text-sm text-wash">

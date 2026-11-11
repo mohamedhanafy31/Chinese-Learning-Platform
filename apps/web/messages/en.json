@@ -232,7 +232,8 @@
         "EXPIRED": "Expired",
         "CANCELED": "Canceled",
         "REFUNDED": "Refunded"
-      }
+      },
+      "loadError": "Your orders could not be loaded right now. Reload the page to try again."
     }
   },
   "Admin": {
@@ -248,7 +249,8 @@
       "levels": "Levels",
       "students": "Students",
       "orders": "Orders",
-      "diagnostics": "Video diagnostics"
+      "diagnostics": "Video diagnostics",
+      "audit": "Audit log"
     },
     "status": {
       "draft": "Draft",
@@ -472,7 +474,11 @@
       "pagination": "Pages",
       "previous": "Previous",
       "next": "Next",
-      "pageInfo": "Page {page} of {pages}"
+      "pageInfo": "Page {page} of {pages}",
+      "deactivated": "Deactivated",
+      "accountActive": "Active account",
+      "loadError": "The students could not be loaded right now. Reload the page to try again.",
+      "emptyAction": "Go to the levels"
     },
     "student": {
       "back": "All students",
@@ -514,7 +520,23 @@
       "revoking": "Revoking…",
       "revoked": "Access revoked.",
       "cancel": "Cancel",
-      "joinedLabel": "Joined"
+      "joinedLabel": "Joined",
+      "accountActive": "Active account",
+      "accountDeactivated": "Deactivated account",
+      "deactivateAction": "Deactivate account…",
+      "deactivateTitle": "Deactivate this account?",
+      "deactivateBody": "{name} will be signed out on every device and cannot sign in until you reactivate the account. Their levels and progress are kept.",
+      "deactivateConfirm": "Deactivate account",
+      "deactivatePending": "Deactivating…",
+      "reactivateAction": "Reactivate account…",
+      "reactivateTitle": "Reactivate this account?",
+      "reactivateBody": "{name} will be able to sign in again. They will need to sign in with their password.",
+      "reactivateConfirm": "Reactivate account",
+      "reactivatePending": "Reactivating…",
+      "progressLine": "Completed {done} of {total} lessons",
+      "ordersTitle": "Orders",
+      "ordersEmpty": "This student has not placed any order.",
+      "ordersLabel": "Orders, newest first"
     },
     "orders": {
       "title": "Orders",
@@ -562,7 +584,8 @@
       "pagination": "Order pages",
       "previous": "Previous",
       "next": "Next",
-      "pageInfo": "Page {page} of {pages}"
+      "pageInfo": "Page {page} of {pages}",
+      "emptyAction": "Go to the levels"
     },
     "order": {
       "back": "All orders",
@@ -726,6 +749,63 @@
       "points": "Points",
       "pointsHelper": "A whole number from 1 to 100.",
       "saveQuestion": "Save question"
+    },
+    "overview": {
+      "title": "At a glance",
+      "unavailable": "The overview could not be loaded right now. Reload the page to try again.",
+      "quickLinks": "Go to",
+      "stats": {
+        "students": "Students",
+        "newStudents": "New students",
+        "enrollments": "Active enrollments",
+        "purchases": "Purchases",
+        "revenue": "Revenue",
+        "pending": "Pending orders",
+        "callbacks": "Payment callbacks to check"
+      },
+      "hints": {
+        "students": "All registered students",
+        "newStudents": "Signed up in the last 30 days",
+        "enrollments": "Levels students can open now",
+        "purchases": "Paid orders in the last 30 days",
+        "revenue": "Paid orders in the last 30 days",
+        "pending": "Checkouts still waiting for payment",
+        "callbacks": "Last 24 hours, see diagnostics"
+      },
+      "warnings": {
+        "payments": {
+          "title": "Payments are not set up yet",
+          "body": "Paymob is not configured on this server, so students cannot buy levels. You can still grant levels by hand."
+        },
+        "video": {
+          "title": "Videos are stored on this server",
+          "body": "Bunny Stream is not configured, so lessons use local video storage, which is for development only. Set up Bunny before going live."
+        }
+      }
+    },
+    "audit": {
+      "title": "Audit log",
+      "intro": "Every change an administrator makes, newest first. Entries are never edited or removed.",
+      "entity": "Item type",
+      "anyEntity": "Any",
+      "action": "Action code",
+      "actionHelper": "For example level.publish.",
+      "actor": "Administrator",
+      "actorHelper": "Name or email address.",
+      "from": "From",
+      "to": "To",
+      "submit": "Filter",
+      "clear": "Clear filters",
+      "loadError": "The log could not be loaded right now. Reload the page to try again.",
+      "results": "{count} entries",
+      "empty": "Nothing has been recorded yet. Changes made in the admin area will appear here.",
+      "emptyFiltered": "No entry matches these filters.",
+      "emptyAction": "Go to the levels",
+      "listLabel": "Audit entries, newest first",
+      "pagination": "Pages",
+      "previous": "Previous",
+      "next": "Next",
+      "pageInfo": "Page {page} of {pages}"
     }
   },
   "Metadata": {
@@ -754,7 +834,8 @@
     "quiz": "Quiz · Mazen Chinese",
     "quizNamed": "{quiz} · Quiz · Mazen Chinese",
     "quizAttempt": "Review · {quiz} · Mazen Chinese",
-    "adminQuizEdit": "Edit quiz · Admin · Mazen Chinese"
+    "adminQuizEdit": "Edit quiz · Admin · Mazen Chinese",
+    "adminAudit": "Audit log · Admin · Mazen Chinese"
   },
   "NotFound": {
     "title": "Page not found",
@@ -807,6 +888,95 @@
     "errorTitle": "This quiz could not be loaded",
     "errorBody": "Please try again in a moment.",
     "quizFallback": "Quiz",
-    "attemptOn": "Attempt on {date}"
+    "attemptOn": "Attempt on {date}",
+    "historyEmpty": "No attempts yet. Answer the questions above and submit to see your first result here."
+  },
+  "Errors": {
+    "title": "Something went wrong",
+    "body": "This page could not be shown. It is on our side, not yours. Try again, or go back to the home page.",
+    "tryAgain": "Try again",
+    "home": "Back to the home page"
+  },
+  "Loading": {
+    "label": "Loading…"
+  },
+  "Audit": {
+    "yes": "Yes",
+    "no": "No",
+    "by": "by {name}",
+    "details": "Changed fields",
+    "changedOnly": "Changed",
+    "fromTo": "{from} → {to}",
+    "historyTitle": "History",
+    "historyLabel": "Recent changes",
+    "historyEmpty": "Nothing has been changed here yet.",
+    "historyError": "The history could not be loaded right now. Reload the page to try again.",
+    "fullLog": "Open the full log",
+    "removedItem": "an item that no longer exists",
+    "entities": {
+      "Level": "Level",
+      "Lesson": "Lesson",
+      "Quiz": "Quiz",
+      "Student": "Student",
+      "Image": "Image"
+    },
+    "fields": {
+      "slug": "Slug",
+      "hanzi": "Hanzi",
+      "title": "Title",
+      "summary": "Summary",
+      "topics": "Topics",
+      "priceMinor": "Price",
+      "coverImageId": "Cover image",
+      "description": "Description",
+      "isFreePreview": "Free preview",
+      "thumbnailId": "Thumbnail",
+      "passingScore": "Pass mark",
+      "type": "Question type",
+      "prompt": "Prompt",
+      "imageId": "Image",
+      "explanation": "Explanation",
+      "points": "Points",
+      "reason": "Reason"
+    },
+    "actions": {
+      "level_create": "Created the level “{name}”",
+      "level_update": "Edited the level “{name}”",
+      "level_publish": "Published the level “{name}”",
+      "level_unpublish": "Unpublished the level “{name}”",
+      "level_archive": "Archived the level “{name}”",
+      "level_unarchive": "Restored the level “{name}” from the archive",
+      "level_delete": "Deleted the level “{name}”",
+      "level_reorder": "Reordered the levels",
+      "lesson_create": "Created the lesson “{name}”",
+      "lesson_update": "Edited the lesson “{name}”",
+      "lesson_free_preview": "Changed the free preview of the lesson “{name}”",
+      "lesson_publish": "Published the lesson “{name}”",
+      "lesson_unpublish": "Unpublished the lesson “{name}”",
+      "lesson_archive": "Archived the lesson “{name}”",
+      "lesson_unarchive": "Restored the lesson “{name}” from the archive",
+      "lesson_delete": "Deleted the lesson “{name}”",
+      "lesson_reorder": "Reordered the lessons of the level “{name}”",
+      "image_upload": "Uploaded an image",
+      "video_upload_local": "Uploaded a video to the lesson “{name}”",
+      "video_upload_bunny": "Started a video upload to the lesson “{name}”",
+      "video_remove": "Removed the video of the lesson “{name}”",
+      "quiz_create": "Created the quiz “{name}”",
+      "quiz_update": "Edited the quiz “{name}”",
+      "quiz_archive": "Archived the quiz “{name}”",
+      "quiz_restore": "Restored the quiz “{name}”",
+      "quiz_delete": "Deleted the quiz “{name}”",
+      "quiz_reorder": "Reordered the quizzes of the lesson “{name}”",
+      "question_create": "Added a question to the quiz “{name}”",
+      "question_update": "Edited a question of the quiz “{name}”",
+      "question_delete": "Deleted a question of the quiz “{name}”",
+      "question_reorder": "Reordered the questions of the quiz “{name}”",
+      "enrollment_grant": "Granted a level to {name}",
+      "enrollment_revoke": "Revoked a level from {name}",
+      "enrollment_reactivate": "Granted a level to {name} again",
+      "student_deactivate": "Deactivated the account of {name}",
+      "student_reactivate": "Reactivated the account of {name}",
+      "unknown": "{action}: {name}"
+    }
   }
 }

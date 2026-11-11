@@ -15,6 +15,8 @@ import { getMyLevels } from '@/lib/learning';
 import { pick } from '@/lib/localized';
 import { numberFormat } from '@/lib/numbers';
 import { requireUser } from '@/lib/protected-session';
+import { EmptyState } from '@/components/ui/empty-state';
+import { Notice } from '@/components/ui/notice';
 
 export async function generateMetadata({
   params,
@@ -59,24 +61,15 @@ export default async function DashboardPage({
       </div>
 
       {result.status === 'error' ? (
-        <p
-          role="alert"
-          className="mt-8 rounded-2xl border-s-4 border-deep bg-glaze-shade px-4 py-3 font-semibold leading-relaxed text-deep"
-        >
-          {t('loadError')}
-        </p>
+        <div className="mt-8">
+          <Notice role="alert">{t('loadError')}</Notice>
+        </div>
       ) : result.levels.length === 0 ? (
-        <div
-          data-reveal=""
-          className="mt-8 rounded-2xl border-2 border-dashed border-unfired px-6 py-14 text-center"
-        >
-          <p className="text-lg leading-[1.8] text-unfired-ink">{t('empty')}</p>
-          <Link
-            href={`/${locale}#levels`}
-            className="mt-5 inline-flex min-h-11 items-center text-cobalt underline decoration-wash-strong underline-offset-8 hover:text-deep"
-          >
-            {t('browse')}
-          </Link>
+        <div data-reveal="" className="mt-8">
+          <EmptyState
+            body={t('empty')}
+            action={{ href: `/${locale}#levels`, label: t('browse') }}
+          />
         </div>
       ) : (
         <ul

@@ -10,11 +10,17 @@ import {
   GrantLevelForm,
   type GrantOption,
 } from '@/components/admin/grant-level-form';
+import { AuditHistory } from '@/components/admin/audit-history';
 import { RevokeEnrollmentButton } from '@/components/admin/revoke-enrollment-button';
+import { StudentStatusButton } from '@/components/admin/student-status-button';
+import { OrderStatusBadge } from '@/components/billing/order-status';
+import { formatEgp } from '@/lib/price';
 import { getAdminLevels, getAdminStudent } from '@/lib/admin-api';
 import { formatDate } from '@/lib/format';
 import { pick } from '@/lib/localized';
+import { numberFormat } from '@/lib/numbers';
 import { requireUser } from '@/lib/protected-session';
+import { EmptyState } from '@/components/ui/empty-state';
 
 export async function generateMetadata({
   params,
@@ -35,6 +41,8 @@ export default async function AdminStudentPage({
   setRequestLocale(locale);
   await requireUser(locale, `/${locale}/admin/students/${id}`, true);
   const t = await getTranslations('Admin.student');
+  const tOrders = await getTranslations('Billing.orders');
+  const nf = numberFormat(locale);
   const [student, levels] = await Promise.all([
     getAdminStudent(id),
     getAdminLevels(),
@@ -64,9 +72,28 @@ export default async function AdminStudentPage({
         {t('back')}
       </Link>
 
-      <h1 className="mt-4 font-display text-[clamp(2.25rem,4.5vw,3.5rem)] leading-[1.1] text-deep">
-        {student.name}
-      </h1>
+      <div className="mt-4 flex flex-wrap items-center gap-x-5 gap-y-3">
+        <h1 className="font-display text-[clamp(2.25rem,4.5vw,3.5rem)] leading-[1.1] text-deep">
+          {student.name}
+        </h1>
+        {student.isActive ? (
+          <span
+            data-testid="student-status"
+            className="inline-flex items-center gap-1.5 rounded-full bg-deep px-3 py-1 text-sm font-semibold text-glaze"
+          >
+            <CircleCheck aria-hidden="true" className="size-4 shrink-0" />
+            {t('accountActive')}
+          </span>
+        ) : (
+          <span
+            data-testid="student-status"
+            className="inline-flex items-center gap-1.5 rounded-full border-2 border-dashed border-unfired px-3 py-1 text-sm font-semibold text-unfired-ink"
+          >
+            <CircleSlash aria-hidden="true" className="size-4 shrink-0" />
+            {t('accountDeactivated')}
+          </span>
+        )}
+      </div>
       <dl className="mt-5 grid max-w-[40rem] gap-x-8 gap-y-3 text-cobalt sm:grid-cols-[auto_minmax(0,1fr)]">
         <dt className="text-sm font-semibold text-deep">{t('email')}</dt>
         <dd className="break-words">
@@ -83,14 +110,20 @@ export default async function AdminStudentPage({
         <dt className="text-sm font-semibold text-deep">{t('joinedLabel')}</dt>
         <dd className="tabular">{formatDate(student.createdAt, locale)}</dd>
       </dl>
+      <div className="mt-6">
+        <StudentStatusButton
+          studentId={student.id}
+          studentName={student.name}
+          isActive={student.isActive}
+          locale={locale}
+        />
+      </div>
 
       <h2 className="mt-14 text-xl font-semibold text-deep">
         {t('enrollmentsTitle')}
       </h2>
       {student.enrollments.length === 0 ? (
-        <p className="mt-4 rounded-2xl border-2 border-dashed border-unfired px-6 py-10 text-center text-lg leading-[1.8] text-unfired-ink">
-          {t('enrollmentsEmpty')}
-        </p>
+        <EmptyState className="mt-4" body={t('enrollmentsEmpty')} />
       ) : (
         <ul
           aria-label={t('listLabel')}
@@ -133,6 +166,14 @@ export default async function AdminStudentPage({
                         })}
                       </span>
                     </p>
+                    {enrollment.progress ? (
+                      <p className="mt-2 text-sm font-semibold tabular text-deep">
+                        {t('progressLine', {
+                          done: nf.format(enrollment.progress.completed),
+                          total: nf.format(enrollment.progress.total),
+                        })}
+                      </p>
+                    ) : null}
                     <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-cobalt">
                       {active ? (
                         <span className="inline-flex items-center gap-1.5 rounded-full bg-deep px-3 py-1 font-semibold text-glaze">
@@ -185,6 +226,43 @@ export default async function AdminStudentPage({
       )}
 
       <h2 className="mt-14 text-xl font-semibold text-deep">
+        {t('ordersTitle')}
+      </h2>
+      {student.orders.length === 0 ? (
+        <EmptyState className="mt-4" body={t('ordersEmpty')} />
+      ) : (
+        <ul
+          aria-label={t('ordersLabel')}
+          className="mt-4 border-t-2 border-cobalt"
+        >
+          {student.orders.map((order) => (
+            <li key={order.id} className="border-b border-wash">
+              <Link
+                href={`/${locale}/admin/orders/${order.id}`}
+                className="grid gap-x-6 gap-y-2 py-4 hover:bg-glaze-bright sm:grid-cols-[minmax(0,1fr)_auto_auto] sm:items-center sm:px-2"
+              >
+                <span className="min-w-0">
+                  <span className="block text-lg font-semibold text-deep">
+                    {pick(order.levelTitle, locale)}
+                  </span>
+                  <span className="block text-sm tabular text-cobalt">
+                    {formatDate(order.createdAt, locale)}
+                  </span>
+                </span>
+                <span className="font-semibold tabular text-deep">
+                  {formatEgp(order.amountMinor, locale)}
+                </span>
+                <OrderStatusBadge
+                  status={order.status}
+                  label={tOrders(`status.${order.status}`)}
+                />
+              </Link>
+            </li>
+          ))}
+        </ul>
+      )}
+
+      <h2 className="mt-14 text-xl font-semibold text-deep">
         {t('grantTitle')}
       </h2>
       <p className="mb-5 mt-2 max-w-[34rem] text-cobalt">{t('grantIntro')}</p>
@@ -192,6 +270,13 @@ export default async function AdminStudentPage({
         locale={locale}
         studentId={student.id}
         options={options}
+      />
+
+      <AuditHistory
+        entries={student.recentAudit}
+        entity="Student"
+        entityId={student.id}
+        locale={locale}
       />
     </section>
   );

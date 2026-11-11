@@ -9,10 +9,12 @@ import {
   LevelAccessController,
   MyLevelsController,
 } from './learner.controller';
+import { IdentityModule } from '../identity/identity.module';
 import { ProgressController } from '../progress/progress.controller';
 import { ProgressService } from '../progress/progress.service';
 
 @Module({
+  imports: [IdentityModule],
   controllers: [
     AdminStudentsController,
     MyLevelsController,

@@ -4,6 +4,7 @@ import { getTranslations } from 'next-intl/server';
 
 import type { AttemptSummary, Locale } from '@app/shared';
 
+import { EmptyState } from '@/components/ui/empty-state';
 import { formatDateTime } from '@/lib/format';
 import { formatPercent } from '@/lib/numbers';
 
@@ -13,15 +14,28 @@ export async function AttemptHistory({
   basePath,
   currentId,
   locale,
+  showEmpty = false,
 }: {
   attempts: AttemptSummary[];
   /** `/{locale}/learn/{level}/{lesson}/quiz/{quiz}` */
   basePath: string;
   currentId?: string;
   locale: Locale;
+  /** Show the empty state (instead of nothing) when there are no attempts. */
+  showEmpty?: boolean;
 }): Promise<React.JSX.Element | null> {
-  if (attempts.length === 0) return null;
+  if (attempts.length === 0 && !showEmpty) return null;
   const t = await getTranslations({ locale, namespace: 'Quiz' });
+  if (attempts.length === 0) {
+    return (
+      <section aria-labelledby="history-title" className="mt-14">
+        <h2 id="history-title" className="text-xl font-semibold text-deep">
+          {t('historyTitle')}
+        </h2>
+        <EmptyState className="mt-4" body={t('historyEmpty')} />
+      </section>
+    );
+  }
 
   return (
     <section aria-labelledby="history-title" className="mt-14">

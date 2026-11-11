@@ -95,6 +95,7 @@ describe('identity API (e2e)', () => {
     await sendCommand({ type: 'mail:clear' });
     await prisma.passwordReset.deleteMany();
     await prisma.session.deleteMany();
+    await prisma.auditLog.deleteMany();
     await prisma.user.deleteMany();
   });
 

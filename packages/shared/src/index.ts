@@ -655,6 +655,118 @@ export type AdminOrderDetail = z.infer<typeof adminOrderDetailSchema>;
 export type BillingReport = z.infer<typeof billingReportSchema>;
 
 // ---------------------------------------------------------------------------
+// Audit log and admin overview
+// ---------------------------------------------------------------------------
+
+/** Entities an audit row can point at (the `entity` column). */
+export const AuditEntity = {
+  LEVEL: 'Level',
+  LESSON: 'Lesson',
+  QUIZ: 'Quiz',
+  STUDENT: 'Student',
+  IMAGE: 'Image',
+} as const;
+
+export type AuditEntity = (typeof AuditEntity)[keyof typeof AuditEntity];
+
+export const AUDIT_PAGE_SIZE = 25;
+export const MAX_AUDIT_PAGE_SIZE = 50;
+export const MAX_AUDIT_TEXT_LENGTH = 200;
+
+const auditEmptyToUndefined = (value: unknown): unknown =>
+  value === '' ? undefined : value;
+
+const auditText = z.preprocess(
+  auditEmptyToUndefined,
+  z.string().trim().min(1).max(MAX_AUDIT_TEXT_LENGTH).optional(),
+);
+
+/** `YYYY-MM-DD` (a Cairo calendar day) or a full ISO timestamp. */
+const auditBoundSchema = z.preprocess(
+  auditEmptyToUndefined,
+  z
+    .string()
+    .trim()
+    .regex(/^\d{4}-\d{2}-\d{2}(T[\d:.]+(Z|[+-]\d{2}:\d{2})?)?$/)
+    .optional(),
+);
+
+export const adminAuditQuerySchema = z.object({
+  entity: auditText,
+  entityId: auditText,
+  actorId: z.preprocess(auditEmptyToUndefined, z.uuid().optional()),
+  /** Free text matched against the actor's name or email. */
+  actor: auditText,
+  action: auditText,
+  from: auditBoundSchema,
+  to: auditBoundSchema,
+  page: z.preprocess(
+    auditEmptyToUndefined,
+    z.coerce.number().int().min(1).max(100_000).default(1),
+  ),
+  pageSize: z.preprocess(
+    auditEmptyToUndefined,
+    z.coerce
+      .number()
+      .int()
+      .min(1)
+      .max(MAX_AUDIT_PAGE_SIZE)
+      .default(AUDIT_PAGE_SIZE),
+  ),
+});
+
+export const auditEntrySchema = z.object({
+  id: z.uuid(),
+  createdAt: z.string(),
+  action: z.string(),
+  entity: z.string(),
+  entityId: z.string(),
+  /**
+   * The entity's current name (level, lesson or quiz title, or a student's
+   * name). Null when it cannot be resolved, for example after a delete.
+   */
+  entityLabel: localizedTextSchema.nullable(),
+  actor: z.object({
+    id: z.uuid(),
+    name: z.string(),
+    email: z.string(),
+  }),
+  /** Ids and non-secret changed fields only; its shape depends on `action`. */
+  data: z.record(z.string(), z.unknown()),
+});
+
+export const adminAuditResponseSchema = z.object({
+  entries: z.array(auditEntrySchema),
+  total: z.number().int().min(0),
+  page: z.number().int().min(1),
+  pageSize: z.number().int().min(1),
+});
+
+export const adminOverviewSchema = z.object({
+  students: z.object({
+    total: z.number().int().min(0),
+    newLast30d: z.number().int().min(0),
+  }),
+  enrollments: z.object({
+    active: z.number().int().min(0),
+    purchasedLast30d: z.number().int().min(0),
+  }),
+  revenueLast30dMinor: z.number().int().min(0),
+  pendingOrders: z.number().int().min(0),
+  failedCallbacksLast24h: z.number().int().min(0),
+  video: z.object({
+    active: z.enum(['LOCAL', 'BUNNY']),
+    devOnly: z.boolean(),
+  }),
+  payments: z.object({ available: z.boolean() }),
+});
+
+export type AdminAuditQuery = z.infer<typeof adminAuditQuerySchema>;
+export type AuditEntry = z.infer<typeof auditEntrySchema>;
+export type AdminAuditResponse = z.infer<typeof adminAuditResponseSchema>;
+export type AdminOverview = z.infer<typeof adminOverviewSchema>;
+
+// ---------------------------------------------------------------------------
 // Learning (enrollments, access, students)
 // ---------------------------------------------------------------------------
 
@@ -751,6 +863,8 @@ export const adminStudentSchema = z.object({
   phone: z.string(),
   createdAt: z.string(),
   activeEnrollments: z.number().int().min(0),
+  /** False once an admin has deactivated the account. */
+  isActive: z.boolean(),
 });
 
 export const adminStudentsResponseSchema = z.object({
@@ -773,10 +887,20 @@ export const adminEnrollmentSchema = z.object({
   createdAt: z.string(),
   revokedAt: z.string().nullable(),
   revokeReason: z.string().nullable(),
+  /** Completed and total visible lessons; null once the enrollment is revoked. */
+  progress: z
+    .object({
+      completed: z.number().int().min(0),
+      total: z.number().int().min(0),
+    })
+    .nullable(),
 });
 
 export const adminStudentDetailSchema = adminStudentSchema.extend({
   enrollments: z.array(adminEnrollmentSchema),
+  orders: z.array(orderSummarySchema),
+  /** The latest audit entries about this student (at most 10). */
+  recentAudit: z.array(auditEntrySchema),
 });
 
 export const grantEnrollmentRequestSchema = z.object({

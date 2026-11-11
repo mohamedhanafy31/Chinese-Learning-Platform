@@ -7,9 +7,15 @@ import {
   UseInterceptors,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
-import { MAX_IMAGE_UPLOAD_BYTES, Role, type UploadedImage } from '@app/shared';
+import {
+  MAX_IMAGE_UPLOAD_BYTES,
+  Role,
+  type PublicUser,
+  type UploadedImage,
+} from '@app/shared';
 
 import { ImagesService } from './images.service';
+import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { Roles } from '../common/decorators/roles.decorator';
 
 @Controller('admin/media')
@@ -26,8 +32,9 @@ export class AdminMediaController {
   )
   upload(
     @UploadedFile() file: { buffer: Buffer } | undefined,
+    @CurrentUser() admin: PublicUser,
   ): Promise<UploadedImage> {
     if (!file) throw new BadRequestException('A file is required');
-    return this.images.upload(file.buffer);
+    return this.images.upload(file.buffer, admin.id);
   }
 }

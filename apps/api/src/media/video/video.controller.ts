@@ -40,7 +40,10 @@ import {
   ADMIN_CACHE_CONTROL,
   CacheControlInterceptor,
 } from '../../catalog/cache-control.interceptor';
-import { OptionalUser } from '../../common/decorators/current-user.decorator';
+import {
+  CurrentUser,
+  OptionalUser,
+} from '../../common/decorators/current-user.decorator';
 import { OptionalAuth } from '../../common/decorators/optional-auth.decorator';
 import { Roles } from '../../common/decorators/roles.decorator';
 
@@ -75,8 +78,9 @@ export class AdminVideoController {
     @Param('id', new ParseUUIDPipe()) id: string,
     @UploadedFile() file: StoredVideoUpload | undefined,
     @Body() body: unknown,
+    @CurrentUser() admin: PublicUser,
   ): Promise<UploadedVideo> {
-    return this.videos.uploadLocal(id, file, body);
+    return this.videos.uploadLocal(id, file, body, admin.id);
   }
 
   /**
@@ -87,8 +91,9 @@ export class AdminVideoController {
   createBunnyUpload(
     @Param('id', new ParseUUIDPipe()) id: string,
     @Body() body: unknown,
+    @CurrentUser() admin: PublicUser,
   ): Promise<BunnyUploadTicket> {
-    return this.videos.createBunnyUpload(id, body);
+    return this.videos.createBunnyUpload(id, body, admin.id);
   }
 
   /** The browser calls this when its TUS upload has finished. */
@@ -102,8 +107,11 @@ export class AdminVideoController {
 
   @Delete('lessons/:id/video')
   @HttpCode(HttpStatus.NO_CONTENT)
-  remove(@Param('id', new ParseUUIDPipe()) id: string): Promise<void> {
-    return this.videos.removeActive(id);
+  remove(
+    @Param('id', new ParseUUIDPipe()) id: string,
+    @CurrentUser() admin: PublicUser,
+  ): Promise<void> {
+    return this.videos.removeActive(id, admin.id);
   }
 
   @Get('diagnostics/video')

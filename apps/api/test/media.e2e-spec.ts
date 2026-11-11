@@ -128,6 +128,7 @@ describe('media images (e2e)', () => {
     await prisma.mediaAsset.deleteMany();
     await prisma.passwordReset.deleteMany();
     await prisma.session.deleteMany();
+    await prisma.auditLog.deleteMany();
     await prisma.user.deleteMany();
     admin = await signIn('media-admin@example.com', Role.ADMIN);
     student = await signIn('media-student@example.com', Role.STUDENT);
