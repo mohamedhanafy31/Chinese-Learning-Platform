@@ -1,12 +1,7 @@
 import { z } from 'zod';
-import { Locale } from '@app/shared';
+import { checkoutRequestSchema } from '@app/shared';
 
 import { OrderStatus } from '../generated/prisma/client';
-
-export const checkoutRequestSchema = z.object({
-  levelId: z.uuid(),
-  locale: z.enum(Locale).default(Locale.AR),
-});
 
 type CheckoutRequest = z.infer<typeof checkoutRequestSchema>;
 

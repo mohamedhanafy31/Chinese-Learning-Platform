@@ -442,6 +442,7 @@ export const publicLessonSchema = z.object({
 });
 
 export const publicLevelSchema = z.object({
+  id: z.uuid(),
   slug: slugSchema,
   number: z.number().int().min(1),
   hanzi: z.string(),
@@ -475,6 +476,108 @@ export type PublicLesson = z.infer<typeof publicLessonSchema>;
 export type PublicLevel = z.infer<typeof publicLevelSchema>;
 export type PublicLevelDetail = z.infer<typeof publicLevelDetailSchema>;
 export type PublicLevelsResponse = z.infer<typeof publicLevelsResponseSchema>;
+
+// ---------------------------------------------------------------------------
+// Billing (checkout, learner orders, admin orders)
+// ---------------------------------------------------------------------------
+
+export const OrderStatus = {
+  PENDING: 'PENDING',
+  PAID: 'PAID',
+  EXPIRED: 'EXPIRED',
+  CANCELED: 'CANCELED',
+  REFUNDED: 'REFUNDED',
+} as const;
+
+export type OrderStatus = (typeof OrderStatus)[keyof typeof OrderStatus];
+
+export const billingAvailabilitySchema = z.object({ available: z.boolean() });
+
+export const checkoutRequestSchema = z.object({
+  levelId: z.uuid(),
+  locale: z.enum(Locale).default(Locale.AR),
+});
+
+export const checkoutResponseSchema = z.object({
+  orderId: z.uuid(),
+  checkoutUrl: z.url(),
+  expiresAt: timestampSchema,
+});
+
+export const orderSummarySchema = z.object({
+  id: z.uuid(),
+  status: z.enum(OrderStatus),
+  levelId: z.uuid(),
+  levelSlug: slugSchema,
+  levelTitle: localizedTextSchema,
+  amountMinor: z.number().int().min(0),
+  currency: z.string(),
+  createdAt: timestampSchema,
+  paidAt: timestampSchema.nullable(),
+  expiresAt: timestampSchema,
+});
+
+export const ownOrdersResponseSchema = z.object({
+  orders: z.array(orderSummarySchema),
+});
+
+export const adminOrderSummarySchema = orderSummarySchema.extend({
+  user: z.object({
+    id: z.uuid(),
+    name: z.string(),
+    email: z.string(),
+    phone: z.string(),
+  }),
+});
+
+export const adminOrdersResponseSchema = z.object({
+  orders: z.array(adminOrderSummarySchema),
+  page: z.number().int().min(1),
+  pageSize: z.number().int().min(1),
+  total: z.number().int().min(0),
+});
+
+export const adminPaymentTransactionSchema = z.object({
+  id: z.uuid(),
+  providerTransactionId: z.string(),
+  integrationId: z.string(),
+  success: z.boolean(),
+  pending: z.boolean(),
+  isRefund: z.boolean(),
+  isVoided: z.boolean(),
+  amountMinor: z.number().int().min(0),
+  currency: z.string(),
+  payloadRedacted: z.unknown(),
+  occurredAt: timestampSchema,
+  createdAt: timestampSchema,
+});
+
+export const adminOrderDetailSchema = adminOrderSummarySchema.extend({
+  specialReference: z.string(),
+  paymobIntentionId: z.string().nullable(),
+  paymobOrderId: z.string().nullable(),
+  transactions: z.array(adminPaymentTransactionSchema),
+});
+
+export const billingReportSchema = z.object({
+  since: timestampSchema,
+  callbacksWithMismatches: z.number().int().min(0),
+  callbacksWithoutMatchingOrder: z.number().int().min(0),
+  paidOrdersWithoutEnrollment: z.number().int().min(0),
+});
+
+export type BillingAvailability = z.infer<typeof billingAvailabilitySchema>;
+export type CheckoutRequest = z.infer<typeof checkoutRequestSchema>;
+export type CheckoutResponse = z.infer<typeof checkoutResponseSchema>;
+export type OrderSummary = z.infer<typeof orderSummarySchema>;
+export type OwnOrdersResponse = z.infer<typeof ownOrdersResponseSchema>;
+export type AdminOrderSummary = z.infer<typeof adminOrderSummarySchema>;
+export type AdminOrdersResponse = z.infer<typeof adminOrdersResponseSchema>;
+export type AdminPaymentTransaction = z.infer<
+  typeof adminPaymentTransactionSchema
+>;
+export type AdminOrderDetail = z.infer<typeof adminOrderDetailSchema>;
+export type BillingReport = z.infer<typeof billingReportSchema>;
 
 // ---------------------------------------------------------------------------
 // Learning (enrollments, access, students)

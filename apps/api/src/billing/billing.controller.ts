@@ -18,6 +18,7 @@ import type { CheckoutResponse, OrderSummary } from './billing.types';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { Roles } from '../common/decorators/roles.decorator';
 import { ZodValidationPipe } from '../common/validation/zod-validation.pipe';
+import { Public } from '../common/decorators/public.decorator';
 
 function checkoutTracker(request: Record<string, unknown>): string {
   const cookies = request.cookies as Record<string, unknown> | undefined;
@@ -38,6 +39,12 @@ export class BillingController {
   constructor(
     @Inject(BillingService) private readonly billing: BillingService,
   ) {}
+
+  @Get('availability')
+  @Public()
+  availability(): { available: boolean } {
+    return this.billing.availability();
+  }
 
   @Post('checkout')
   @Roles(Role.STUDENT, Role.ADMIN)

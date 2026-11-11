@@ -163,11 +163,61 @@
     "loggingOut": "正在退出…",
     "logoutError": "暂时无法退出，请重试。",
     "myLevels": "我的级别",
+    "myOrders": "我的订单",
     "lessonsCount": "{count} 课",
     "goToLevel": "进入级别",
     "goToLevelNamed": "进入级别：{title}",
     "archived": "已归档 · 仍可学习",
     "loadError": "暂时无法加载你的级别。请刷新页面后重试。"
+  },
+  "Billing": {
+    "buy": {
+      "buy": "购买本级别 · {price}",
+      "pending": "正在打开安全支付页面…",
+      "unavailable": "在线支付即将开放——现在可联系马赞加入课程。",
+      "register": "创建账号并购买 · {price}",
+      "signIn": "已有账号？登录",
+      "error": {
+        "generic": "无法开始支付。请检查网络后重试。",
+        "not-for-sale": "本级别目前不可购买。",
+        "payments-unavailable": "在线支付目前不可用。请联系马赞或稍后再试。",
+        "provider-error": "无法连接支付服务。尚未扣款，请重试。",
+        "too-many": "支付尝试过多，请等一分钟后重试。"
+      }
+    },
+    "result": {
+      "confirmingTitle": "正在确认付款…",
+      "confirmingBody": "银行正在发送最终结果。请保持此页面打开；收到签名确认后，级别会立即出现。",
+      "waitingTitle": "银行需要更多一点时间",
+      "waitingBody": "我们仍在等待银行确认。确认后，级别会自动出现在“我的级别”中——无需再次付款。",
+      "checkAgain": "再次检查",
+      "paidTitle": "欢迎加入 — {level}",
+      "paidMeta": "已支付 {amount} · {date}",
+      "sealedBy": "马赞盖章",
+      "start": "开始第一课",
+      "myLevels": "前往我的级别",
+      "failedTitle": "这笔付款未完成",
+      "failedBody": "尚未添加学习权限。准备好后请返回级别页面，重新发起支付。",
+      "tryAgain": "再试一次",
+      "refundedTitle": "这笔付款已退款",
+      "refundedBody": "{level} 的付款已标记为退款。如需处理学习权限，请联系马赞。",
+      "viewOrders": "查看我的订单"
+    },
+    "orders": {
+      "title": "我的订单",
+      "intro": "你的级别购买记录，最新的在前。待确认订单可打开实时确认页面。",
+      "empty": "你还没有订单。",
+      "browse": "浏览课程级别",
+      "listLabel": "订单，最新的在前",
+      "openPending": "查看 {level} 的付款状态",
+      "status": {
+        "PENDING": "待确认",
+        "PAID": "已支付",
+        "EXPIRED": "已过期",
+        "CANCELED": "已取消",
+        "REFUNDED": "已退款"
+      }
+    }
   },
   "Admin": {
     "title": "管理后台",
@@ -181,6 +231,7 @@
       "label": "管理后台栏目",
       "levels": "级别",
       "students": "学员",
+      "orders": "订单",
       "diagnostics": "视频诊断"
     },
     "status": {
@@ -449,6 +500,98 @@
       "cancel": "取消",
       "joinedLabel": "加入日期"
     },
+    "orders": {
+      "title": "订单",
+      "intro": "按学员姓名、邮箱或手机号查找购买记录，并以服务端状态为准跟踪付款。",
+      "report": {
+        "title": "Paymob 报告 · 最近 24 小时",
+        "since": "自 {date}",
+        "mismatches": {
+          "label": "内容不匹配的回调",
+          "help": "签名有效，但金额、币种、集成或订单不匹配的回调。"
+        },
+        "unmatched": {
+          "label": "没有匹配订单的回调",
+          "help": "无法与已保存订单关联的签名回调。"
+        },
+        "missingEnrollment": {
+          "label": "已付款但无有效权限",
+          "help": "已付款、但当前没有对应有效学习权限的订单。"
+        },
+        "viewPaid": "查看已付款订单"
+      },
+      "searchLabel": "搜索学员",
+      "statusLabel": "付款状态",
+      "allStatuses": "全部状态",
+      "apply": "应用筛选",
+      "clear": "清除筛选",
+      "results": "{count} 个订单",
+      "empty": "没有符合当前筛选条件的订单。",
+      "columns": {
+        "date": "日期",
+        "student": "学员",
+        "level": "级别",
+        "amount": "金额",
+        "orderStatus": "状态",
+        "paidAt": "付款时间"
+      },
+      "status": {
+        "PENDING": "待确认",
+        "PAID": "已支付",
+        "EXPIRED": "已过期",
+        "CANCELED": "已取消",
+        "REFUNDED": "已退款"
+      },
+      "notPaid": "未付款",
+      "pagination": "订单分页",
+      "previous": "上一页",
+      "next": "下一页",
+      "pageInfo": "第 {page} 页，共 {pages} 页"
+    },
+    "order": {
+      "back": "全部订单",
+      "title": "订单 · {level}",
+      "titlePrefix": "订单 ·",
+      "student": "学员",
+      "level": "级别",
+      "amount": "金额",
+      "created": "创建时间",
+      "paidAt": "付款时间",
+      "expires": "过期时间",
+      "reference": "商户参考号",
+      "intention": "Paymob 支付意向",
+      "providerOrder": "Paymob 订单",
+      "notPaid": "未付款",
+      "notAvailable": "不可用",
+      "transactionsTitle": "交易",
+      "transactionsEmpty": "Paymob 尚未为此订单发送交易。",
+      "columns": {
+        "time": "时间",
+        "transactionId": "Paymob 交易",
+        "integration": "集成",
+        "flags": "标记",
+        "transactionAmount": "金额",
+        "card": "银行卡"
+      },
+      "flags": {
+        "success": "成功",
+        "pending": "待处理",
+        "refund": "退款",
+        "voided": "作废",
+        "yes": "是",
+        "no": "否"
+      },
+      "cardDetails": "{brand} · 尾号 {last4}",
+      "unknownCard": "银行卡",
+      "unknownLast4": "未知",
+      "status": {
+        "PENDING": "待确认",
+        "PAID": "已支付",
+        "EXPIRED": "已过期",
+        "CANCELED": "已取消",
+        "REFUNDED": "已退款"
+      }
+    },
     "diagnostics": {
       "title": "视频诊断",
       "intro": "查看当前使用的视频服务、Bunny Stream 是否已完整配置，以及视频的状态。这里不会显示任何密钥内容，只显示设置项的名称。",
@@ -576,6 +719,8 @@
     "reset": "设置新密码 · 马赞中文",
     "renew": "恢复会话 · 马赞中文",
     "dashboard": "我的学习 · 马赞中文",
+    "orders": "我的订单 · 马赞中文",
+    "checkoutResult": "付款结果 · 马赞中文",
     "admin": "管理后台 · 马赞中文",
     "adminLevels": "级别 · 管理后台 · 马赞中文",
     "adminLevelNew": "新建级别 · 管理后台 · 马赞中文",
@@ -585,6 +730,8 @@
     "levelDescriptionFallback": "马赞为阿拉伯语使用者开设的中文课程中的一个级别。",
     "adminStudents": "学员 · 管理后台 · 马赞中文",
     "adminStudent": "学员详情 · 管理后台 · 马赞中文",
+    "adminOrders": "订单 · 管理后台 · 马赞中文",
+    "adminOrder": "订单 · 管理后台 · 马赞中文",
     "lesson": "课程 · 马赞中文",
     "lessonNamed": "{lesson} · {level} · 马赞中文",
     "adminDiagnostics": "视频诊断 · 管理后台 · 马赞中文",

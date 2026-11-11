@@ -97,4 +97,9 @@ describe('formatEgp', () => {
     expect(formatEgp(150_000, 'ar')).toContain('١');
     expect(formatEgp(150_000, 'ar')).not.toMatch(/[0-9]/);
   });
+
+  it('uses locale-aware digits in English and Chinese', () => {
+    expect(formatEgp(150_000, 'en')).toMatch(/1,500/);
+    expect(formatEgp(150_000, 'zh')).toMatch(/1,500/);
+  });
 });

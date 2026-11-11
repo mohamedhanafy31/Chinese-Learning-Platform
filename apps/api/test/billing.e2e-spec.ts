@@ -397,6 +397,17 @@ describe('billing API (e2e)', () => {
     expect((recorded.body.billing_data as Json).phone_number).toMatch(/^\+20/);
   });
 
+  it('reports payment availability without requiring a session', async () => {
+    await request(api.url)
+      .get('/api/v1/billing/availability')
+      .expect(200)
+      .expect({ available: true });
+    await request(plain.url)
+      .get('/api/v1/billing/availability')
+      .expect(200)
+      .expect({ available: false });
+  });
+
   it('reuses an existing checkout and parallel calls create one intention', async () => {
     const levelId = await createLevel('billing-reuse');
     mock.delayMs = 150;

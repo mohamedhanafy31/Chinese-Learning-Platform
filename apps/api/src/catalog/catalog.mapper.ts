@@ -107,6 +107,7 @@ export function toPublicLevel(
   lessonCount: number,
 ): PublicLevel {
   return {
+    id: row.id,
     slug: row.slug,
     number,
     hanzi: row.hanzi,

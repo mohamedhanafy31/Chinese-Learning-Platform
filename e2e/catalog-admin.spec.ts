@@ -200,9 +200,10 @@ test.describe.serial('catalog admin and public catalog', () => {
     await expect(lessons.nth(0)).toContainText('مغلق');
     await expect(lessons.nth(1)).toContainText(lessonAlpha);
     await expect(lessons.nth(1)).toContainText('مجاني');
+    // M11: a signed-in, unenrolled viewer of a priced level gets the live buy pill.
     await expect(
-      page.getByRole('button', { name: 'افتح هذا المستوى' }),
-    ).toBeDisabled();
+      page.getByRole('button', { name: /اشترِ المستوى/ }),
+    ).toBeEnabled();
 
     const cover = page.getByTestId('level-cover').locator('img');
     await expect(cover).toBeVisible();

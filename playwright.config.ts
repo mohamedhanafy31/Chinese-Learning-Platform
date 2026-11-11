@@ -15,6 +15,8 @@ const apiPort = port(process.env.E2E_API_PORT, 4210);
 const webPort = port(process.env.E2E_WEB_PORT, 3210);
 const apiUrl = `http://127.0.0.1:${apiPort}`;
 const webUrl = `http://localhost:${webPort}`;
+const paymobPort = port(process.env.E2E_PAYMOB_PORT, 4310);
+const paymobUrl = `http://127.0.0.1:${paymobPort}`;
 // Uploads go to a throwaway directory that global setup removes afterwards.
 const uploadsDir =
   process.env.E2E_UPLOADS_DIR ??
@@ -57,6 +59,13 @@ export default defineConfig({
           'e2e-only-access-secret-at-least-thirty-two-characters',
         JWT_REFRESH_SECRET:
           'e2e-only-refresh-secret-at-least-thirty-two-characters',
+        PAYMOB_SECRET_KEY: 'e2e-paymob-secret-key',
+        PAYMOB_PUBLIC_KEY: 'e2e-public-key',
+        PAYMOB_HMAC_SECRET: 'e2e-hmac-secret',
+        PAYMOB_INTEGRATION_IDS: '4242',
+        PAYMOB_API_BASE: paymobUrl,
+        PAYMOB_CHECKOUT_BASE: `${paymobUrl}/checkout`,
+        API_PUBLIC_ORIGIN: apiUrl,
       },
       url: `${apiUrl}/api/v1/health`,
       reuseExistingServer: false,

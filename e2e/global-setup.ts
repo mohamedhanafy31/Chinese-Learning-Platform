@@ -1,11 +1,60 @@
 import { execFileSync } from 'node:child_process';
 import { randomBytes } from 'node:crypto';
 import { mkdtemp, rm } from 'node:fs/promises';
+import { createServer, type Server } from 'node:http';
 import os from 'node:os';
 import { createRequire } from 'node:module';
 import path from 'node:path';
 
 import type { FullConfig } from '@playwright/test';
+
+async function startMockPaymob(port: number): Promise<Server> {
+  let sequence = 9000;
+  const runPrefix = Date.now();
+  const server = createServer((request, response) => {
+    const url = new URL(request.url ?? '/', `http://127.0.0.1:${port}`);
+    if (request.method === 'POST' && url.pathname === '/v1/intention/') {
+      const chunks: Buffer[] = [];
+      request.on('data', (chunk: Buffer) => chunks.push(chunk));
+      request.on('end', () => {
+        sequence += 1;
+        response.setHeader('content-type', 'application/json');
+        response.end(
+          JSON.stringify({
+            id: `e2e-intention-${runPrefix}-${sequence}`,
+            client_secret: `e2e-client-${runPrefix}-${sequence}`,
+            intention_order_id: `${runPrefix}-${sequence}`,
+          }),
+        );
+      });
+      return;
+    }
+    if (request.method === 'GET' && url.pathname === '/checkout') {
+      response.setHeader('content-type', 'text/html; charset=utf-8');
+      response.end(
+        '<!doctype html><html><body><main><h1>Mock Paymob checkout</h1></main></body></html>',
+      );
+      return;
+    }
+    response.statusCode = 404;
+    response.end('Not found');
+  });
+  await new Promise<void>((resolve, reject) => {
+    server.once('error', reject);
+    server.listen(port, '127.0.0.1', () => {
+      server.off('error', reject);
+      resolve();
+    });
+  });
+  return server;
+}
+
+async function stopServer(server: Server): Promise<void> {
+  await new Promise<void>((resolve) => {
+    server.close(() => resolve());
+    server.closeAllConnections();
+  });
+}
 
 /**
  * Creates the e2e ADMIN account: registered through the public API (so the
@@ -18,6 +67,7 @@ export default async function globalSetup(
 ): Promise<() => Promise<void>> {
   const webUrl = config.projects[0]?.use.baseURL ?? 'http://localhost:3210';
   const apiPort = process.env.E2E_API_PORT ?? '4210';
+  const paymobPort = Number(process.env.E2E_PAYMOB_PORT ?? '4310');
   const databaseUrl =
     process.env.DATABASE_URL_TEST ??
     'postgresql://postgres:postgres@localhost:5433/app_test?schema=public';
@@ -92,8 +142,10 @@ export default async function globalSetup(
     console.warn('ffmpeg is unavailable: the video e2e specs will be skipped.');
   }
 
+  const mockPaymob = await startMockPaymob(paymobPort);
   const uploadsDir = process.env.E2E_UPLOADS_DIR;
   return async () => {
+    await stopServer(mockPaymob);
     if (uploadsDir) await rm(uploadsDir, { recursive: true, force: true });
     if (videoDir) await rm(videoDir, { recursive: true, force: true });
   };

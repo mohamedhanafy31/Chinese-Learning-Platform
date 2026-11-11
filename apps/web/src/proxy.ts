@@ -4,7 +4,7 @@ import { NextResponse, type NextRequest } from 'next/server';
 import { routing } from './i18n/routing';
 
 const handleI18n = createMiddleware(routing);
-const protectedPath = /^\/(ar|en|zh)\/(dashboard|admin)(?:\/|$)/;
+const protectedPath = /^\/(ar|en|zh)\/(dashboard|orders|admin)(?:\/|$)/;
 
 export function proxy(request: NextRequest): NextResponse {
   const match = protectedPath.exec(request.nextUrl.pathname);

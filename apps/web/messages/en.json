@@ -163,11 +163,61 @@
     "loggingOut": "Logging out…",
     "logoutError": "We could not log you out. Try again.",
     "myLevels": "My levels",
+    "myOrders": "My orders",
     "lessonsCount": "{count} lessons",
     "goToLevel": "Go to level",
     "goToLevelNamed": "Go to level: {title}",
     "archived": "Archived · you keep access",
     "loadError": "We could not load your levels. Refresh the page to try again."
+  },
+  "Billing": {
+    "buy": {
+      "buy": "Buy level · {price}",
+      "pending": "Opening secure checkout…",
+      "unavailable": "Online payment opens soon — contact Mazen to join now.",
+      "register": "Create an account and buy · {price}",
+      "signIn": "Already have an account? Sign in",
+      "error": {
+        "generic": "Checkout could not start. Check your connection and try again.",
+        "not-for-sale": "This level is not for sale right now.",
+        "payments-unavailable": "Online payment is unavailable right now. Contact Mazen or try later.",
+        "provider-error": "The payment provider could not be reached. Nothing was charged; try again.",
+        "too-many": "Too many checkout attempts. Wait a minute and try again."
+      }
+    },
+    "result": {
+      "confirmingTitle": "Confirming your payment…",
+      "confirmingBody": "The bank is sending us the final result. Keep this page open; the level will appear as soon as the signed confirmation arrives.",
+      "waitingTitle": "The bank is taking a little longer",
+      "waitingBody": "We’re still waiting for the bank. You’ll see the level in My levels as soon as it’s confirmed — no need to pay again.",
+      "checkAgain": "Check again",
+      "paidTitle": "You’re in — {level}",
+      "paidMeta": "Paid {amount} · {date}",
+      "sealedBy": "Sealed by Mazen",
+      "start": "Start the first lesson",
+      "myLevels": "Go to My levels",
+      "failedTitle": "This payment didn’t go through",
+      "failedBody": "No access was added. Return to the level when you are ready and start a new checkout.",
+      "tryAgain": "Try again",
+      "refundedTitle": "This payment was refunded",
+      "refundedBody": "The payment for {level} is marked as refunded. Contact Mazen if you need help with your course access.",
+      "viewOrders": "View My orders"
+    },
+    "orders": {
+      "title": "My orders",
+      "intro": "Your level purchases, newest first. A pending order opens its live confirmation page.",
+      "empty": "You do not have any orders yet.",
+      "browse": "Browse the levels",
+      "listLabel": "Orders, newest first",
+      "openPending": "Check payment for {level}",
+      "status": {
+        "PENDING": "Pending",
+        "PAID": "Paid",
+        "EXPIRED": "Expired",
+        "CANCELED": "Canceled",
+        "REFUNDED": "Refunded"
+      }
+    }
   },
   "Admin": {
     "title": "Admin",
@@ -181,6 +231,7 @@
       "label": "Admin sections",
       "levels": "Levels",
       "students": "Students",
+      "orders": "Orders",
       "diagnostics": "Video diagnostics"
     },
     "status": {
@@ -449,6 +500,98 @@
       "cancel": "Cancel",
       "joinedLabel": "Joined"
     },
+    "orders": {
+      "title": "Orders",
+      "intro": "Search purchases by learner and follow payment state without treating the browser redirect as proof of payment.",
+      "report": {
+        "title": "Paymob report · last 24 hours",
+        "since": "Since {date}",
+        "mismatches": {
+          "label": "Callbacks with mismatches",
+          "help": "Signed callbacks whose amount, currency, integration or order did not match."
+        },
+        "unmatched": {
+          "label": "Callbacks without an order",
+          "help": "Signed callbacks that could not be tied to a stored order."
+        },
+        "missingEnrollment": {
+          "label": "Paid without active access",
+          "help": "Paid orders that do not currently have a matching active enrollment."
+        },
+        "viewPaid": "Review paid orders"
+      },
+      "searchLabel": "Search learner",
+      "statusLabel": "Payment status",
+      "allStatuses": "All statuses",
+      "apply": "Apply filters",
+      "clear": "Clear filters",
+      "results": "{count} orders",
+      "empty": "No orders match these filters.",
+      "columns": {
+        "date": "Date",
+        "student": "Student",
+        "level": "Level",
+        "amount": "Amount",
+        "orderStatus": "Status",
+        "paidAt": "Paid at"
+      },
+      "status": {
+        "PENDING": "Pending",
+        "PAID": "Paid",
+        "EXPIRED": "Expired",
+        "CANCELED": "Canceled",
+        "REFUNDED": "Refunded"
+      },
+      "notPaid": "Not paid",
+      "pagination": "Order pages",
+      "previous": "Previous",
+      "next": "Next",
+      "pageInfo": "Page {page} of {pages}"
+    },
+    "order": {
+      "back": "All orders",
+      "title": "Order · {level}",
+      "titlePrefix": "Order ·",
+      "student": "Student",
+      "level": "Level",
+      "amount": "Amount",
+      "created": "Created",
+      "paidAt": "Paid at",
+      "expires": "Expires",
+      "reference": "Merchant reference",
+      "intention": "Paymob intention",
+      "providerOrder": "Paymob order",
+      "notPaid": "Not paid",
+      "notAvailable": "Not available",
+      "transactionsTitle": "Transactions",
+      "transactionsEmpty": "Paymob has not sent a transaction for this order.",
+      "columns": {
+        "time": "Time",
+        "transactionId": "Paymob transaction",
+        "integration": "Integration",
+        "flags": "Flags",
+        "transactionAmount": "Amount",
+        "card": "Card"
+      },
+      "flags": {
+        "success": "Success",
+        "pending": "Pending",
+        "refund": "Refund",
+        "voided": "Voided",
+        "yes": "Yes",
+        "no": "No"
+      },
+      "cardDetails": "{brand} · ending {last4}",
+      "unknownCard": "Card",
+      "unknownLast4": "unknown",
+      "status": {
+        "PENDING": "Pending",
+        "PAID": "Paid",
+        "EXPIRED": "Expired",
+        "CANCELED": "Canceled",
+        "REFUNDED": "Refunded"
+      }
+    },
     "diagnostics": {
       "title": "Video diagnostics",
       "intro": "Which video service is active, whether Bunny Stream is fully set up, and how the videos are doing. Secret values are never shown, only the names of settings.",
@@ -576,6 +719,8 @@
     "reset": "Choose a new password · Mazen Chinese",
     "renew": "Restoring your session · Mazen Chinese",
     "dashboard": "My learning · Mazen Chinese",
+    "orders": "My orders · Mazen Chinese",
+    "checkoutResult": "Payment result · Mazen Chinese",
     "admin": "Admin · Mazen Chinese",
     "adminLevels": "Levels · Admin · Mazen Chinese",
     "adminLevelNew": "New level · Admin · Mazen Chinese",
@@ -585,6 +730,8 @@
     "levelDescriptionFallback": "A level of Mazen's Chinese course for Arabic speakers.",
     "adminStudents": "Students · Admin · Mazen Chinese",
     "adminStudent": "Student · Admin · Mazen Chinese",
+    "adminOrders": "Orders · Admin · Mazen Chinese",
+    "adminOrder": "Order · Admin · Mazen Chinese",
     "lesson": "Lesson · Mazen Chinese",
     "lessonNamed": "{lesson} · {level} · Mazen Chinese",
     "adminDiagnostics": "Video diagnostics · Admin · Mazen Chinese",

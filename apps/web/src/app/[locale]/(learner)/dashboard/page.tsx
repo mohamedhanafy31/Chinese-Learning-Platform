@@ -41,9 +41,17 @@ export default async function DashboardPage({
         {t('greeting', { name: user.name })}
       </h1>
 
-      <h2 className="mt-14 font-display text-[clamp(2rem,4vw,2.75rem)] leading-[1.1] text-deep">
-        <WriteOn text={t('myLevels')} />
-      </h2>
+      <div className="mt-14 flex flex-wrap items-center justify-between gap-4">
+        <h2 className="font-display text-[clamp(2rem,4vw,2.75rem)] leading-[1.1] text-deep">
+          <WriteOn text={t('myLevels')} />
+        </h2>
+        <Link
+          href={`/${locale}/orders`}
+          className="inline-flex min-h-11 items-center text-cobalt underline decoration-wash-strong underline-offset-8 hover:text-deep"
+        >
+          {t('myOrders')}
+        </Link>
+      </div>
 
       {result.status === 'error' ? (
         <p

@@ -21,11 +21,7 @@ import { PaymobClient } from './paymob/paymob.client';
 import { PaymobConfig } from './paymob/paymob.config';
 import { buildCheckoutUrl, splitName } from './paymob/paymob-utils';
 import { parseLocalizedText } from '../catalog/catalog.mapper';
-import {
-  OrderStatus,
-  Role,
-  type Order,
-} from '../generated/prisma/client';
+import { OrderStatus, Role, type Order } from '../generated/prisma/client';
 import type { Prisma } from '../generated/prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 
@@ -49,6 +45,10 @@ export class BillingService {
     @Inject(PaymobConfig) private readonly config: PaymobConfig,
     @Inject(PaymobClient) private readonly paymob: PaymobClient,
   ) {}
+
+  availability(): { available: boolean } {
+    return { available: this.config.settings !== null };
+  }
 
   async checkout(
     user: PublicUser,
@@ -259,7 +259,7 @@ export class BillingService {
   async getOrder(id: string, user: PublicUser): Promise<OrderSummary> {
     const row = await this.prisma.order.findFirst({
       where: { id, ...(user.role === Role.ADMIN ? {} : { userId: user.id }) },
-      include: { level: { select: { slug: true } } },
+      include: { level: { select: { slug: true, title: true } } },
     });
     if (!row) throw new NotFoundException('Order not found');
     return mapOrder(row);
@@ -268,7 +268,7 @@ export class BillingService {
   async listOwnOrders(userId: string): Promise<{ orders: OrderSummary[] }> {
     const rows = await this.prisma.order.findMany({
       where: { userId },
-      include: { level: { select: { slug: true } } },
+      include: { level: { select: { slug: true, title: true } } },
       orderBy: { createdAt: 'desc' },
     });
     return { orders: rows.map(mapOrder) };
@@ -311,7 +311,6 @@ export class BillingService {
       orders: rows.map((row) => ({
         ...mapOrder(row),
         user: row.user,
-        levelTitle: parseLocalizedText(row.level.title),
       })),
       page: query.page,
       pageSize: PAGE_SIZE,
@@ -354,12 +353,15 @@ export class BillingService {
   }
 }
 
-function mapOrder(row: Order & { level: { slug: string } }): OrderSummary {
+function mapOrder(
+  row: Order & { level: { slug: string; title: Prisma.JsonValue } },
+): OrderSummary {
   return {
     id: row.id,
     status: row.status,
     levelId: row.levelId,
     levelSlug: row.level.slug,
+    levelTitle: parseLocalizedText(row.level.title),
     amountMinor: row.amountMinor,
     currency: row.currency,
     createdAt: row.createdAt.toISOString(),

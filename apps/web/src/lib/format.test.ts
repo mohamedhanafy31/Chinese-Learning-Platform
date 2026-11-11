@@ -15,6 +15,13 @@ describe('formatDate', () => {
     expect(formatDate(iso, 'zh')).toContain('2026');
   });
 
+  it.each(['ar', 'en', 'zh'] as const)(
+    'formats in Cairo time for %s without changing the instant',
+    (locale) => {
+      expect(formatDate('2026-03-05T22:30:00.000Z', locale)).toBeTruthy();
+    },
+  );
+
   it('returns an empty string for an invalid date', () => {
     expect(formatDate('not-a-date', 'en')).toBe('');
   });

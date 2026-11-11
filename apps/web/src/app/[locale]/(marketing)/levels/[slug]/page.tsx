@@ -13,6 +13,7 @@ import {
   type PublicLevelDetail,
 } from '@app/shared';
 
+import { BuyLevel } from '@/components/billing/buy-level';
 import { LessonPath } from '@/components/learning/lesson-path';
 import { WriteOn } from '@/components/motion/write-on';
 import { Band } from '@/components/porcelain/band';
@@ -26,6 +27,8 @@ import { numberFormat } from '@/lib/numbers';
 import { toCatalogPathLessons } from '@/lib/path-lessons';
 import { formatEgp } from '@/lib/price';
 import { absoluteUrl } from '@/lib/site-url';
+import { getBillingAvailability } from '@/lib/billing';
+import { getCurrentUser } from '@/lib/session';
 
 /** What the page renders: the public detail, or an owned (maybe archived) level. */
 type LevelView = Pick<
@@ -39,7 +42,7 @@ type LevelView = Pick<
   | 'lessonCount'
   | 'lessons'
 > &
-  Pick<MyLevelDetail, 'number'>;
+  Pick<MyLevelDetail, 'number'> & { id?: string };
 
 interface LevelPageProps {
   params: Promise<{ locale: Locale; slug: string }>;
@@ -98,9 +101,11 @@ export default async function LevelPage({
 }: LevelPageProps): Promise<React.JSX.Element> {
   const { locale, slug } = await params;
   setRequestLocale(locale);
-  const [result, access] = await Promise.all([
+  const [result, access, user, paymentsAvailable] = await Promise.all([
     getPublicLevel(slug),
     getLevelAccess(slug),
+    getCurrentUser().catch(() => null),
+    getBillingAvailability(),
   ]);
   // An archived level is gone from the public catalog but stays readable for
   // the learners who own it.
@@ -238,19 +243,34 @@ export default async function LevelPage({
                     </>
                   ) : (
                     <>
-                      <button
-                        type="button"
-                        disabled
-                        className="inline-flex min-h-14 items-center rounded-full bg-deep px-8 text-lg font-semibold text-glaze transition-colors hover:bg-cobalt disabled:cursor-not-allowed disabled:bg-wash disabled:text-cobalt"
-                      >
-                        {t('buy')}
-                      </button>
-                      <span className="text-sm text-cobalt">{price}</span>
-                      {level.priceMinor !== null ? (
-                        <span className="text-sm text-cobalt">
-                          {t('comingSoon')}
-                        </span>
-                      ) : null}
+                      {level.priceMinor !== null &&
+                      level.priceMinor > 0 &&
+                      level.id ? (
+                        <BuyLevel
+                          available={paymentsAvailable}
+                          levelId={level.id}
+                          levelPath={`/${locale}/levels/${slug}`}
+                          locale={locale}
+                          price={formatEgp(level.priceMinor, locale)}
+                          signedIn={user !== null}
+                        />
+                      ) : (
+                        <>
+                          <button
+                            type="button"
+                            disabled
+                            className="inline-flex min-h-14 items-center rounded-full bg-deep px-8 text-lg font-semibold text-glaze transition-colors hover:bg-cobalt disabled:cursor-not-allowed disabled:bg-wash disabled:text-cobalt"
+                          >
+                            {t('buy')}
+                          </button>
+                          <span className="text-sm text-cobalt">{price}</span>
+                          {level.priceMinor !== null ? (
+                            <span className="text-sm text-cobalt">
+                              {t('comingSoon')}
+                            </span>
+                          ) : null}
+                        </>
+                      )}
                     </>
                   )}
                 </div>

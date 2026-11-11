@@ -27,6 +27,7 @@ export default async function BackofficeLayout({
         navItems={[
           { href: `/${locale}/admin/levels`, label: t('levels') },
           { href: `/${locale}/admin/students`, label: t('students') },
+          { href: `/${locale}/admin/orders`, label: t('orders') },
           {
             href: `/${locale}/admin/settings/diagnostics`,
             label: t('diagnostics'),
