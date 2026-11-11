@@ -1,5 +1,5 @@
 # syntax=docker/dockerfile:1
-FROM node:22-alpine AS build
+FROM node:22.23-alpine AS build
 
 ENV PNPM_HOME=/pnpm
 ENV PATH=$PNPM_HOME:$PATH
@@ -15,7 +15,7 @@ COPY packages/shared packages/shared
 COPY apps/web apps/web
 RUN pnpm --filter @app/shared build && pnpm --filter @app/web build
 
-FROM node:22-alpine AS runtime
+FROM node:22.23-alpine AS runtime
 
 ENV NODE_ENV=production
 ENV PORT=3000

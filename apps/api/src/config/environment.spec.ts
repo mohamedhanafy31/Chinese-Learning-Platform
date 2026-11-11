@@ -75,3 +75,136 @@ describe('Paymob environment', () => {
     },
   );
 });
+
+describe('production environment', () => {
+  const production = {
+    ...base,
+    NODE_ENV: 'production',
+    APP_URL: 'https://school.example.com',
+    JWT_ACCESS_SECRET: 'A'.repeat(48),
+    JWT_REFRESH_SECRET: 'B'.repeat(48),
+  };
+  const bunny = {
+    BUNNY_LIBRARY_ID: '123',
+    BUNNY_API_KEY: 'bunny-api-key-value',
+    BUNNY_TOKEN_KEY: 'bunny-token-key-value',
+    BUNNY_WEBHOOK_SECRET: 'bunny-webhook-secret-value',
+    BUNNY_CDN_HOST: 'vz-abc.b-cdn.net',
+  };
+  const paymob = {
+    PAYMOB_SECRET_KEY: 'paymob-secret-key-value',
+    PAYMOB_PUBLIC_KEY: 'paymob-public-key-value',
+    PAYMOB_HMAC_SECRET: 'paymob-hmac-secret-value',
+    PAYMOB_INTEGRATION_IDS: '42',
+  };
+  const smtp = {
+    SMTP_HOST: 'smtp.example.com',
+    SMTP_PORT: '587',
+    SMTP_USER: 'mailer',
+    SMTP_PASSWORD: 'smtp-password-value',
+    SMTP_FROM: 'noreply@example.com',
+  };
+
+  function messageFor(values: Record<string, unknown>): string {
+    try {
+      validateEnvironment(values);
+    } catch (error) {
+      return error instanceof Error ? error.message : String(error);
+    }
+    throw new Error('Expected the environment to be rejected');
+  }
+
+  it('boots with strong distinct secrets and complete optional groups', () => {
+    expect(() => validateEnvironment(production)).not.toThrow();
+    expect(() =>
+      validateEnvironment({ ...production, ...bunny, ...paymob, ...smtp }),
+    ).not.toThrow();
+  });
+
+  it.each([
+    [
+      'a short access secret',
+      { JWT_ACCESS_SECRET: 'short' },
+      'JWT_ACCESS_SECRET',
+    ],
+    [
+      'a short refresh secret',
+      { JWT_REFRESH_SECRET: 'x'.repeat(31) },
+      'JWT_REFRESH_SECRET',
+    ],
+    [
+      'the access placeholder',
+      { JWT_ACCESS_SECRET: 'replace-with-a-long-random-access-secret' },
+      'JWT_ACCESS_SECRET',
+    ],
+    [
+      'the refresh placeholder',
+      {
+        JWT_REFRESH_SECRET:
+          'replace-with-a-different-long-random-refresh-secret',
+      },
+      'JWT_REFRESH_SECRET',
+    ],
+    [
+      'identical access and refresh secrets',
+      { JWT_REFRESH_SECRET: 'A'.repeat(48) },
+      'JWT_REFRESH_SECRET',
+    ],
+    ['a missing APP_URL', { APP_URL: undefined }, 'APP_URL'],
+    [
+      'a plain-http APP_URL',
+      { APP_URL: 'http://school.example.com' },
+      'APP_URL',
+    ],
+    [
+      'a plain-http API_PUBLIC_ORIGIN (the development value)',
+      { API_PUBLIC_ORIGIN: 'http://localhost:4000' },
+      'API_PUBLIC_ORIGIN',
+    ],
+    ['a missing DATABASE_URL', { DATABASE_URL: undefined }, 'DATABASE_URL'],
+    [
+      'a missing INTERNAL_API_URL',
+      { INTERNAL_API_URL: undefined },
+      'INTERNAL_API_URL',
+    ],
+    [
+      'a partial Bunny group',
+      { BUNNY_LIBRARY_ID: '1', BUNNY_API_KEY: 'bunny-api-key-value' },
+      'BUNNY_TOKEN_KEY',
+    ],
+    [
+      'a partial Paymob group',
+      { PAYMOB_SECRET_KEY: 'paymob-secret-key-value' },
+      'PAYMOB_HMAC_SECRET',
+    ],
+    ['a partial SMTP group', { SMTP_HOST: 'smtp.example.com' }, 'SMTP_'],
+  ])('refuses to boot with %s', (_label, overrides, variable) => {
+    const message = messageFor({ ...production, ...overrides });
+    expect(message).toMatch(/Invalid environment/);
+    expect(message).toContain(variable);
+  });
+
+  it('never prints secret values in refusal messages', () => {
+    const secret = 'replace-with-super-secret-looking-value-1234';
+    const message = messageFor({
+      ...production,
+      JWT_ACCESS_SECRET: secret,
+      JWT_REFRESH_SECRET: secret,
+      PAYMOB_SECRET_KEY: 'paymob-secret-must-not-leak',
+    });
+    expect(message).not.toContain(secret);
+    expect(message).not.toContain('paymob-secret-must-not-leak');
+  });
+
+  it('keeps the relaxed development rules outside production', () => {
+    expect(() =>
+      validateEnvironment({
+        ...base,
+        NODE_ENV: 'development',
+        JWT_ACCESS_SECRET: 'a'.repeat(32),
+        JWT_REFRESH_SECRET: 'a'.repeat(32),
+        BUNNY_LIBRARY_ID: '1',
+      }),
+    ).not.toThrow();
+  });
+});

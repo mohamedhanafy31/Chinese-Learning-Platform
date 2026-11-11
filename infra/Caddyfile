@@ -1,4 +1,49 @@
+{
+	# Hide the "caddy" server banner and keep the admin API off the network.
+	admin off
+
+	# M15: once the site sits behind Cloudflare, list Cloudflare's proxy ranges
+	# here so the API's per-IP throttling sees real visitors, e.g.
+	#   servers {
+	#       trusted_proxies static <Cloudflare IPv4/IPv6 ranges>
+	#       client_ip_headers CF-Connecting-IP
+	#   }
+	# Do not enable this before Cloudflare is in front: it would let anyone spoof
+	# their address. See infra/DEPLOY.md ("Cloudflare (M15)").
+}
+
+# APP_DOMAIN is the public hostname in production. For the local smoke it is
+# "localhost", which Caddy serves over HTTPS with its own internal CA.
 {$APP_DOMAIN} {
+	# JSON access logs on stdout (rotated by the Docker json-file driver). Caddy
+	# already redacts Cookie/Authorization headers; the filter additionally
+	# masks query values that carry reset or webhook credentials.
+	log {
+		output stdout
+		format filter {
+			wrap json
+			fields {
+				request>uri query {
+					replace token REDACTED
+					replace hmac REDACTED
+				}
+			}
+		}
+	}
+
+	# Security headers on every response, including upstream ones (defer applies
+	# them after the upstream has written its own). No CSP: Next.js inline
+	# scripts, the Bunny iframe and the Paymob redirect make an enforcing policy
+	# fragile; revisit with a report-only policy after M15.
+	header {
+		defer
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		X-Content-Type-Options "nosniff"
+		Referrer-Policy "strict-origin-when-cross-origin"
+		Permissions-Policy "camera=(), microphone=(), geolocation=(), payment=(), usb=()"
+		-Server
+	}
+
 	# Local video storage is development-only (see PLAN.md decision 10), but an
 	# upload that reaches production before Bunny is configured must still work,
 	# so this one route accepts a video-sized body. /srv/uploads/videos is never
@@ -10,7 +55,13 @@
 		reverse_proxy api:4000
 	}
 
+	# Video streaming: already-compressed media, ranged reads. No encode here.
+	handle /api/v1/videos/*/stream {
+		reverse_proxy api:4000
+	}
+
 	handle /api/* {
+		encode zstd gzip
 		request_body {
 			max_size 20MB
 		}
@@ -24,6 +75,7 @@
 	}
 
 	handle {
+		encode zstd gzip
 		reverse_proxy web:3000
 	}
 }

@@ -2,6 +2,8 @@ import 'server-only';
 
 import { headers } from 'next/headers';
 
+import { internalApiUrl } from './internal-api-url';
+
 /**
  * The visitor's address as seen by Caddy: the last entry Caddy appended to
  * X-Forwarded-For. Earlier entries are client-supplied and untrusted.
@@ -32,9 +34,7 @@ export async function apiServerFetch(
     requestHeaders.set('x-forwarded-for', address);
   }
 
-  const baseUrl = process.env.INTERNAL_API_URL ?? 'http://localhost:4000';
-
-  return fetch(new URL(path, `${baseUrl.replace(/\/$/, '')}/`), {
+  return fetch(new URL(path, `${internalApiUrl()}/`), {
     ...init,
     cache: 'no-store',
     headers: requestHeaders,

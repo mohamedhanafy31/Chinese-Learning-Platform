@@ -1,14 +1,24 @@
 .agents
 .claude
 .codex
+.impeccable
 .git
 .github
+.gitignore
 **/.next
 **/coverage
 **/dist
 **/node_modules
-.env
-uploads
-*.log
+**/.env
+**/.env.*
+!**/.env.example
+**/uploads
+**/*.log
+**/test-results
+**/playwright-report
+**/*.tsbuildinfo
+e2e
+infra/.smoke
+infra/backup
 
 **/src/generated

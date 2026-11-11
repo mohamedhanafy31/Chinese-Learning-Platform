@@ -1,17 +1,38 @@
+# Production stack: Caddy -> web (Next.js) + api (NestJS) -> Postgres.
+#
+# Run from the repository root (see infra/DEPLOY.md):
+#   docker compose --env-file .env -f infra/docker-compose.yml up -d --build --wait
+# --env-file is required: Compose resolves ${VARS} below relative to infra/, not
+# to the repository root, so it must be told where .env lives. Every limit below
+# has a sane default for a 2 vCPU / 8 GB VPS and can be overridden from .env.
+
+name: chinese-platform
+
 x-logging: &default-logging
   driver: json-file
   options:
     max-size: 10m
     max-file: '3'
 
+# Applied to every container we build ourselves: no privilege escalation, no
+# capabilities, immutable root filesystem (writable paths are listed per service).
+x-hardening: &hardening
+  read_only: true
+  security_opt:
+    - no-new-privileges:true
+  cap_drop:
+    - ALL
+
 services:
   caddy:
     image: caddy:2.10-alpine
     environment:
-      APP_DOMAIN: ${APP_DOMAIN}
+      APP_DOMAIN: ${APP_DOMAIN:?Set APP_DOMAIN in .env}
     ports:
-      - '80:80'
-      - '443:443'
+      # Host ports are overridable so the local smoke can run beside other
+      # services (infra/smoke.sh uses 18080/18443). Production keeps 80/443.
+      - '${HTTP_PORT:-80}:80'
+      - '${HTTPS_PORT:-443}:443'
     volumes:
       - ./Caddyfile:/etc/caddy/Caddyfile:ro
       - caddy-data:/data
@@ -22,17 +43,32 @@ services:
         condition: service_healthy
       web:
         condition: service_healthy
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    cap_add:
+      - NET_BIND_SERVICE
+    mem_limit: ${CADDY_MEM_LIMIT:-128m}
+    cpus: ${CADDY_CPUS:-0.5}
+    pids_limit: ${CADDY_PIDS_LIMIT:-128}
     restart: unless-stopped
     logging: *default-logging
 
   web:
+    <<: *hardening
     build:
       context: ..
       dockerfile: apps/web/Dockerfile
-    env_file:
-      - ../.env
+    # No env_file: the web container never needs the API's secrets.
     environment:
+      NODE_ENV: production
+      APP_URL: ${APP_URL:?Set APP_URL in .env}
       INTERNAL_API_URL: http://api:4000
+    tmpfs:
+      - /tmp
+      # Next's data/ISR cache; lost on restart, which is fine.
+      - /app/apps/web/.next/cache:uid=1000,gid=1000,mode=0755,size=256m
     depends_on:
       api:
         condition: service_healthy
@@ -47,22 +83,30 @@ services:
       interval: 10s
       timeout: 5s
       retries: 10
+      start_period: 20s
+    mem_limit: ${WEB_MEM_LIMIT:-1g}
+    cpus: ${WEB_CPUS:-1.0}
+    pids_limit: ${WEB_PIDS_LIMIT:-256}
     restart: unless-stopped
     logging: *default-logging
 
   api:
+    <<: *hardening
     build:
       context: ..
       dockerfile: apps/api/Dockerfile
     env_file:
-      - ../.env
+      - ${APP_ENV_FILE:-../.env}
     environment:
-      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?schema=public
+      NODE_ENV: production
+      DATABASE_URL: postgresql://${POSTGRES_USER:?Set POSTGRES_USER in .env}:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}@postgres:5432/${POSTGRES_DB:?Set POSTGRES_DB in .env}?schema=public
       INTERNAL_API_URL: http://api:4000
       PORT: 4000
       UPLOADS_DIR: /app/uploads
     volumes:
       - uploads:/app/uploads
+    tmpfs:
+      - /tmp
     depends_on:
       migrate:
         condition: service_completed_successfully
@@ -72,35 +116,62 @@ services:
           'CMD',
           'node',
           '-e',
-          "fetch('http://localhost:4000/api/v1/health').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))",
+          "fetch('http://localhost:4000/api/v1/ready').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))",
         ]
       interval: 10s
       timeout: 5s
       retries: 10
+      start_period: 15s
+    mem_limit: ${API_MEM_LIMIT:-768m}
+    cpus: ${API_CPUS:-1.0}
+    pids_limit: ${API_PIDS_LIMIT:-256}
     restart: unless-stopped
     logging: *default-logging
 
+  # One-shot: applies pending Prisma migrations, then exits. It needs no
+  # writable path beyond /tmp.
   migrate:
+    <<: *hardening
     build:
       context: ..
       dockerfile: apps/api/Dockerfile
       target: migrate
     env_file:
-      - ../.env
+      - ${APP_ENV_FILE:-../.env}
     environment:
-      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?schema=public
+      DATABASE_URL: postgresql://${POSTGRES_USER:?Set POSTGRES_USER in .env}:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}@postgres:5432/${POSTGRES_DB:?Set POSTGRES_DB in .env}?schema=public
+    tmpfs:
+      - /tmp
     depends_on:
       postgres:
         condition: service_healthy
+    mem_limit: ${MIGRATE_MEM_LIMIT:-512m}
+    cpus: ${MIGRATE_CPUS:-1.0}
+    pids_limit: ${MIGRATE_PIDS_LIMIT:-128}
     restart: 'no'
     logging: *default-logging
 
   postgres:
     image: postgres:16-alpine
+    # Sized for ~1 GiB: shared_buffers ~25 %, the rest is OS cache. Prisma's pool
+    # (10) plus migrate/backup/psql sessions fit well inside max_connections.
+    command:
+      - postgres
+      - -c
+      - shared_buffers=${POSTGRES_SHARED_BUFFERS:-256MB}
+      - -c
+      - effective_cache_size=${POSTGRES_EFFECTIVE_CACHE_SIZE:-640MB}
+      - -c
+      - work_mem=${POSTGRES_WORK_MEM:-4MB}
+      - -c
+      - maintenance_work_mem=${POSTGRES_MAINTENANCE_WORK_MEM:-64MB}
+      - -c
+      - max_connections=${POSTGRES_MAX_CONNECTIONS:-50}
+    # No published port: only containers on this Compose network reach it.
     environment:
-      POSTGRES_DB: ${POSTGRES_DB}
-      POSTGRES_USER: ${POSTGRES_USER}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB:?Set POSTGRES_DB in .env}
+      POSTGRES_USER: ${POSTGRES_USER:?Set POSTGRES_USER in .env}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
@@ -108,6 +179,46 @@ services:
       interval: 5s
       timeout: 5s
       retries: 15
+    security_opt:
+      - no-new-privileges:true
+    mem_limit: ${POSTGRES_MEM_LIMIT:-1g}
+    cpus: ${POSTGRES_CPUS:-1.5}
+    pids_limit: ${POSTGRES_PIDS_LIMIT:-200}
+    restart: unless-stopped
+    logging: *default-logging
+
+  # Local nightly dump of the database and the uploads volume (PLAN decision 12:
+  # no off-box backup service). Runs infra/backup/backup-loop.sh, which sleeps
+  # until BACKUP_TIME (in BACKUP_TZ) and then runs pg-backup.sh.
+  backup:
+    <<: *hardening
+    build:
+      context: ./backup
+    # Files land on the host owned by this uid, so the deploy user can read and
+    # copy them without sudo. 1000 is the first user on a stock Ubuntu VPS.
+    user: ${BACKUP_UID:-1000}:${BACKUP_GID:-1000}
+    init: true
+    environment:
+      PGHOST: postgres
+      PGUSER: ${POSTGRES_USER:?Set POSTGRES_USER in .env}
+      PGPASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
+      PGDATABASE: ${POSTGRES_DB:?Set POSTGRES_DB in .env}
+      BACKUP_DIR: /backups
+      UPLOADS_DIR: /uploads
+      BACKUP_TIME: ${BACKUP_TIME:-03:30}
+      BACKUP_TZ: ${BACKUP_TZ:-Africa/Cairo}
+      BACKUP_RETENTION_DAYS: ${BACKUP_RETENTION_DAYS:-14}
+    volumes:
+      - ${BACKUP_DIR:-/var/backups/chinese-platform}:/backups
+      - uploads:/uploads:ro
+    tmpfs:
+      - /tmp
+    depends_on:
+      postgres:
+        condition: service_healthy
+    mem_limit: ${BACKUP_MEM_LIMIT:-256m}
+    cpus: ${BACKUP_CPUS:-0.5}
+    pids_limit: ${BACKUP_PIDS_LIMIT:-64}
     restart: unless-stopped
     logging: *default-logging
 

@@ -9,6 +9,8 @@ import {
   type PublicLevelDetail,
 } from '@app/shared';
 
+import { internalApiUrl } from './internal-api-url';
+
 /**
  * Public catalog reads for server components.
  *
@@ -28,9 +30,7 @@ export type CatalogResult<T> =
 
 async function fetchCatalog(path: string): Promise<Response | null> {
   await connection();
-  const baseUrl = (
-    process.env.INTERNAL_API_URL ?? 'http://localhost:4000'
-  ).replace(/\/$/, '');
+  const baseUrl = internalApiUrl();
   try {
     return await fetch(`${baseUrl}${path}`, {
       next: { revalidate: CATALOG_REVALIDATE_SECONDS, tags: ['catalog'] },
@@ -41,9 +41,7 @@ async function fetchCatalog(path: string): Promise<Response | null> {
   }
 }
 
-export async function getPublicLevels(): Promise<
-  CatalogResult<PublicLevel[]>
-> {
+export async function getPublicLevels(): Promise<CatalogResult<PublicLevel[]>> {
   const response = await fetchCatalog('/api/v1/catalog/levels');
   if (!response?.ok) return { status: 'unavailable' };
   const parsed = publicLevelsResponseSchema.safeParse(

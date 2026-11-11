@@ -1,5 +1,5 @@
 # syntax=docker/dockerfile:1
-FROM node:22-alpine AS build
+FROM node:22.23-alpine AS build
 
 ENV PNPM_HOME=/pnpm
 ENV PATH=$PNPM_HOME:$PATH
@@ -19,10 +19,13 @@ RUN pnpm --filter @app/shared build \
 
 FROM build AS migrate
 
+# prisma.config.ts and prisma/ live in apps/api, which must be the working
+# directory for the CLI to find the schema.
+WORKDIR /workspace/apps/api
 USER node
-CMD ["apps/api/node_modules/.bin/prisma", "migrate", "deploy"]
+CMD ["node_modules/.bin/prisma", "migrate", "deploy"]
 
-FROM node:22-alpine AS runtime
+FROM node:22.23-alpine AS runtime
 
 ENV NODE_ENV=production
 ENV UPLOADS_DIR=/app/uploads
