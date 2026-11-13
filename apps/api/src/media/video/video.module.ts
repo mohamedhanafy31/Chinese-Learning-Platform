@@ -12,9 +12,13 @@ import {
   VideoStreamController,
 } from './video.controller';
 import { VideoPlaybackService } from './video-playback.service';
+import { LessonExistsGuard } from './lesson-exists.guard';
 import { VideoProviders } from './video-providers';
 import { VideoStreamService } from './video-stream.service';
 import { VideoService } from './video.service';
+import { VideoOrphanSweepService } from './video-orphan-sweep.service';
+import { BunnyEmbedTokenCheck } from './bunny/embed-token-check';
+import { PendingVideoDeleteService } from './pending-video-delete.service';
 import { LearningModule } from '../../learning/learning.module';
 
 @Module({
@@ -33,6 +37,10 @@ import { LearningModule } from '../../learning/learning.module';
     BunnyVideoService,
     VideoProviders,
     VideoService,
+    LessonExistsGuard,
+    VideoOrphanSweepService,
+    BunnyEmbedTokenCheck,
+    PendingVideoDeleteService,
     VideoPlaybackService,
     VideoStreamService,
   ],

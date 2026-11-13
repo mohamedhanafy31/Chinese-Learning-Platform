@@ -23,6 +23,7 @@ import {
   formatVideoQuality,
 } from '@/lib/video-format';
 import { resumePosition } from '@/lib/watch-tracker';
+import { useBunnyEmbedRefresh } from '@/lib/use-bunny-embed-refresh';
 
 const FRAME =
   'rounded-2xl bg-white p-2 shadow-[0_34px_40px_-28px_rgb(3_10_40/0.55)]';
@@ -39,11 +40,20 @@ interface PlayerJsPlayer {
   on(event: string, callback: (data?: PlayerJsEvent) => void): void;
   off?(event: string): void;
   getDuration(callback: (seconds: number) => void): void;
+  getCurrentTime?(callback: (seconds: number) => void): void;
   setCurrentTime(seconds: number): void;
 }
 interface PlayerJsEvent {
   seconds?: number;
   duration?: number;
+}
+
+function safelyCallPlayer(call: () => void): void {
+  try {
+    call();
+  } catch {
+    // player.js posts messages to the iframe; its window can disappear first.
+  }
 }
 declare global {
   interface Window {
@@ -99,6 +109,7 @@ const PLAYBACK_SPEEDS = [0.5, 0.75, 1, 1.25, 1.5, 2] as const;
  */
 export function LessonPlayer({
   label,
+  lessonId,
   poster,
   progress,
   unsupported,
@@ -110,6 +121,7 @@ export function LessonPlayer({
   /** Accessible name of the player; the lesson title for the embed. */
   label: string;
   video: PlaybackVideo;
+  lessonId?: string;
   poster: string | null;
   unsupported: string;
   progress?: PlayerProgress;
@@ -122,7 +134,9 @@ export function LessonPlayer({
     return (
       <BunnyPlayer
         label={label}
+        lessonId={lessonId}
         embedUrl={video.embedUrl}
+        expiresAt={video.expiresAt}
         progress={progress}
         loadingLabel={labels.loading}
       />
@@ -555,52 +569,141 @@ function LocalPlayer({
   );
 }
 
-function BunnyPlayer({
-  embedUrl,
+export function BunnyPlayer({
+  embedUrl: initialEmbedUrl,
+  expiresAt: initialExpiresAt,
   label,
+  lessonId,
   loadingLabel,
   progress,
+  reveal = true,
+  testId = 'lesson-embed',
 }: {
   label: string;
   embedUrl: string;
   loadingLabel: string;
+  expiresAt: string;
+  lessonId?: string;
   progress?: PlayerProgress;
+  reveal?: boolean;
+  testId?: string;
 }): React.JSX.Element {
   const frame = useRef<HTMLIFrameElement>(null);
   const attached = useRef(false);
   const [loaded, setLoaded] = useState(false);
+  const playerRef = useRef<PlayerJsPlayer | null>(null);
+  const currentTime = useRef(progress?.lastPositionSec ?? 0);
   const controller = progress?.controller;
   const lastPositionSec = progress?.lastPositionSec ?? 0;
+  const embed = useBunnyEmbedRefresh(lessonId, {
+    embedUrl: initialEmbedUrl,
+    expiresAt: initialExpiresAt,
+  });
 
   const attach = useCallback(() => {
     const element = frame.current;
-    if (!controller || !element || !window.playerjs || attached.current) {
+    if (!element || !window.playerjs || attached.current) return;
+    attached.current = true;
+    let player: PlayerJsPlayer;
+    try {
+      player = new window.playerjs.Player(element);
+    } catch {
+      attached.current = false;
       return;
     }
-    attached.current = true;
-    const player = new window.playerjs.Player(element);
-    player.on('ready', () => {
-      player.getDuration((duration) => {
-        controller.setDuration(duration);
-        const resume = resumePosition(lastPositionSec, duration);
-        if (resume > 0) player.setCurrentTime(resume);
-      });
-      player.on('play', () => controller.play());
-      player.on('timeupdate', (data) => {
-        if (typeof data?.seconds === 'number') controller.tick(data.seconds);
-        if (typeof data?.duration === 'number') {
-          controller.setDuration(data.duration);
+    playerRef.current = player;
+    safelyCallPlayer(() =>
+      player.on('ready', () => {
+        safelyCallPlayer(() =>
+          player.getDuration((duration) => {
+            controller?.setDuration(duration);
+            const resume = resumePosition(
+              currentTime.current || lastPositionSec,
+              duration,
+            );
+            if (resume > 0) {
+              safelyCallPlayer(() => player.setCurrentTime(resume));
+            }
+          }),
+        );
+        safelyCallPlayer(() =>
+          player.on('play', () => {
+            embed.onPlay();
+            controller?.play();
+          }),
+        );
+        safelyCallPlayer(() =>
+          player.on('timeupdate', (data) => {
+            if (typeof data?.seconds === 'number') {
+              currentTime.current = data.seconds;
+              controller?.tick(data.seconds);
+            }
+            if (typeof data?.duration === 'number') {
+              controller?.setDuration(data.duration);
+            }
+          }),
+        );
+        safelyCallPlayer(() =>
+          player.on('pause', () => {
+            if (player.getCurrentTime) {
+              safelyCallPlayer(() =>
+                player.getCurrentTime!((seconds) => {
+                  currentTime.current = seconds;
+                  controller?.pause(seconds);
+                  embed.onPause();
+                }),
+              );
+            } else {
+              controller?.pause();
+              embed.onPause();
+            }
+          }),
+        );
+        safelyCallPlayer(() =>
+          player.on('ended', () => {
+            const finish = () =>
+              safelyCallPlayer(() =>
+                player.getDuration((duration) => {
+                  controller?.ended(duration);
+                  embed.onEnded();
+                }),
+              );
+            if (player.getCurrentTime) {
+              safelyCallPlayer(() =>
+                player.getCurrentTime!((seconds) => {
+                  currentTime.current = seconds;
+                  finish();
+                }),
+              );
+            } else {
+              finish();
+            }
+          }),
+        );
+      }),
+    );
+  }, [controller, embed, lastPositionSec]);
+
+  useEffect(() => {
+    attached.current = false;
+    return () => {
+      const player = playerRef.current;
+      if (player?.off) {
+        for (const event of ['ready', 'play', 'timeupdate', 'pause', 'ended']) {
+          safelyCallPlayer(() => player.off?.(event));
         }
-      });
-      player.on('pause', () => controller.pause());
-      player.on('ended', () => {
-        player.getDuration((duration) => controller.ended(duration));
-      });
-    });
-  }, [controller, lastPositionSec]);
+      }
+      playerRef.current = null;
+      attached.current = false;
+    };
+  }, [embed.embedUrl]);
 
   return (
-    <div data-reveal="" suppressHydrationWarning className={FRAME}>
+    <div
+      data-reveal={reveal ? '' : undefined}
+      suppressHydrationWarning
+      className={FRAME}
+    >
       <div className="relative aspect-video overflow-hidden rounded-xl bg-deep">
         {!loaded ? (
           <div
@@ -615,8 +718,8 @@ function BunnyPlayer({
         ) : null}
         <iframe
           ref={frame}
-          data-testid="lesson-embed"
-          src={embedUrl}
+          data-testid={testId}
+          src={embed.embedUrl}
           title={label}
           allow={EMBED_ALLOW}
           allowFullScreen
@@ -625,7 +728,7 @@ function BunnyPlayer({
           className="absolute inset-0 size-full border-0"
         />
       </div>
-      {controller ? (
+      {lessonId || controller ? (
         <Script src={PLAYERJS_SRC} strategy="lazyOnload" onReady={attach} />
       ) : null}
     </div>

@@ -47,10 +47,12 @@ export async function getAdminOrders(input: {
   page: number;
   q: string;
   status?: OrderStatus;
+  refundedWithAccess?: boolean;
 }): Promise<AdminOrdersResponse> {
   const query = new URLSearchParams({ page: String(input.page) });
   if (input.q) query.set('q', input.q);
   if (input.status) query.set('status', input.status);
+  if (input.refundedWithAccess) query.set('refundedWithAccess', 'true');
   const response = await getJson(`/api/v1/admin/orders?${query}`);
   if (!response?.ok) throw new Error('Admin orders could not be loaded');
   return adminOrdersResponseSchema.parse(await response.json());

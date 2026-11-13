@@ -17,7 +17,7 @@ import {
   secondaryButton,
 } from '@/components/admin/controls';
 import { failureKey } from '@/lib/admin-client';
-import { apiFetch } from '@/lib/api-client';
+import { apiFetchParsed } from '@/lib/api-client';
 
 export interface AttachedImage extends ImageRef {
   id: string;
@@ -66,24 +66,24 @@ export function ImageUpload({
     setUploading(true);
     const body = new FormData();
     body.append('file', file);
-    const result = await apiFetch<unknown>('/api/v1/admin/media/images', {
-      method: 'POST',
-      body,
-    });
+    const result = await apiFetchParsed(
+      '/api/v1/admin/media/images',
+      uploadedImageSchema,
+      { method: 'POST', body },
+    );
     setUploading(false);
 
     if (!result.ok) {
+      if (result.kind === 'invalid') {
+        setErrorMessage(tErrors('retry'));
+        return;
+      }
       const key = await failureKey(result);
       if (key === 'unauthenticated') return onUnauthenticated();
       setErrorMessage(tErrors(key));
       return;
     }
-    const parsed = uploadedImageSchema.safeParse(result.data);
-    if (!parsed.success) {
-      setErrorMessage(tErrors('retry'));
-      return;
-    }
-    const { height, id: assetId, url, width } = parsed.data;
+    const { height, id: assetId, url, width } = result.data;
     onChange({ id: assetId, url, width, height });
     setStatus(t('uploaded'));
   }

@@ -5,7 +5,7 @@ import { useEffect, useRef } from 'react';
 
 import { userResponseSchema, type Locale } from '@app/shared';
 
-import { apiFetch } from '@/lib/api-client';
+import { apiFetchParsed } from '@/lib/api-client';
 import { roleHome } from '@/lib/role-home';
 import { loginPathForNext, safeNext } from '@/lib/safe-next';
 
@@ -23,18 +23,14 @@ export function SessionRenewal({
     if (started.current) return;
     started.current = true;
 
-    void apiFetch<unknown>('/api/v1/auth/refresh', { method: 'POST' }).then(
-      (result) => {
-        if (result.ok) {
-          const parsed = userResponseSchema.safeParse(result.data);
-          if (parsed.success) {
-            router.replace(
-              safeNext(next, roleHome(locale, parsed.data.user.role)),
-            );
-            router.refresh();
-            return;
-          }
-        }
+    void apiFetchParsed('/api/v1/auth/refresh', userResponseSchema, {
+      method: 'POST',
+    }).then((result) => {
+      if (result.ok) {
+        router.replace(safeNext(next, roleHome(locale, result.data.user.role)));
+        router.refresh();
+        return;
+      }
 
         router.replace(loginPathForNext(locale, next));
       },

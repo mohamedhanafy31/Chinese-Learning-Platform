@@ -1,4 +1,5 @@
 import path from 'node:path';
+import { stat } from 'node:fs/promises';
 
 import {
   BadRequestException,
@@ -21,6 +22,7 @@ import {
 } from '@app/shared';
 
 import { BunnyVideoService } from './bunny/bunny-video.service';
+import { BunnyEmbedTokenCheck } from './bunny/embed-token-check';
 
 import { LocalProvider } from './local.provider';
 import {
@@ -33,6 +35,7 @@ import {
   isPartiallyConfigured,
 } from './provider-readiness';
 import { sanitizeOriginalName } from './original-name';
+import { findMissingLocalFiles } from './local-file-check';
 import { removeVideoFile } from './video-files';
 import { toAdminVideo } from './video-mapper';
 import { VideoProviders } from './video-providers';
@@ -57,14 +60,21 @@ export class VideoService implements OnModuleInit {
     @Inject(AuditService) private readonly audit: AuditService,
     @Inject(ConfigService)
     private readonly config: ConfigService<Environment, true>,
+    @Inject(BunnyEmbedTokenCheck)
+    private readonly embedTokenCheck: BunnyEmbedTokenCheck,
   ) {}
 
-  onModuleInit(): void {
+  async onModuleInit(): Promise<void> {
     localUploadTarget.dir = this.storage.videosDir;
     localUploadTarget.maxBytes = this.config.get('VIDEO_MAX_BYTES', {
       infer: true,
     });
 
+    const missing = await this.findMissingLocalFiles();
+    if (missing.count)
+      this.logger.warn(
+        `Missing ${missing.count} local video files; asset ids: ${missing.ids.join(', ')}`,
+      );
     const readiness = this.providerReadiness();
     if (isPartiallyConfigured(readiness)) {
       // Names only: the values are secrets and are never logged.
@@ -97,9 +107,46 @@ export class VideoService implements OnModuleInit {
     return { active: readiness.active, devOnly: this.isDevOnly(readiness) };
   }
 
+  private async findMissingLocalFiles(): Promise<{
+    count: number;
+    ids: string[];
+  }> {
+    try {
+      return await findMissingLocalFiles(
+        (cursor, take) =>
+          this.prisma.videoAsset.findMany({
+            where: {
+              provider: VideoProviderKind.LOCAL,
+              status: VideoStatus.READY,
+            },
+            orderBy: { id: 'asc' },
+            take,
+            ...(cursor ? { skip: 1, cursor: { id: cursor } } : {}),
+            select: { id: true, localKey: true },
+          }),
+        (localKey) => this.local.pathFor(localKey),
+        stat,
+      );
+    } catch (error) {
+      this.logger.error(
+        `Unable to check local video files: ${error instanceof Error ? error.message : String(error)}`,
+      );
+      return { count: 0, ids: [] };
+    }
+  }
+
   async diagnostics(): Promise<VideoDiagnostics> {
     const readiness = this.providerReadiness();
-    const [local, bunny, processing, failed, lastWebhook] = await Promise.all([
+    const [
+      local,
+      bunny,
+      processing,
+      failed,
+      missingLocalFiles,
+      lastWebhook,
+      embedTokens,
+      pendingDeletes,
+    ] = await Promise.all([
       this.prisma.videoAsset.count({
         where: { provider: VideoProviderKind.LOCAL },
       }),
@@ -112,16 +159,24 @@ export class VideoService implements OnModuleInit {
         },
       }),
       this.prisma.videoAsset.count({ where: { status: VideoStatus.FAILED } }),
+      this.findMissingLocalFiles().then((result) => result.count),
       this.prisma.webhookEvent.findFirst({
         where: { provider: WebhookProvider.BUNNY },
         orderBy: { receivedAt: 'desc' },
         select: { receivedAt: true },
       }),
+      this.embedTokenCheck.check().catch(() => ({
+        status: 'unknown' as const,
+        checkedAt: new Date().toISOString(),
+      })),
+      this.prisma.pendingVideoDelete.count(),
     ]);
     return {
       ...readiness,
       devOnly: this.isDevOnly(readiness),
-      counts: { local, bunny, processing, failed },
+      missingLocalFiles,
+      embedTokens,
+      counts: { local, bunny, processing, failed, pendingDeletes },
       lastWebhookAt: lastWebhook?.receivedAt.toISOString() ?? null,
     };
   }

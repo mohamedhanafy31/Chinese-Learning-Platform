@@ -17,4 +17,21 @@ process.env.JWT_REFRESH_SECRET =
 process.env.BILLING_EXPIRY_INTERVAL_SEC = '0';
 process.env.DATABASE_URL =
   process.env.DATABASE_URL_TEST ??
+  process.env.DATABASE_URL ??
   'postgresql://postgres:postgres@localhost:5433/app_test?schema=public';
+
+let databaseName: string;
+try {
+  databaseName =
+    new URL(process.env.DATABASE_URL).pathname
+      .split('/')
+      .filter(Boolean)
+      .at(-1) ?? '';
+} catch {
+  throw new Error('Integration tests require DATABASE_URL to be a valid URL');
+}
+if (!databaseName.endsWith('_test')) {
+  throw new Error(
+    'Integration tests require DATABASE_URL database name ending in _test',
+  );
+}

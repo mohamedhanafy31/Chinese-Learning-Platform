@@ -1,6 +1,7 @@
 import { constants } from 'node:fs';
 import { access, mkdir } from 'node:fs/promises';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 import { Inject, Injectable, type OnModuleInit } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
@@ -23,7 +24,11 @@ export class MediaStorage implements OnModuleInit {
     config: ConfigService<Environment, true>,
   ) {
     const configured = config.get('UPLOADS_DIR', { infer: true });
-    this.root = path.resolve(configured ?? path.join(process.cwd(), 'uploads'));
+    const packageDir = path.resolve(
+      path.dirname(fileURLToPath(import.meta.url)),
+      '../..',
+    );
+    this.root = path.resolve(configured ?? path.join(packageDir, 'uploads'));
     this.imagesDir = path.join(this.root, 'images');
     this.videosDir = path.join(this.root, 'videos');
   }

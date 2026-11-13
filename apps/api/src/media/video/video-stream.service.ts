@@ -62,7 +62,12 @@ export class VideoStreamService {
         return null;
       },
     );
-    if (size === null) throw new NotFoundException('Video not found');
+    if (size === null) {
+      this.logger.error(
+        `Missing local video asset ${asset.id} at expected path ${file}`,
+      );
+      throw new NotFoundException('Video not found');
+    }
 
     response.set({
       'Accept-Ranges': 'bytes',

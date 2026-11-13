@@ -1,6 +1,15 @@
 {
 	# Hide the "caddy" server banner and keep the admin API off the network.
 	admin off
+	servers {
+		timeouts {
+			read_header 30s
+			# Uploads may take up to two hours; this also caps the request body.
+			read_body 2h
+			write 0
+			idle 5m
+		}
+	}
 
 	# M15: once the site sits behind Cloudflare, list Cloudflare's proxy ranges
 	# here so the API's per-IP throttling sees real visitors, e.g.

@@ -22,7 +22,7 @@ import {
   SubmitButton,
   secondaryLink,
 } from '@/components/auth/form-controls';
-import { apiFetch, jsonRequest } from '@/lib/api-client';
+import { apiFetchParsed, jsonRequest } from '@/lib/api-client';
 import { authErrorKey, type AuthErrorKey } from '@/lib/auth-errors';
 import { roleHome } from '@/lib/role-home';
 import { safeNext } from '@/lib/safe-next';
@@ -49,20 +49,20 @@ export function RegisterForm({
 
   const submit = handleSubmit(async (values) => {
     setFormError(null);
-    const result = await apiFetch<unknown>(
+    const result = await apiFetchParsed(
       '/api/v1/auth/register',
+      userResponseSchema,
       jsonRequest(values, { method: 'POST' }),
     );
+    if (!result.ok && result.kind === 'invalid') {
+      setFormError('retry');
+      return;
+    }
     if (!result.ok) {
       setFormError(authErrorKey(result.status, 'register'));
       return;
     }
-    const parsed = userResponseSchema.safeParse(result.data);
-    if (!parsed.success) {
-      setFormError('retry');
-      return;
-    }
-    router.replace(safeNext(next, roleHome(locale, parsed.data.user.role)));
+    router.replace(safeNext(next, roleHome(locale, result.data.user.role)));
     router.refresh();
   });
 

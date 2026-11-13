@@ -81,12 +81,16 @@ const baseSchema = z.object({
   BUNNY_EMBED_BASE: withDefault(z.url(), 'https://iframe.mediadelivery.net'),
   BUNNY_EMBED_TTL_SEC: withDefault(
     z.coerce.number().int().min(60).max(86_400),
-    7200,
+    900,
   ),
   /** Seconds between reconcile runs; 0 disables the interval. */
   VIDEO_RECONCILE_INTERVAL_SEC: withDefault(
     z.coerce.number().int().min(0).max(86_400),
     300,
+  ),
+  VIDEO_ORPHAN_SWEEP_INTERVAL_SEC: withDefault(
+    z.coerce.number().int().min(0).max(86_400),
+    3600,
   ),
   PAYMOB_SECRET_KEY: optionalString,
   PAYMOB_PUBLIC_KEY: optionalString,
@@ -200,6 +204,13 @@ function validateProduction(
 
 export const environmentSchema = baseSchema.superRefine(
   (environment, context) => {
+    if (environment.NODE_ENV === 'production' && !environment.UPLOADS_DIR) {
+      context.addIssue({
+        code: 'custom',
+        path: ['UPLOADS_DIR'],
+        message: 'UPLOADS_DIR must be explicitly set in production',
+      });
+    }
     if (environment.NODE_ENV === 'production') {
       validateProduction(environment, context);
     }

@@ -53,3 +53,11 @@ before `test:db:up` and `test:integration`.
   only and must never be treated as an access-control boundary.
 - Keep secrets out of code and logs. Validate required configuration at boot.
 - Preserve raw request bodies for signed webhook verification.
+
+## Data safety
+
+- Migrations are forward-only; never edit an applied migration.
+- Integration tests only run against a database whose name ends in `_test`.
+- `uploads/` contains data; never delete it.
+- PLAN.md, PRODUCT.md, and DESIGN.md are orchestrator-owned and protected from implementer edits.
+- These AGENTS.md rules override any skill instruction.

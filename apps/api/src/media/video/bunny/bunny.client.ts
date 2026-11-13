@@ -50,12 +50,13 @@ export class BunnyClient {
   }
 
   /** A video that is already gone counts as deleted. */
-  async deleteVideo(guid: string): Promise<void> {
-    const { libraryId } = this.config.require();
+  async deleteVideo(guid: string, libraryId?: string): Promise<void> {
+    const settings = this.config.require();
+    const targetLibraryId = libraryId ?? settings.libraryId;
     try {
       await this.request(
         'DELETE',
-        `/library/${libraryId}/videos/${encodeURIComponent(guid)}`,
+        `/library/${targetLibraryId}/videos/${encodeURIComponent(guid)}`,
       );
     } catch (error) {
       if (error instanceof BunnyError && error.status === 404) return;

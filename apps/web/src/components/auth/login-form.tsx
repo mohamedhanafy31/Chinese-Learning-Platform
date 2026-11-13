@@ -54,6 +54,10 @@ export function LoginForm({
       portal === 'admin' ? '/api/v1/auth/admin/login' : '/api/v1/auth/login',
       jsonRequest(values, { method: 'POST' }),
     );
+    if (!result.ok && result.kind === 'invalid') {
+      setFormError('retry');
+      return;
+    }
     if (!result.ok) {
       setFormError(authErrorKey(result.status, 'login'));
       return;

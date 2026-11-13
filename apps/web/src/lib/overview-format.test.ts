@@ -10,6 +10,7 @@ const overview: AdminOverview = {
   revenueLast30dMinor: 15_505_000,
   pendingOrders: 3,
   failedCallbacksLast24h: 0,
+  refundedWithAccess: 0,
   video: { active: 'BUNNY', devOnly: false },
   payments: { available: true },
 };
@@ -43,4 +44,5 @@ describe('overviewStats', () => {
       '/en/admin/students',
     );
   });
+
 });

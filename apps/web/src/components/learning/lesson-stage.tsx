@@ -71,6 +71,7 @@ export function LessonStage({
       {video ? (
         <LessonPlayer
           label={label}
+          lessonId={lessonId}
           video={video}
           poster={poster}
           unsupported={t('unsupported')}

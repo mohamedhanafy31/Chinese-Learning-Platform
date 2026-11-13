@@ -88,7 +88,10 @@ export class BunnyProvider implements VideoProvider {
 
   async delete(asset: VideoAssetRef): Promise<void> {
     if (!asset.bunnyVideoId) return;
-    await this.client.deleteVideo(asset.bunnyVideoId);
+    await this.client.deleteVideo(
+      asset.bunnyVideoId,
+      asset.bunnyLibraryId ?? undefined,
+    );
   }
 
   /** Best-effort removal of a video that never got a database row. */

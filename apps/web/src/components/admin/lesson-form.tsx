@@ -25,7 +25,7 @@ import {
   type LessonFormValues,
 } from '@/lib/admin-forms';
 import { failureKey } from '@/lib/admin-client';
-import { apiFetch, jsonRequest } from '@/lib/api-client';
+import { apiFetchParsed, jsonRequest } from '@/lib/api-client';
 import { toLocalizedInput } from '@/lib/localized';
 
 function initialValues(lesson: AdminLesson | undefined): LessonFormValues {
@@ -123,10 +123,11 @@ export function LessonForm({
     setErrors({});
 
     setPending(true);
-    const result = await apiFetch<unknown>(
+    const result = await apiFetchParsed(
       isEdit
         ? `/api/v1/admin/lessons/${lesson.id}`
         : `/api/v1/admin/levels/${levelId}/lessons`,
+      adminLessonSchema,
       jsonRequest(built.payload, { method: isEdit ? 'PATCH' : 'POST' }),
     );
     setPending(false);
@@ -139,9 +140,8 @@ export function LessonForm({
       return;
     }
 
-    const saved = adminLessonSchema.safeParse(result.data);
-    if (!isEdit && saved.success) {
-      router.push(`/${locale}/admin/lessons/${saved.data.id}`);
+    if (!isEdit) {
+      router.push(`/${locale}/admin/lessons/${result.data.id}`);
       router.refresh();
       return;
     }

@@ -48,7 +48,9 @@ interface Recorded {
 class MockBunny {
   readonly requests: Recorded[] = [];
   readonly videos = new Map<string, { status: number; length: number }>();
+  readonly failDeletes = new Set<string>();
   failCreate = false;
+  enforceEmbedTokens = true;
   private server: Server | undefined;
   baseUrl = '';
 
@@ -78,7 +80,9 @@ class MockBunny {
   reset(): void {
     this.requests.length = 0;
     this.videos.clear();
+    this.failDeletes.clear();
     this.failCreate = false;
+    this.enforceEmbedTokens = true;
   }
 
   calls(method: string, suffix = ''): Recorded[] {
@@ -99,6 +103,22 @@ class MockBunny {
       res.writeHead(status, { 'Content-Type': 'application/json' });
       res.end(payload === undefined ? '' : JSON.stringify(payload));
     };
+    const embed = /^\/embed\/(\d+)\/([^/?]+)(\?.*)?$/.exec(url);
+    if (embed) {
+      const guid = embed[2]!;
+      const query = new URLSearchParams(embed[3]?.slice(1) ?? '');
+      const expected = sha256(
+        `${TOKEN_KEY}${guid}${query.get('expires') ?? ''}`,
+      );
+      const authorized = query.get('token') === expected;
+      res.writeHead(200, { 'Content-Type': 'text/html' });
+      if (!authorized && this.enforceEmbedTokens) {
+        res.end('<title> 404 </title><h1>404</h1>');
+        return;
+      }
+      res.end(`<title>Player</title><video>${guid}</video><playlist>`);
+      return;
+    }
     const match = /^\/library\/(\d+)\/videos(?:\/([^/?]+))?$/.exec(url);
     if (!match) return json(404, { message: 'no route' });
     const guid = match[2];
@@ -120,6 +140,7 @@ class MockBunny {
       });
     }
     if (method === 'DELETE') {
+      if (this.failDeletes.has(guid)) return json(500, { message: 'offline' });
       if (!this.videos.delete(guid)) return json(404);
       return json(200, { success: true });
     }
@@ -133,6 +154,7 @@ interface Server4Test {
   output: () => string;
   /** Asks the server to run one reconcile pass. */
   reconcile: () => Promise<Json>;
+  retryDeletes: (now?: string) => Promise<Json>;
   stop: () => Promise<void>;
 }
 
@@ -190,6 +212,23 @@ async function bootServer(
         };
         child.on('message', listener);
         child.send({ type: 'video:reconcile', requestId });
+      }),
+    retryDeletes: (now) =>
+      new Promise<Json>((resolve, reject) => {
+        const requestId = randomUUID();
+        const listener = (message: {
+          requestId?: string;
+          type: string;
+          result?: Json;
+          error?: string;
+        }): void => {
+          if (message.requestId !== requestId) return;
+          child.off('message', listener);
+          if (message.type === 'error') reject(new Error(message.error));
+          else resolve(message.result ?? {});
+        };
+        child.on('message', listener);
+        child.send({ type: 'video:retry-deletes', requestId, now });
       }),
     stop: async () => {
       if (child.exitCode === null) {
@@ -435,6 +474,7 @@ describe('bunny video (e2e)', () => {
   }
 
   async function clean(): Promise<void> {
+    await prisma.pendingVideoDelete.deleteMany();
     await prisma.webhookEvent.deleteMany();
     await prisma.enrollment.deleteMany();
     await prisma.lesson.deleteMany();
@@ -702,6 +742,39 @@ describe('bunny video (e2e)', () => {
     expect(await asset(first.assetId)).toBeNull();
     expect(mock.calls('DELETE', first.guid)).toHaveLength(1);
     expect(mock.calls('DELETE', second.guid)).toHaveLength(0);
+    expect(mock.videos.has(first.guid)).toBe(false);
+  });
+
+  it('queues a Bunny delete after failures and clears it on a later retry', async () => {
+    const { lessonId } = await bareLesson();
+    const first = await processing(lessonId, 'one.mp4');
+    mock.videos.set(first.guid, { status: 4, length: 10 });
+    await deliver(first.guid, 3).expect(200);
+
+    const replacement = await processing(lessonId, 'two.mp4');
+    mock.videos.set(replacement.guid, { status: 4, length: 20 });
+    mock.failDeletes.add(first.guid);
+    await deliver(replacement.guid, 3).expect(200);
+
+    expect(
+      await prisma.pendingVideoDelete.findUnique({
+        where: { bunnyVideoId: first.guid },
+      }),
+    ).toMatchObject({
+      bunnyLibraryId: LIBRARY_ID,
+      attempts: 3,
+      lastError: expect.stringContaining('500'),
+    });
+    expect(mock.calls('DELETE', first.guid)).toHaveLength(3);
+
+    mock.failDeletes.delete(first.guid);
+    await api.retryDeletes(new Date(Date.now() + 16 * 60_000).toISOString());
+    expect(
+      await prisma.pendingVideoDelete.findUnique({
+        where: { bunnyVideoId: first.guid },
+      }),
+    ).toBeNull();
+    expect(mock.calls('DELETE', first.guid)).toHaveLength(4);
     expect(mock.videos.has(first.guid)).toBe(false);
   });
 
@@ -1120,8 +1193,15 @@ describe('bunny video (e2e)', () => {
       active: 'BUNNY',
       bunny: { configured: true, missing: [] },
       devOnly: false,
-      counts: { local: 0, bunny: 0, processing: 0, failed: 0 },
+      counts: {
+        local: 0,
+        bunny: 0,
+        processing: 0,
+        failed: 0,
+        pendingDeletes: 0,
+      },
       lastWebhookAt: null,
+      embedTokens: { status: 'no-video', checkedAt: null },
     });
 
     const { lessonId } = await bareLesson();
@@ -1143,7 +1223,14 @@ describe('bunny video (e2e)', () => {
       '/api/v1/admin/diagnostics/video',
     ).expect(200);
     expect(response.body).toMatchObject({
-      counts: { local: 1, bunny: 3, processing: 1, failed: 1 },
+      counts: {
+        local: 1,
+        bunny: 3,
+        processing: 1,
+        failed: 1,
+        pendingDeletes: 0,
+      },
+      embedTokens: { status: 'enforced', checkedAt: expect.any(String) },
     });
     expect(
       Date.parse((response.body as { lastWebhookAt: string }).lastWebhookAt),

@@ -13,6 +13,7 @@ import {
   Req,
   Res,
   UploadedFile,
+  UseGuards,
   UseInterceptors,
   Body,
 } from '@nestjs/common';
@@ -34,6 +35,7 @@ import {
   type StoredVideoUpload,
 } from './local-upload.storage';
 import { VideoPlaybackService } from './video-playback.service';
+import { LessonExistsGuard } from './lesson-exists.guard';
 import { VideoStreamService } from './video-stream.service';
 import { VideoService } from './video.service';
 import {
@@ -63,6 +65,7 @@ export class AdminVideoController {
   constructor(@Inject(VideoService) private readonly videos: VideoService) {}
 
   @Post('lessons/:id/videos/local')
+  @UseGuards(LessonExistsGuard)
   @UseInterceptors(
     FileInterceptor('file', {
       storage: new LocalVideoStorage(),

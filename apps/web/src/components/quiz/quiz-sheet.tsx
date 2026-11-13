@@ -17,7 +17,7 @@ import { FieldErrorMessage, FormAlert } from '@/components/auth/form-controls';
 import { AttemptResult } from '@/components/quiz/attempt-result';
 import { OptionRow } from '@/components/quiz/option-row';
 import { QuestionBody } from '@/components/quiz/question-head';
-import { apiFetch, jsonRequest } from '@/lib/api-client';
+import { apiFetchParsed, jsonRequest } from '@/lib/api-client';
 import { pick } from '@/lib/localized';
 import { numberFormat } from '@/lib/numbers';
 import {
@@ -104,8 +104,9 @@ export function QuizSheet({
     setFormError(null);
     setIssues([]);
 
-    const result = await apiFetch<unknown>(
+    const result = await apiFetchParsed(
       `/api/v1/quizzes/${quiz.id}/attempts`,
+      submitAttemptResponseSchema,
       jsonRequest({ answers: toAnswers(quiz, draft) }, { method: 'POST' }),
     );
     submitting.current = false;
@@ -132,11 +133,8 @@ export function QuizSheet({
       }
       return setFormError('generic');
     }
-    const parsed = submitAttemptResponseSchema.safeParse(result.data);
-    if (!parsed.success) return setFormError('generic');
-
     clearDraft(quiz.id);
-    setReview(reviewFromSubmit(quiz, parsed.data));
+    setReview(reviewFromSubmit(quiz, result.data));
     router.refresh();
   }
 

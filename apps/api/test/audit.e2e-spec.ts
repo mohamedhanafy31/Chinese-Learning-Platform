@@ -1086,7 +1086,7 @@ describe('audit log, admin overview and student status (e2e)', () => {
         amountMinor: 70_000,
         paidAt: new Date(Date.now() - 40 * day),
       });
-      await order(4, {
+      const refunded = await order(4, {
         userId: students[0]!.id,
         status: 'REFUNDED',
         amountMinor: 11_111,
@@ -1099,13 +1099,18 @@ describe('audit log, admin overview and student status (e2e)', () => {
       });
       await order(6, {
         userId: students[1]!.id,
-        status: 'PENDING',
+        status: 'EXPIRED',
         amountMinor: 100_000,
         expiresAt: new Date(Date.now() - 3_600_000),
       });
-      await post(`/api/v1/admin/students/${students[0]!.id}/enrollments`, {
-        levelId,
-      }).expect(201);
+      await prisma.enrollment.create({
+        data: {
+          userId: students[0]!.id,
+          levelId,
+          source: 'PURCHASE',
+          orderId: refunded.id,
+        },
+      });
       await post(`/api/v1/admin/students/${students[1]!.id}/enrollments`, {
         levelId,
       }).expect(201);
@@ -1129,10 +1134,22 @@ describe('audit log, admin overview and student status (e2e)', () => {
         revenueLast30dMinor: 155_050,
         pendingOrders: 1,
         failedCallbacksLast24h: 0,
+        refundedWithAccess: 1,
         video: { active: 'LOCAL', devOnly: false },
         payments: { available: false },
       });
       expect(Number.isInteger(response.body.revenueLast30dMinor)).toBe(true);
+      const flagged = await call(
+        admin,
+        'get',
+        '/api/v1/admin/orders?refundedWithAccess=true',
+      ).expect(200);
+      expect(flagged.body.total).toBe(1);
+      expect(flagged.body.orders[0]).toMatchObject({
+        id: refunded.id,
+        status: 'REFUNDED',
+        hasActiveAccess: true,
+      });
     });
 
     it('is all zeroes on an empty school', async () => {

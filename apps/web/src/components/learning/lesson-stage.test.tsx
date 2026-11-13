@@ -12,6 +12,8 @@ const apiFetch = vi.fn();
 vi.mock('@/lib/api-client', async (original) => ({
   ...(await original<typeof ApiClient>()),
   apiFetch: (...args: unknown[]) => apiFetch(...args),
+  apiFetchParsed: (path: string, _schema: unknown, init?: RequestInit) =>
+    apiFetch(path, init),
 }));
 vi.mock('next/navigation', () => ({
   useRouter: () => ({ refresh: vi.fn() }),

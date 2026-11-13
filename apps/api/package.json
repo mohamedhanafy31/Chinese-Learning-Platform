@@ -17,8 +17,9 @@
     "lint": "eslint src test prisma prisma.config.ts",
     "typecheck": "prisma generate && tsc --noEmit -p tsconfig.json",
     "test": "NODE_OPTIONS=--experimental-vm-modules jest --config jest.config.cjs --runInBand",
-    "pretest:integration": "DATABASE_URL=\"${DATABASE_URL_TEST:-postgresql://postgres:postgres@localhost:5433/app_test?schema=public}\" prisma migrate deploy && pnpm build",
+    "pretest:integration": "node scripts/assert-test-db.mjs && DATABASE_URL=\"${DATABASE_URL_TEST:-postgresql://postgres:postgres@localhost:5433/app_test?schema=public}\" prisma migrate deploy && pnpm build",
     "test:integration": "NODE_OPTIONS=--experimental-vm-modules jest --config jest.integration.config.cjs --runInBand",
+    "test:migration-rehearsal": "node scripts/migration-rehearsal.mjs",
     "prisma:validate": "prisma validate",
     "db:seed": "tsx prisma/seed.ts"
   },
