@@ -57,7 +57,11 @@ describe('catalog API (e2e)', () => {
       .send({ ...credentials, email })
       .expect(201);
     await prisma.user.update({ where: { email }, data: { role } });
-    await call(agent, 'post', '/api/v1/auth/login')
+    await call(
+      agent,
+      'post',
+      role === Role.ADMIN ? '/api/v1/auth/admin/login' : '/api/v1/auth/login',
+    )
       .send({ email, password: credentials.password })
       .expect(200);
     return agent;
@@ -133,6 +137,11 @@ describe('catalog API (e2e)', () => {
 
   beforeEach(async () => {
     await prisma.enrollment.deleteMany();
+    await prisma.paymentTransaction.deleteMany();
+    await prisma.order.deleteMany();
+    await prisma.quizAttempt.deleteMany();
+    await prisma.quiz.deleteMany();
+    await prisma.lessonProgress.deleteMany();
     await prisma.lesson.deleteMany();
     await prisma.level.deleteMany();
     await prisma.passwordReset.deleteMany();
@@ -367,7 +376,7 @@ describe('catalog API (e2e)', () => {
     expect(archivedTwice.body.archivedAt).toBe(archivedOnce.body.archivedAt);
   });
 
-  it('allows slug edits only before first publish and deletes only never-published rows', async () => {
+  it('keeps published slugs immutable and permanently deletes complete content trees', async () => {
     const level = await createLevel('draft-level');
     const levelId = level.id as string;
     await call(admin, 'patch', `/api/v1/admin/levels/${levelId}`)
@@ -388,38 +397,139 @@ describe('catalog API (e2e)', () => {
       .send({ slug: 'again' })
       .expect(409);
 
-    const removable = await createLevel('removable');
+    await call(admin, 'delete', `/api/v1/admin/levels/${levelId}`).expect(204);
+    expect(await prisma.level.count({ where: { id: levelId } })).toBe(0);
+
+    const studentUser = await prisma.user.findUniqueOrThrow({
+      where: { email: 'catalog-student@example.com' },
+    });
+    const seedLearningHistory = async (lessonId: string, suffix: string) => {
+      const quiz = await prisma.quiz.create({
+        data: {
+          lessonId,
+          title: { en: `Quiz ${suffix}` },
+          passingScore: 70,
+          sortOrder: 1,
+        },
+      });
+      await prisma.quizAttempt.create({
+        data: {
+          userId: studentUser.id,
+          quizId: quiz.id,
+          score: 100,
+          earnedPoints: 1,
+          totalPoints: 1,
+          passed: true,
+          snapshot: {},
+        },
+      });
+      await prisma.lessonProgress.create({
+        data: {
+          userId: studentUser.id,
+          lessonId,
+          completedAt: new Date(),
+        },
+      });
+      return quiz.id;
+    };
+
+    const lessonLevel = await createLevel('lesson-cascade');
+    const publishedLesson = await createLesson(
+      lessonLevel.id as string,
+      'Published lesson',
+    );
+    const lessonQuizId = await seedLearningHistory(
+      publishedLesson.id as string,
+      'lesson',
+    );
+    await action('lessons', publishedLesson.id as string, 'publish');
     await call(
       admin,
       'delete',
-      `/api/v1/admin/levels/${removable.id as string}`,
+      `/api/v1/admin/lessons/${publishedLesson.id as string}`,
     ).expect(204);
     expect(
-      await prisma.level.count({ where: { id: removable.id as string } }),
+      await prisma.lesson.count({ where: { id: publishedLesson.id as string } }),
+    ).toBe(0);
+    expect(await prisma.quiz.count({ where: { id: lessonQuizId } })).toBe(0);
+    expect(
+      await prisma.quizAttempt.count({ where: { quizId: lessonQuizId } }),
+    ).toBe(0);
+    expect(
+      await prisma.lessonProgress.count({
+        where: { lessonId: publishedLesson.id as string },
+      }),
     ).toBe(0);
 
-    await call(admin, 'delete', `/api/v1/admin/levels/${levelId}`)
-      .expect(409)
-      .expect(({ body }: Response) => expect(body.message).toMatch(/archive/i));
-
-    const withLessons = await createLevel('with-lessons');
-    const lesson = await createLesson(withLessons.id as string);
+    const fullLevel = await createLevel('level-cascade');
+    const nestedLesson = await createLesson(
+      fullLevel.id as string,
+      'Nested lesson',
+    );
+    const nestedQuizId = await seedLearningHistory(
+      nestedLesson.id as string,
+      'level',
+    );
+    const order = await prisma.order.create({
+      data: {
+        userId: studentUser.id,
+        levelId: fullLevel.id as string,
+        amountMinor: 100,
+        currency: 'EGP',
+        status: 'PAID',
+        specialReference: 'delete-cascade-order',
+        expiresAt: new Date(Date.now() + 60_000),
+        paidAt: new Date(),
+      },
+    });
+    await prisma.paymentTransaction.create({
+      data: {
+        orderId: order.id,
+        providerTransactionId: 'delete-cascade-transaction',
+        integrationId: 'test',
+        success: true,
+        pending: false,
+        isRefund: false,
+        isVoided: false,
+        amountMinor: 100,
+        currency: 'EGP',
+        payloadRedacted: {},
+        occurredAt: new Date(),
+      },
+    });
+    await prisma.enrollment.create({
+      data: {
+        userId: studentUser.id,
+        levelId: fullLevel.id as string,
+        source: 'PURCHASE',
+        orderId: order.id,
+      },
+    });
+    await action('lessons', nestedLesson.id as string, 'publish');
+    await action('levels', fullLevel.id as string, 'publish');
     await call(
       admin,
       'delete',
-      `/api/v1/admin/levels/${withLessons.id as string}`,
-    ).expect(409);
-
-    await action('lessons', lesson.id as string, 'publish');
-    await call(admin, 'delete', `/api/v1/admin/lessons/${lesson.id as string}`)
-      .expect(409)
-      .expect(({ body }: Response) => expect(body.message).toMatch(/archive/i));
-    const draftLesson = await createLesson(withLessons.id as string, 'Draft');
-    await call(
-      admin,
-      'delete',
-      `/api/v1/admin/lessons/${draftLesson.id as string}`,
+      `/api/v1/admin/levels/${fullLevel.id as string}`,
     ).expect(204);
+    expect(
+      await prisma.level.count({ where: { id: fullLevel.id as string } }),
+    ).toBe(0);
+    expect(await prisma.quiz.count({ where: { id: nestedQuizId } })).toBe(0);
+    expect(
+      await prisma.lessonProgress.count({
+        where: { lessonId: nestedLesson.id as string },
+      }),
+    ).toBe(0);
+    expect(await prisma.order.count({ where: { id: order.id } })).toBe(0);
+    expect(
+      await prisma.paymentTransaction.count({ where: { orderId: order.id } }),
+    ).toBe(0);
+    expect(
+      await prisma.enrollment.count({
+        where: { levelId: fullLevel.id as string },
+      }),
+    ).toBe(0);
   });
 
   it('reorders levels and lessons atomically and appends after a reorder', async () => {

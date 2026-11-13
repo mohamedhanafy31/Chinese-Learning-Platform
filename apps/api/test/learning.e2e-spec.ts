@@ -49,14 +49,18 @@ describe('learning API (e2e)', () => {
         email,
         password,
         name,
-        phone: `+2010${String(1_000_000 + phoneCounter)}`,
+        phone: `+2010${String(10_000_000 + phoneCounter)}`,
       })
       .expect(201);
     const user = await prisma.user.update({
       where: { email },
       data: { role },
     });
-    await call(agent, 'post', '/api/v1/auth/login')
+    await call(
+      agent,
+      'post',
+      role === Role.ADMIN ? '/api/v1/auth/admin/login' : '/api/v1/auth/login',
+    )
       .send({ email, password })
       .expect(200);
     return { agent, id: user.id };
@@ -475,7 +479,7 @@ describe('learning API (e2e)', () => {
     const byPhone = await call(
       admin,
       'get',
-      `/api/v1/admin/students?query=${encodeURIComponent('+2010 1000-004')}`,
+      `/api/v1/admin/students?query=${encodeURIComponent('+2010 1000-0004')}`,
     ).expect(200);
     expect(byPhone.body.students.map((s: Json) => s.name)).toEqual([
       'Carla Samir',
@@ -531,10 +535,15 @@ describe('learning API (e2e)', () => {
     const four = await seedLevel('mine-four');
     const { agent, id } = await signIn('mine@example.com', Role.STUDENT);
 
-    const empty = await call(agent, 'get', '/api/v1/me/levels')
+    const initial = await call(agent, 'get', '/api/v1/me/levels')
       .expect(200)
       .expect('Cache-Control', 'private, no-store');
-    expect(empty.body).toEqual({ levels: [] });
+    expect(initial.body.levels.map((level: Json) => level.slug)).toEqual([
+      'mine-one',
+      'mine-two',
+      'mine-three',
+      'mine-four',
+    ]);
 
     // Grant in reverse so the order must come from the level, not the grant.
     for (const level of [four, three, two, one]) {
@@ -547,7 +556,7 @@ describe('learning API (e2e)', () => {
 
     const response = await call(agent, 'get', '/api/v1/me/levels').expect(200);
     expect(keys(response.body)).toEqual(['levels']);
-    expect(response.body.levels).toHaveLength(2);
+    expect(response.body.levels).toHaveLength(3);
     expect(keys(response.body.levels[0])).toEqual(
       [
         'archived',
@@ -572,6 +581,7 @@ describe('learning API (e2e)', () => {
     ).toEqual([
       ['mine-one', 1, false, 2],
       ['mine-two', null, true, 2],
+      ['mine-four', 2, false, 2],
     ]);
     expect(response.body.levels[0]).toMatchObject({
       hanzi: '入门',
@@ -579,11 +589,13 @@ describe('learning API (e2e)', () => {
       coverImage: null,
     });
 
-    // Another student sees nothing of it.
+    // Every account sees all currently published levels.
     const { agent: other } = await signIn('other@example.com', Role.STUDENT);
     expect(
-      (await call(other, 'get', '/api/v1/me/levels').expect(200)).body,
-    ).toEqual({ levels: [] });
+      (
+        await call(other, 'get', '/api/v1/me/levels').expect(200)
+      ).body.levels.map((level: Json) => level.slug),
+    ).toEqual(['mine-one', 'mine-four']);
 
     // Full detail of an owned level, including an archived one.
     const detail = await call(agent, 'get', '/api/v1/me/levels/mine-two')
@@ -596,8 +608,8 @@ describe('learning API (e2e)', () => {
     });
     expect(detail.body.lessons.map((l: Json) => l.number)).toEqual([1, 2]);
     await call(agent, 'get', '/api/v1/me/levels/mine-three').expect(404);
-    await call(agent, 'get', '/api/v1/me/levels/mine-four').expect(404);
-    await call(other, 'get', '/api/v1/me/levels/mine-one').expect(404);
+    await call(agent, 'get', '/api/v1/me/levels/mine-four').expect(200);
+    await call(other, 'get', '/api/v1/me/levels/mine-one').expect(200);
   });
 
   it('answers per-lesson access for anonymous, students, owners and admins', async () => {
@@ -622,17 +634,13 @@ describe('learning API (e2e)', () => {
     expect(anonymous.body).toEqual({
       enrolled: false,
       lessons: [
-        { id: level.preview, access: 'preview' },
+        { id: level.preview, access: 'locked' },
         { id: level.locked, access: 'locked' },
       ],
       progress: null,
     });
     // The unpublished lesson never appears.
     expect(JSON.stringify(anonymous.body)).not.toContain(level.hidden);
-
-    expect((await accessOf(stranger, slug).expect(200)).body).toEqual(
-      anonymous.body,
-    );
 
     const ownerBody = (await accessOf(owner, slug).expect(200)).body;
     // M12: an enrolled learner sees the sequence, not `open`: the free preview
@@ -646,10 +654,11 @@ describe('learning API (e2e)', () => {
       progress: { completed: 0, total: 2, nextLessonId: level.locked },
     });
 
-    // Staff get the learner view here: no enrollment, previews and locks.
-    expect((await accessOf(admin, slug).expect(200)).body).toEqual(
-      anonymous.body,
+    // Any signed-in account gets the same sequential learning access.
+    expect((await accessOf(stranger, slug).expect(200)).body).toEqual(
+      ownerBody,
     );
+    expect((await accessOf(admin, slug).expect(200)).body).toEqual(ownerBody);
 
     // Same set and order as the public detail.
     const publicDetail = await call(
@@ -659,11 +668,9 @@ describe('learning API (e2e)', () => {
     ).expect(200);
     expect(publicDetail.body.lessons.map((l: Json) => l.id)).toEqual(ids);
 
-    // Revocation locks everything but previews again.
+    // Revocation does not remove access to a currently published level.
     await revoke(ownerId, level.id).expect(204);
-    expect((await accessOf(owner, slug).expect(200)).body).toEqual(
-      anonymous.body,
-    );
+    expect((await accessOf(owner, slug).expect(200)).body).toEqual(ownerBody);
 
     // An unpublished lesson stays hidden even for owners, until it is published.
     await grant(ownerId, level.id).expect(201);
@@ -763,7 +770,7 @@ describe('learning API (e2e)', () => {
       const body = (await withCookie(token).expect(200)).body;
       expect(body.enrolled).toBe(false);
       expect(body.lessons.map((l: Json) => l.access)).toEqual([
-        'preview',
+        'locked',
         'locked',
       ]);
     }

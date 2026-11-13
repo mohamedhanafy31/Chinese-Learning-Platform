@@ -149,8 +149,8 @@ them, in particular `NODE_ENV`, `DATABASE_URL*`, `APP_URL`, `INTERNAL_API_URL`,
 | `POSTGRES_PASSWORD`                      | `openssl rand -hex 24` (hex only: base64 characters would break the database URL) |
 | `JWT_ACCESS_SECRET`                      | `openssl rand -base64 48`                                                         |
 | `JWT_REFRESH_SECRET`                     | a **different** `openssl rand -base64 48`                                         |
-| `API_PUBLIC_ORIGIN`                      | leave **empty/unset** (Paymob webhooks are derived from `APP_URL`)                |
-| `BUNNY_*`, `PAYMOB_*`, `SMTP_*`          | provider values, **all of a group or none of it** (see below)                     |
+| `API_PUBLIC_ORIGIN`                      | leave **empty/unset** (webhook URLs are derived from `APP_URL`)                |
+| `BUNNY_*`, `SMTP_*`                      | provider values, **all of a group or none of it** (see below); leave `PAYMOB_*` empty |
 | `BACKUP_DIR`, `BACKUP_UID`, `BACKUP_GID` | see [Backups](#backups-and-restore)                                               |
 
 The API **refuses to start** (and says which variable is wrong, never its
@@ -267,20 +267,19 @@ Then reload Caddy: `dc up -d caddy` (or `dc exec caddy caddy reload --config /et
 
 ## 7. Provider webhooks (M15)
 
-Configure these with the **real domain**. Both webhook routes verify an HMAC
-signature, bypass the Origin check on purpose, and are rate-limited.
+Configure these with the **real domain**. The webhook route verifies an HMAC
+signature, bypasses the Origin check on purpose, and is rate-limited.
+
+Payments are switched off: every published level is free with an account, the
+checkout and Paymob webhook routes are not mounted, and no Paymob setup is
+needed. Past orders stay readable in the admin. Leave every `PAYMOB_*` value empty.
 
 | Provider | Where                                                                  | URL / value                                                                                 |
 | -------- | ---------------------------------------------------------------------- | ------------------------------------------------------------------------------------------- |
 | Bunny    | Stream library -> API / Webhook                                        | `https://<domain>/api/v1/webhooks/bunny`                                                    |
 | Bunny    | Library "Read-Only API key"                                            | goes into `BUNNY_WEBHOOK_SECRET` (Bunny signs webhooks with it)                             |
-| Paymob   | Integration -> "Transaction processed callback"                        | `https://<domain>/api/v1/webhooks/paymob` (Paymob appends `?hmac=...`)                      |
-| Paymob   | Integration -> "Transaction response callback" (customer redirect)     | `https://<domain>/<ar\|en\|zh>/checkout/result` (the API also sends the per-order redirect) |
-| Paymob   | Settings -> Account info -> HMAC secret                                | `PAYMOB_HMAC_SECRET`                                                                        |
-| Paymob   | Cards integration id (test first, then live), secret + public API keys | `PAYMOB_INTEGRATION_IDS`, `PAYMOB_SECRET_KEY`, `PAYMOB_PUBLIC_KEY`                          |
 
-Use Paymob **test mode** credentials first and complete the go-live checklist
-before switching to live keys. After editing `.env`, apply with
+After editing `.env`, apply with
 `dc up -d api` (recreates the API with the new environment).
 
 ## Updating and rollback
@@ -495,15 +494,13 @@ the real domain or provider accounts are the M15 work.
       referrer policy, permissions policy, no `Server`
 - [ ] Resource limits fit the VPS (`docker stats --no-stream`, no `OOMKilled`)
 
-**Payments and video**
+**Access and video**
 
-- [ ] Paymob **test mode** purchase end to end: pay with a test card, webhook
-      marks the order paid, the student is enrolled and can open the lessons
-- [ ] Paymob webhook signature verified: a request with a wrong `hmac` is rejected (401)
-- [ ] Bunny: admin uploads a video -> encode finishes -> a student with access
-      plays it; a student without access does not
+- [ ] A new account opens a published level without any payment or grant, and an
+      anonymous visitor sees only the free preview lessons
+- [ ] Bunny: admin uploads a video -> encode finishes -> a signed-in student
+      plays it; an anonymous visitor cannot open a non-preview lesson
 - [ ] Bunny webhook signature verified: an unsigned or wrongly signed request is rejected (401)
-- [ ] Paymob switched to live keys only after all of the above passed
 
 **Backups and recovery**
 
@@ -514,9 +511,9 @@ the real domain or provider accounts are the M15 work.
 
 **Content and legal**
 
-- [ ] Legal pages (terms of service, privacy policy, refund policy) and a contact
-      page/email exist and are linked from the footer. **None exist in the app
-      yet**: ask the owner for the text (needed for Paymob approval too)
+- [ ] Legal pages (terms of service, privacy policy) and a contact page/email
+      exist and are linked from the footer. **None exist in the app yet**: ask
+      the owner for the text
 - [ ] Brand name, instructor photo/bio and the syllabus/level content are final
 - [ ] SMTP configured (or password-reset email deliberately disabled and
       documented), and a reset email arrives in the inbox

@@ -15,14 +15,15 @@ const STATE_OF: Record<LessonAccess, PathState> = {
  * (DESIGN.md, Lesson Path): `done` is fired and sealed, `next` is the single
  * cinnabar row, `locked` is unfired, `preview` is a free lesson and `open` is
  * staff access. Without an access answer (anonymous fallback, or the access
- * call failed) a free preview stays a preview and every other lesson is locked.
+ * call failed), fail closed and show every lesson as locked until access can be
+ * confirmed.
  */
 export function pathStateFor(
-  lesson: { isFreePreview: boolean },
+  _lesson: { isFreePreview: boolean },
   access: LessonAccess | undefined,
 ): PathState {
   if (access) return STATE_OF[access];
-  return lesson.isFreePreview ? 'preview' : 'locked';
+  return 'locked';
 }
 
 export function accessById(

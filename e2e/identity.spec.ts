@@ -34,7 +34,7 @@ test.describe.serial('identity web', () => {
     await page
       .getByLabel('كلمة المرور', { exact: true })
       .fill(account.password);
-    await page.getByRole('button', { name: 'سجّل الدخول' }).click();
+    await page.getByRole('button', { name: 'الدخول كطالب' }).click();
     await expect(page).toHaveURL(/\/ar\/dashboard$/);
     await page.getByRole('button', { name: 'تسجيل الخروج' }).click();
     await expect(page).toHaveURL(/\/ar\/login$/);
@@ -46,7 +46,7 @@ test.describe.serial('identity web', () => {
     await page.goto('/ar/login');
     await expect(page.locator('html')).toHaveAttribute('dir', 'rtl');
     await expect(page.locator('html')).toHaveAttribute('lang', 'ar');
-    await page.getByRole('button', { name: 'سجّل الدخول' }).click();
+    await page.getByRole('button', { name: 'الدخول كطالب' }).click();
     await expect(
       page.getByText('أدخل بريداً إلكترونياً صحيحاً.'),
     ).toBeVisible();
@@ -69,7 +69,7 @@ test.describe.serial('identity web', () => {
     await page
       .getByLabel('كلمة المرور', { exact: true })
       .fill('wrong-password');
-    await page.getByRole('button', { name: 'سجّل الدخول' }).click();
+    await page.getByRole('button', { name: 'الدخول كطالب' }).click();
 
     await expect(
       page.getByRole('alert').filter({
@@ -87,7 +87,7 @@ test.describe.serial('identity web', () => {
     await page
       .getByLabel('كلمة المرور', { exact: true })
       .fill(account.password);
-    await page.getByRole('button', { name: 'سجّل الدخول' }).click();
+    await page.getByRole('button', { name: 'الدخول كطالب' }).click();
     await expect(page).toHaveURL(/\/ar\/dashboard$/);
 
     await context.clearCookies({ name: 'access_token' });
@@ -111,7 +111,7 @@ test.describe.serial('identity web', () => {
     await page
       .getByLabel('كلمة المرور', { exact: true })
       .fill(account.password);
-    await page.getByRole('button', { name: 'سجّل الدخول' }).click();
+    await page.getByRole('button', { name: 'الدخول كطالب' }).click();
     await expect(page).toHaveURL(/\/ar\/dashboard$/);
     await page.goto('/ar/admin');
     await expect(page).toHaveURL(/\/ar\/admin$/);

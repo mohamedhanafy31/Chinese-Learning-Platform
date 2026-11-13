@@ -39,3 +39,29 @@ export function safeNext(
 export function localeFallback(locale: Locale): string {
   return `/${locale}/dashboard`;
 }
+
+export function isAdminPath(value: string, locale: Locale): boolean {
+  return new RegExp(`^/${locale}/admin(?:/|$)`).test(value);
+}
+
+export function safePortalNext(
+  value: string | null | undefined,
+  locale: Locale,
+  portal: 'admin' | 'student',
+): string {
+  const fallback =
+    portal === 'admin' ? `/${locale}/admin` : localeFallback(locale);
+  const next = safeNext(value, fallback);
+  return isAdminPath(next, locale) === (portal === 'admin') ? next : fallback;
+}
+
+export function loginPathForNext(
+  locale: Locale,
+  value: string | null | undefined,
+): string {
+  const next = safeNext(value, localeFallback(locale));
+  const loginPath = isAdminPath(next, locale)
+    ? `/${locale}/admin/login`
+    : `/${locale}/login`;
+  return `${loginPath}?${new URLSearchParams({ next })}`;
+}

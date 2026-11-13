@@ -7,7 +7,7 @@ import { userResponseSchema, type Locale } from '@app/shared';
 
 import { apiFetch } from '@/lib/api-client';
 import { roleHome } from '@/lib/role-home';
-import { localeFallback, safeNext } from '@/lib/safe-next';
+import { loginPathForNext, safeNext } from '@/lib/safe-next';
 
 export function SessionRenewal({
   locale,
@@ -36,10 +36,7 @@ export function SessionRenewal({
           }
         }
 
-        const loginNext = safeNext(next, localeFallback(locale));
-        router.replace(
-          `/${locale}/login?${new URLSearchParams({ next: loginNext })}`,
-        );
+        router.replace(loginPathForNext(locale, next));
       },
     );
   }, [locale, next, router]);

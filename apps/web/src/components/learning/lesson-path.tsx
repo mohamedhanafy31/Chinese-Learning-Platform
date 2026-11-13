@@ -1,5 +1,8 @@
 import { Check, Lock, Play } from 'lucide-react';
+import Image from 'next/image';
 import Link from 'next/link';
+
+import type { ImageRef } from '@app/shared';
 
 import { Seal } from '@/components/porcelain/seal';
 
@@ -11,6 +14,7 @@ export interface PathLesson {
   title: string;
   hanzi?: string;
   meta?: string;
+  thumbnail?: ImageRef | null;
   state: PathState;
   href?: string;
   /** The lesson on screen right now (the lesson page's side list). */
@@ -45,7 +49,12 @@ export function LessonPath({
   title,
 }: LessonPathProps): React.JSX.Element {
   return (
-    <ol aria-label={title} data-reveal="path" className="relative">
+    <ol
+      aria-label={title}
+      data-reveal="path"
+      suppressHydrationWarning
+      className="relative"
+    >
       <span
         aria-hidden="true"
         data-path-spine=""
@@ -97,6 +106,19 @@ export function LessonPath({
                 />
               )}
             </span>
+
+            {lesson.thumbnail ? (
+              <span className="relative aspect-video w-16 shrink-0 overflow-hidden rounded-xl bg-glaze-shade sm:w-24 lg:w-28">
+                <Image
+                  src={lesson.thumbnail.url}
+                  alt=""
+                  width={lesson.thumbnail.width}
+                  height={lesson.thumbnail.height}
+                  unoptimized
+                  className={`size-full object-cover ${locked ? 'opacity-55' : ''}`}
+                />
+              </span>
+            ) : null}
 
             <div className="min-w-0 flex-1">
               <p

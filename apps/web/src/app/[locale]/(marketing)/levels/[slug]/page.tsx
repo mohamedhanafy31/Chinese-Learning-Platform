@@ -13,7 +13,6 @@ import {
   type PublicLevelDetail,
 } from '@app/shared';
 
-import { BuyLevel } from '@/components/billing/buy-level';
 import { LessonPath } from '@/components/learning/lesson-path';
 import { ProgressBar } from '@/components/learning/progress-bar';
 import { WriteOn } from '@/components/motion/write-on';
@@ -26,10 +25,7 @@ import { getLevelAccess, getMyLevel } from '@/lib/learning';
 import { pick } from '@/lib/localized';
 import { numberFormat } from '@/lib/numbers';
 import { toCatalogPathLessons } from '@/lib/path-lessons';
-import { formatEgp } from '@/lib/price';
 import { absoluteUrl } from '@/lib/site-url';
-import { getBillingAvailability } from '@/lib/billing';
-import { getCurrentUser } from '@/lib/session';
 import { EmptyState } from '@/components/ui/empty-state';
 
 /** What the page renders: the public detail, or an owned (maybe archived) level. */
@@ -39,12 +35,11 @@ type LevelView = Pick<
   | 'title'
   | 'summary'
   | 'topics'
-  | 'priceMinor'
   | 'coverImage'
   | 'lessonCount'
   | 'lessons'
 > &
-  Pick<MyLevelDetail, 'number'> & { id?: string };
+  Pick<MyLevelDetail, 'number'>;
 
 interface LevelPageProps {
   params: Promise<{ locale: Locale; slug: string }>;
@@ -103,11 +98,9 @@ export default async function LevelPage({
 }: LevelPageProps): Promise<React.JSX.Element> {
   const { locale, slug } = await params;
   setRequestLocale(locale);
-  const [result, access, user, paymentsAvailable] = await Promise.all([
+  const [result, access] = await Promise.all([
     getPublicLevel(slug),
     getLevelAccess(slug),
-    getCurrentUser().catch(() => null),
-    getBillingAvailability(),
   ]);
   // An archived level is gone from the public catalog but stays readable for
   // the learners who own it.
@@ -178,10 +171,6 @@ export default async function LevelPage({
     lessonAccess,
     (lessonId) => `/${locale}/learn/${slug}/${lessonId}`,
   );
-  const price =
-    level.priceMinor === null
-      ? tHome('pricePending')
-      : tHome('priceLabel', { price: formatEgp(level.priceMinor, locale) });
   const cover = level.coverImage;
 
   return (
@@ -197,8 +186,8 @@ export default async function LevelPage({
               {t('back')}
             </Link>
             <div
-              className={`mt-6 grid items-end gap-8 ${
-                cover ? 'lg:grid-cols-[minmax(0,1fr)_15rem]' : ''
+              className={`mt-6 grid items-center gap-8 ${
+                cover ? 'lg:grid-cols-[minmax(0,1fr)_20rem]' : ''
               }`}
             >
               <div
@@ -245,7 +234,7 @@ export default async function LevelPage({
                           className="size-6 shrink-0"
                           strokeWidth={2.5}
                         />
-                        {t('enrolled')}
+                        {t('accountAccess')}
                       </p>
                       <span className="max-w-[16rem] text-sm text-cobalt md:text-end lg:text-start">
                         {t('enrolledNote')}
@@ -261,36 +250,20 @@ export default async function LevelPage({
                       ) : null}
                     </>
                   ) : (
-                    <>
-                      {level.priceMinor !== null &&
-                      level.priceMinor > 0 &&
-                      level.id ? (
-                        <BuyLevel
-                          available={paymentsAvailable}
-                          levelId={level.id}
-                          levelPath={`/${locale}/levels/${slug}`}
-                          locale={locale}
-                          price={formatEgp(level.priceMinor, locale)}
-                          signedIn={user !== null}
-                        />
-                      ) : (
-                        <>
-                          <button
-                            type="button"
-                            disabled
-                            className="inline-flex min-h-14 items-center rounded-full bg-deep px-8 text-lg font-semibold text-glaze transition-colors hover:bg-cobalt disabled:cursor-not-allowed disabled:bg-wash disabled:text-cobalt"
-                          >
-                            {t('buy')}
-                          </button>
-                          <span className="text-sm text-cobalt">{price}</span>
-                          {level.priceMinor !== null ? (
-                            <span className="text-sm text-cobalt">
-                              {t('comingSoon')}
-                            </span>
-                          ) : null}
-                        </>
-                      )}
-                    </>
+                    <div className="flex max-w-[24rem] flex-col items-start gap-2 md:items-end lg:items-start">
+                      <Link
+                        href={`/${locale}/register?${new URLSearchParams({ next: `/${locale}/levels/${slug}` })}`}
+                        className="inline-flex min-h-14 items-center justify-center rounded-full bg-deep px-8 text-center text-lg font-semibold text-glaze transition-colors hover:bg-cobalt"
+                      >
+                        {t('createAccount')}
+                      </Link>
+                      <Link
+                        href={`/${locale}/login?${new URLSearchParams({ next: `/${locale}/levels/${slug}` })}`}
+                        className="inline-flex min-h-11 items-center text-sm text-cobalt underline decoration-wash-strong underline-offset-8 hover:text-deep"
+                      >
+                        {t('signIn')}
+                      </Link>
+                    </div>
                   )}
                 </div>
               </div>
@@ -298,7 +271,7 @@ export default async function LevelPage({
               {cover ? (
                 <div
                   data-testid="level-cover"
-                  className="relative hidden aspect-[4/5] w-full overflow-hidden rounded-t-full border-4 border-glaze bg-cobalt lg:block"
+                  className="relative aspect-video w-full overflow-hidden rounded-2xl bg-cobalt"
                 >
                   <Image
                     src={cover.url}
@@ -306,13 +279,13 @@ export default async function LevelPage({
                     width={cover.width}
                     height={cover.height}
                     unoptimized
-                    className="size-full object-cover opacity-90 mix-blend-luminosity"
+                    className="size-full object-cover"
                   />
                 </div>
               ) : null}
             </div>
           </div>
-          <div data-reveal="band">
+          <div data-reveal="band" suppressHydrationWarning>
             <Band kind="lotus" ink="var(--color-cobalt)" />
           </div>
         </section>

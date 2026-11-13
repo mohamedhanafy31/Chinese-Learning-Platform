@@ -65,14 +65,14 @@ describe('auditPhrase', () => {
     ).toBe('نشر المستوى «Beginner»');
   });
 
-  it('names a deleted level by its recorded slug, else by a neutral word', () => {
+  it('uses a neutral name for a deleted item', () => {
     const gone = entry({
       action: 'level.delete',
       entityLabel: null,
       data: { slug: 'beginner' },
     });
     expect(auditPhrase(translator('en'), gone, 'en')).toBe(
-      'Deleted the level “beginner”',
+      'Deleted the level “an item that no longer exists”',
     );
     expect(auditPhrase(translator('en'), { ...gone, data: {} }, 'en')).toBe(
       'Deleted the level “an item that no longer exists”',
@@ -93,7 +93,7 @@ describe('auditPhrase', () => {
   it('shows an unknown action instead of failing', () => {
     expect(
       auditPhrase(translator('en'), entry({ action: 'thing.explode' }), 'en'),
-    ).toBe('thing.explode: Beginner');
+    ).toBe('Updated Beginner');
   });
 
   it('turns action codes into message keys', () => {
@@ -130,7 +130,7 @@ describe('auditEntityHref', () => {
 });
 
 describe('auditDetails', () => {
-  it('lists changed fields with values in the reader language and EGP', () => {
+  it('lists user-facing changed fields and hides internal values', () => {
     const details = auditDetails(
       entry({
         action: 'level.update',
@@ -149,11 +149,9 @@ describe('auditDetails', () => {
       'نعم',
       'لا',
     );
-    expect(details).toHaveLength(3);
+    expect(details).toHaveLength(2);
     expect(details[0]).toEqual({ field: 'title', from: 'قديم', to: 'جديد' });
-    expect(details[1]!.from).toBe('—');
-    expect(details[1]!.to).toMatch(/[٠-٩]/);
-    expect(details[2]).toEqual({ field: 'summary', from: null, to: null });
+    expect(details[1]).toEqual({ field: 'summary', from: null, to: null });
   });
 
   it('formats booleans and tolerates malformed data', () => {

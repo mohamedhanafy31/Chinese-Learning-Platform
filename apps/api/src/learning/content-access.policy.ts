@@ -6,6 +6,7 @@ import {
   decideLevel,
   firstIncompleteLesson,
   isActiveEnrollment,
+  isLevelPubliclyVisible,
   isLevelReadableByEnrollees,
   type AccessDecision,
   type AccessEnrollment,
@@ -56,9 +57,9 @@ export class ContentAccessPolicy {
   }
 
   /**
-   * The earlier visible lesson an enrolled learner still has to complete before
-   * this one, or null. Only looked up when it can matter: an active enrollment
-   * on a live, non-preview lesson that is not the first of the level.
+   * The earlier visible lesson a learner still has to complete before this one,
+   * or null. Public levels are available to every account; active historical
+   * enrollments retain the same sequence on archived levels.
    */
   private async sequenceBlock(
     user: PublicUser | null,
@@ -78,8 +79,11 @@ export class ContentAccessPolicy {
       lesson.isFreePreview ||
       !lesson.isPublished ||
       lesson.archivedAt !== null ||
-      !isActiveEnrollment(enrollment) ||
-      !isLevelReadableByEnrollees(level)
+      !(
+        isLevelPubliclyVisible(level) ||
+        (isActiveEnrollment(enrollment) &&
+          isLevelReadableByEnrollees(level))
+      )
     ) {
       return null;
     }

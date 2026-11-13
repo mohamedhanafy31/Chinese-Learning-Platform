@@ -89,11 +89,15 @@ describe('local video (e2e)', () => {
         email,
         password,
         name: 'Video User',
-        phone: `+2010${String(2_000_000 + phoneCounter)}`,
+        phone: `+2010${String(20_000_000 + phoneCounter)}`,
       })
       .expect(201);
     const user = await prisma.user.update({ where: { email }, data: { role } });
-    await call(agent, 'post', '/api/v1/auth/login')
+    await call(
+      agent,
+      'post',
+      role === Role.ADMIN ? '/api/v1/auth/admin/login' : '/api/v1/auth/login',
+    )
       .send({ email, password })
       .expect(200);
     return { agent, id: user.id };
@@ -256,6 +260,11 @@ describe('local video (e2e)', () => {
         ...process.env,
         UPLOADS_DIR: uploadsDir,
         VIDEO_MAX_BYTES: String(VIDEO_MAX_BYTES),
+        BUNNY_LIBRARY_ID: '',
+        BUNNY_API_KEY: '',
+        BUNNY_TOKEN_KEY: '',
+        BUNNY_WEBHOOK_SECRET: '',
+        BUNNY_CDN_HOST: '',
       },
       silent: true,
     });
@@ -625,13 +634,18 @@ describe('local video (e2e)', () => {
     );
 
     withFfmpeg(
-      'deleting a never-published lesson removes its video file',
+      'deleting a published lesson removes its video file',
       async () => {
         const lessonId = await createLesson(
           await createLevel('video-up-lesson-delete'),
           'Lesson',
         );
         await uploadOk(lessonId, mp4);
+        await call(
+          admin,
+          'post',
+          `/api/v1/admin/lessons/${lessonId}/publish`,
+        ).expect(200);
         await call(admin, 'delete', `/api/v1/admin/lessons/${lessonId}`).expect(
           204,
         );
@@ -673,8 +687,10 @@ describe('local video (e2e)', () => {
       const playback = (agent: Agent | undefined, lessonId: string) =>
         call(agent, 'get', `/api/v1/lessons/${lessonId}/playback`);
 
-      // Anonymous on the free preview.
-      const free = await playback(undefined, f.preview).expect(200);
+      // A preview is free for a signed-in account, but never anonymous.
+      const previewLogin = await playback(undefined, f.preview).expect(401);
+      expect(previewLogin.body).toMatchObject({ reason: 'login-required' });
+      const free = await playback(student, f.preview).expect(200);
       expect(free.headers['cache-control']).toBe('private, no-store');
       expect(free.body).toMatchObject({
         lesson: {
@@ -692,26 +708,26 @@ describe('local video (e2e)', () => {
           durationSec: null,
         },
         poster: null,
-        progress: null,
+        progress: { complete: false, lastPositionSec: 0 },
         siblings: [
           { id: f.preview, number: 1, access: 'preview' },
-          { id: f.locked, number: 2, access: 'locked' },
+          { id: f.locked, number: 2, access: 'next' },
         ],
       });
       expect(Object.keys(free.body as Json).sort()).toEqual(
         ['level', 'lesson', 'poster', 'progress', 'siblings', 'video'].sort(),
       );
 
-      // Anonymous on a locked lesson, then signed in but not enrolled.
+      // Anonymous visitors must sign in; any account can open the lesson.
       const login = await playback(undefined, f.locked).expect(401);
       expect(login.body).toMatchObject({ reason: 'login-required' });
       expect(login.headers['cache-control']).toBe('private, no-store');
-      const notEnrolled = await playback(student, f.locked).expect(403);
-      expect(notEnrolled.body).toMatchObject({
-        reason: 'not-enrolled',
-        levelSlug: f.slug,
+      const accountAccess = await playback(student, f.locked).expect(200);
+      expect(accountAccess.body).toMatchObject({
+        lesson: { id: f.locked },
+        video: { src: `/api/v1/videos/${f.lockedAsset}/stream` },
       });
-      expect(notEnrolled.headers['cache-control']).toBe('private, no-store');
+      expect(accountAccess.headers['cache-control']).toBe('private, no-store');
 
       // Unpublished lessons are a 404 for everyone but staff.
       await playback(undefined, f.hidden).expect(404);
@@ -722,7 +738,7 @@ describe('local video (e2e)', () => {
       const staff = await playback(admin, f.hidden).expect(200);
       expect(staff.body).toMatchObject({ lesson: { id: f.hidden, number: 3 } });
 
-      // Enrolled, then revoked.
+      // Historical enrollment changes do not alter access to a public level.
       await call(
         admin,
         'post',
@@ -750,15 +766,19 @@ describe('local video (e2e)', () => {
       )
         .send({})
         .expect(204);
-      await playback(student, f.locked).expect(403);
+      await playback(student, f.locked).expect(200);
     });
 
     withFfmpeg(
       'answers 404 no-video, with the lesson text, when nothing is attached',
       async () => {
         const base = await seed('video-novideo');
+        const { agent: student } = await signIn(
+          'no-video-student@example.com',
+          Role.STUDENT,
+        );
         const response = await call(
-          undefined,
+          student,
           'get',
           `/api/v1/lessons/${base.preview}/playback`,
         ).expect(404);
@@ -779,16 +799,18 @@ describe('local video (e2e)', () => {
         Role.STUDENT,
       );
 
-      // Free preview: anonymous gets 200 and 206.
-      const full = await streamOf(undefined, f.previewAsset).expect(200);
+      // Free preview: login is required, but enrollment is not.
+      await streamOf(undefined, f.previewAsset).expect(401);
+      await streamOf(undefined, f.previewAsset, 'head').expect(401);
+      const full = await streamOf(student, f.previewAsset).expect(200);
       expect(full.body).toEqual(mp4);
-      await streamOf(undefined, f.previewAsset, 'get', 'bytes=0-9').expect(206);
+      await streamOf(student, f.previewAsset, 'get', 'bytes=0-9').expect(206);
 
-      // Locked: 401 anonymous, 403 not enrolled.
+      // Locked: anonymous visitors sign in; any account can stream it.
       await streamOf(undefined, f.lockedAsset).expect(401);
       await streamOf(undefined, f.lockedAsset, 'head').expect(401);
-      await streamOf(student, f.lockedAsset).expect(403);
-      await streamOf(student, f.lockedAsset, 'get', 'bytes=0-9').expect(403);
+      await streamOf(student, f.lockedAsset).expect(200);
+      await streamOf(student, f.lockedAsset, 'get', 'bytes=0-9').expect(206);
 
       // Enrolled: ranges work.
       await call(
@@ -807,7 +829,7 @@ describe('local video (e2e)', () => {
       expect(part.body).toEqual(webm.subarray(0, 10));
       expect(part.headers['content-type']).toBe('video/webm');
 
-      // Revoked: refused again on the very next request.
+      // Revocation does not remove access to a public level.
       await call(
         admin,
         'delete',
@@ -815,7 +837,7 @@ describe('local video (e2e)', () => {
       )
         .send({})
         .expect(204);
-      await streamOf(student, f.lockedAsset, 'get', 'bytes=0-9').expect(403);
+      await streamOf(student, f.lockedAsset, 'get', 'bytes=0-9').expect(206);
 
       // Unpublished: only the admin.
       await streamOf(undefined, f.hiddenAsset).expect(404);
@@ -868,8 +890,12 @@ describe('local video (e2e)', () => {
           path.join(videosDir, 'processing.mp4'),
         );
 
-        await streamOf(undefined, stale.id).expect(404);
-        await streamOf(undefined, processing.id).expect(404);
+        const { agent: student } = await signIn(
+          'inactive-video-student@example.com',
+          Role.STUDENT,
+        );
+        await streamOf(student, stale.id).expect(404);
+        await streamOf(student, processing.id).expect(404);
         await streamOf(admin, processing.id).expect(404);
         expect((await streamOf(admin, stale.id).expect(200)).body).toEqual(mp4);
       },
@@ -880,17 +906,25 @@ describe('local video (e2e)', () => {
       async () => {
         const f = await seedWithVideos('video-missing');
         await rm(path.join(videosDir, `${f.previewAsset}.mp4`));
-        await streamOf(undefined, f.previewAsset).expect(404);
+        const { agent: student } = await signIn(
+          'missing-video-student@example.com',
+          Role.STUDENT,
+        );
+        await streamOf(student, f.previewAsset).expect(404);
       },
     );
 
     withFfmpeg('implements Range, HEAD and the 416 headers', async () => {
       const f = await seedWithVideos('video-range');
+      const { agent: student } = await signIn(
+        'range-video-student@example.com',
+        Role.STUDENT,
+      );
       const size = mp4.length;
       const get = (range?: string) =>
-        streamOf(undefined, f.previewAsset, 'get', range);
+        streamOf(student, f.previewAsset, 'get', range);
       const head = (range?: string) =>
-        streamOf(undefined, f.previewAsset, 'head', range);
+        streamOf(student, f.previewAsset, 'head', range);
 
       const headers = {
         'accept-ranges': 'bytes',

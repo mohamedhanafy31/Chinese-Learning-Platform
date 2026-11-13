@@ -23,6 +23,13 @@ export const Role = {
 
 export type Role = (typeof Role)[keyof typeof Role];
 
+export const AuthPortal = {
+  ADMIN: 'admin',
+  STUDENT: 'student',
+} as const;
+
+export type AuthPortal = (typeof AuthPortal)[keyof typeof AuthPortal];
+
 export const publicUserSchema = z.object({
   id: z.uuid(),
   email: z.email(),
@@ -50,11 +57,12 @@ export const phoneSchema = z
       ? `+${compact.slice(2)}`
       : compact;
 
-    return /^01[0125]\d{8}$/.test(international)
-      ? `+20${international.slice(1)}`
-      : international;
+    if (/^01[0125]\d{8}$/.test(international)) {
+      return `+20${international.slice(1)}`;
+    }
+    return international;
   })
-  .pipe(z.string().regex(/^\+[1-9]\d{7,14}$/));
+  .pipe(z.string().regex(/^\+201[0125]\d{8}$/));
 
 export const registerRequestSchema = z.object({
   email: emailSchema,
@@ -71,6 +79,7 @@ export const loginRequestSchema = z.object({
 export const forgotPasswordRequestSchema = z.object({
   email: emailSchema,
   locale: z.enum(Locale).default(Locale.AR),
+  portal: z.enum(AuthPortal).default(AuthPortal.STUDENT),
 });
 
 export const resetPasswordRequestSchema = z.object({
@@ -130,7 +139,7 @@ const hanziSchema = z
 export const priceMinorSchema = z
   .number()
   .int()
-  .min(0)
+  .min(1)
   .max(MAX_PRICE_MINOR)
   .nullable();
 

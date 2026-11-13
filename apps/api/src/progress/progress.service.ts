@@ -116,12 +116,7 @@ export class ProgressService {
           videoCompletedAt,
         };
       }
-      // A lesson with neither a video nor a quiz completes when an enrolled
-      // learner's lesson page reports that it was opened (an explicit POST
-      // from the browser, never a GET that a link prefetch could trigger).
-      const complete =
-        this.isComplete(state, context, passed) ||
-        (decision.reason === 'enrolled' && hasNoRequirements(context));
+      const complete = this.isComplete(state, context, passed);
       if (complete && current.completedAt === null) patch.completedAt = now;
       return tx.lessonProgress.update({
         where: { userId_lessonId: { userId: user.id, lessonId } },
@@ -276,14 +271,12 @@ export class ProgressService {
     const quizzes = context.quizIds.map((_, index) => ({
       passed: index < passed,
     }));
-    // A lesson with neither a video nor a quiz is only completed by an
-    // enrolled learner's opening report (see `report`), never here.
-    if (hasNoRequirements(context)) return false;
+    const duration = row.durationSec ?? context.assetDuration ?? 0;
     return isLessonComplete({
+      hasVideo: context.hasVideo,
       // Once the video was fully watched it stays satisfied.
-      hasVideo: context.hasVideo && row.videoCompletedAt === null,
-      videoCovered: row.watchedSec,
-      duration: row.durationSec ?? context.assetDuration ?? 0,
+      videoCovered: row.videoCompletedAt ? duration : row.watchedSec,
+      duration,
       quizzes,
     });
   }
@@ -371,12 +364,4 @@ export function continueAfter(
     new Set(lessons.filter((lesson) => lesson.isFreePreview).map((l) => l.id)),
   ).find(({ state }) => state === 'next');
   return next && next.id !== lessonId ? next.id : null;
-}
-
-/** Neither a video nor a live quiz: nothing to watch or pass. */
-function hasNoRequirements(context: {
-  hasVideo: boolean;
-  quizIds: readonly string[];
-}): boolean {
-  return !context.hasVideo && context.quizIds.length === 0;
 }

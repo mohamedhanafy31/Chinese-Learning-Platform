@@ -5,7 +5,6 @@ import { notFound } from 'next/navigation';
 import {
   adminOrderDetailSchema,
   adminOrdersResponseSchema,
-  billingAvailabilitySchema,
   billingReportSchema,
   orderSummarySchema,
   ownOrdersResponseSchema,
@@ -24,16 +23,6 @@ async function getJson(path: string): Promise<Response | null> {
   } catch {
     return null;
   }
-}
-
-/** Public readiness only; false also covers a temporarily unreachable API. */
-export async function getBillingAvailability(): Promise<boolean> {
-  const response = await getJson('/api/v1/billing/availability');
-  if (!response?.ok) return false;
-  const parsed = billingAvailabilitySchema.safeParse(
-    await response.json().catch(() => null),
-  );
-  return parsed.success && parsed.data.available;
 }
 
 export async function getOrder(id: string): Promise<OrderSummary> {

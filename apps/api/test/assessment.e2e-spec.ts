@@ -58,11 +58,15 @@ describe('assessment API (e2e)', () => {
         email,
         password,
         name: 'Assessment User',
-        phone: `+2011${String(1_000_000 + phoneCounter)}`,
+        phone: `+2011${String(10_000_000 + phoneCounter)}`,
       })
       .expect(201);
     const user = await prisma.user.update({ where: { email }, data: { role } });
-    await call(agent, 'post', '/api/v1/auth/login')
+    await call(
+      agent,
+      'post',
+      role === Role.ADMIN ? '/api/v1/auth/admin/login' : '/api/v1/auth/login',
+    )
       .send({ email, password })
       .expect(200);
     return { agent, id: user.id };
@@ -506,9 +510,7 @@ describe('assessment API (e2e)', () => {
       `/api/v1/admin/questions/${used.questions[0]!.id}`,
     ).expect(404);
 
-    // A lesson that still has quizzes cannot be deleted.
-    await call(admin, 'delete', `/api/v1/admin/lessons/${locked}`).expect(409);
-    // Archiving the quiz is the way out.
+    // Direct quiz deletion preserves attempt history; archiving is the way out.
     await call(
       admin,
       'post',
@@ -749,25 +751,13 @@ describe('assessment API (e2e)', () => {
     );
     await grant(memberId, level.levelId);
 
-    // Anonymous: the free preview can be listed and read, never attempted.
-    const anonList = await call(
+    // A preview is free after login; anonymous visitors cannot read it.
+    await call(
       undefined,
       'get',
       `/api/v1/lessons/${level.preview}/quizzes`,
-    )
-      .expect(200)
-      .expect('Cache-Control', 'private, no-store');
-    expect(anonList.body.quizzes).toHaveLength(1);
-    expect(anonList.body.quizzes[0]).toMatchObject({
-      id: preview.id,
-      questionCount: 3,
-      totalPoints: 4,
-      best: null,
-      attempts: 0,
-    });
-    await call(undefined, 'get', `/api/v1/quizzes/${preview.id}`)
-      .expect(200)
-      .expect('Cache-Control', 'private, no-store');
+    ).expect(401);
+    await call(undefined, 'get', `/api/v1/quizzes/${preview.id}`).expect(401);
     await attempt(undefined, preview.id, allCorrect(preview)).expect(401);
     await call(
       undefined,
@@ -792,18 +782,14 @@ describe('assessment API (e2e)', () => {
     expect(locked401.body.reason).toBe('login-required');
     await attempt(undefined, lockedQuiz.id, allCorrect(lockedQuiz)).expect(401);
 
-    // Signed in without enrollment: 403 naming the level, except on the preview.
-    const forbidden = await call(
+    // Every signed-in account can read and attempt quizzes on a public level.
+    await call(
       outsider,
       'get',
       `/api/v1/lessons/${level.locked}/quizzes`,
-    ).expect(403);
-    expect(forbidden.body).toMatchObject({
-      reason: 'not-enrolled',
-      levelSlug: 'access-matrix',
-    });
-    await call(outsider, 'get', `/api/v1/quizzes/${lockedQuiz.id}`).expect(403);
-    await attempt(outsider, lockedQuiz.id, allCorrect(lockedQuiz)).expect(403);
+    ).expect(200);
+    await call(outsider, 'get', `/api/v1/quizzes/${lockedQuiz.id}`).expect(200);
+    await attempt(outsider, lockedQuiz.id, allCorrect(lockedQuiz)).expect(201);
     await attempt(outsider, preview.id, allCorrect(preview)).expect(201);
 
     // Enrolled: full access.
@@ -826,7 +812,7 @@ describe('assessment API (e2e)', () => {
     // ...but admins see everything.
     await call(admin, 'get', `/api/v1/quizzes/${hiddenQuiz.id}`).expect(200);
 
-    // Revoked: 403 again, but the student's own history stays readable.
+    // Revocation does not remove access to a public level, and history remains.
     const made = await attempt(
       member,
       lockedQuiz.id,
@@ -839,10 +825,10 @@ describe('assessment API (e2e)', () => {
     )
       .send({})
       .expect(204);
-    await call(member, 'get', `/api/v1/quizzes/${lockedQuiz.id}`).expect(403);
-    await attempt(member, lockedQuiz.id, allCorrect(lockedQuiz)).expect(403);
+    await call(member, 'get', `/api/v1/quizzes/${lockedQuiz.id}`).expect(200);
+    await attempt(member, lockedQuiz.id, allCorrect(lockedQuiz)).expect(201);
     await call(member, 'get', `/api/v1/lessons/${level.locked}/quizzes`).expect(
-      403,
+      200,
     );
     await call(
       member,
@@ -854,7 +840,7 @@ describe('assessment API (e2e)', () => {
       'get',
       `/api/v1/quizzes/${lockedQuiz.id}/attempts`,
     ).expect(200);
-    expect(history.body.attempts).toHaveLength(2);
+    expect(history.body.attempts).toHaveLength(3);
   });
 
   it('hides archived and empty quizzes from students', async () => {
@@ -892,6 +878,10 @@ describe('assessment API (e2e)', () => {
 
   it('never leaks isCorrect or explanations in the quiz-taking payload', async () => {
     const level = await seedLevel('no-leak');
+    const { agent: student } = await signIn(
+      'no-leak-student@example.com',
+      Role.STUDENT,
+    );
     const imageId = await seedImage();
     const quizId = await createQuiz(level.preview);
     await addQuestion(quizId, singleBody({ imageId })).expect(201);
@@ -899,7 +889,7 @@ describe('assessment API (e2e)', () => {
     await addQuestion(quizId, trueFalseBody()).expect(201);
 
     const response = await call(
-      undefined,
+      student,
       'get',
       `/api/v1/quizzes/${quizId}`,
     ).expect(200);
@@ -938,7 +928,7 @@ describe('assessment API (e2e)', () => {
 
     // The list never carries them either.
     const list = await call(
-      undefined,
+      student,
       'get',
       `/api/v1/lessons/${level.preview}/quizzes`,
     ).expect(200);

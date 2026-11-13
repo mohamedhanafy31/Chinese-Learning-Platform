@@ -16,7 +16,7 @@ export function auditMessageKey(action: string): string {
 
 /**
  * The name an entry is about, in the reader's language. A deleted entity has
- * no label, so a level's slug (kept in the row) or a neutral word stands in.
+ * no label, so a neutral word stands in without exposing internal identifiers.
  */
 export function auditEntityName(
   t: AuditTranslator,
@@ -24,8 +24,6 @@ export function auditEntityName(
   locale: Locale,
 ): string {
   if (entry.entityLabel) return pick(entry.entityLabel, locale);
-  const slug = entry.data.slug;
-  if (typeof slug === 'string' && slug) return slug;
   return t('removedItem');
 }
 
@@ -39,7 +37,7 @@ export function auditPhrase(
   const key = `actions.${auditMessageKey(entry.action)}`;
   return t.has(key)
     ? t(key, { name })
-    : t('actions.unknown', { action: entry.action, name });
+    : t('actions.unknown', { name });
 }
 
 /** The admin page of the entity, when it still exists and has one. */
@@ -103,9 +101,16 @@ export function auditDetails(
   yes: string,
   no: string,
 ): AuditDetail[] {
+  const hiddenFields = new Set([
+    'slug',
+    'priceMinor',
+    'coverImageId',
+    'thumbnailId',
+  ]);
   const changed = Array.isArray(entry.data.changed)
     ? entry.data.changed.filter(
-        (item): item is string => typeof item === 'string',
+        (item): item is string =>
+          typeof item === 'string' && !hiddenFields.has(item),
       )
     : [];
   const values =

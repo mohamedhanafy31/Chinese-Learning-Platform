@@ -105,7 +105,7 @@ test.describe
       extraHTTPHeaders: { origin: webUrl },
     });
     const login = await withRetry(() =>
-      admin.post('/api/v1/auth/login', {
+      admin.post('/api/v1/auth/admin/login', {
         data: {
           email: process.env.E2E_ADMIN_EMAIL ?? '',
           password: process.env.E2E_ADMIN_PASSWORD ?? '',
@@ -183,15 +183,7 @@ test.describe
       }),
     );
     expect(registered.status()).toBe(201);
-    const studentId = ((await registered.json()) as { user: { id: string } })
-      .user.id;
-    expect(
-      (
-        await admin.post(`/api/v1/admin/students/${studentId}/enrollments`, {
-          data: { levelId },
-        })
-      ).status(),
-    ).toBe(201);
+    // No grant: every published level is open to a signed-in account.
 
     adminContext = await browser.newContext({
       baseURL: webUrl,
@@ -323,13 +315,15 @@ test.describe
   });
 
   test('the dashboard offers Continue, then Level complete after lesson two', async () => {
+    // Every published level is on the dashboard now; look at this one.
+    const card = page.locator(`[data-level="${slug}"]`);
     await open(page, '/ar/dashboard', () =>
-      expect(page.getByTestId('continue-lesson')).toBeVisible({
+      expect(card.getByTestId('continue-lesson')).toBeVisible({
         timeout: 3000,
       }),
     );
-    await expect(page.getByTestId('level-count')).toContainText('أكملت ١ من ٢');
-    const next = page.getByTestId('continue-lesson');
+    await expect(card.getByTestId('level-count')).toContainText('أكملت ١ من ٢');
+    const next = card.getByTestId('continue-lesson');
     await expect(next).toContainText(`تابع: ${lessonTwo}`);
     await expect(next).toHaveAttribute(
       'href',
@@ -346,12 +340,12 @@ test.describe
     await expect(complete.getByRole('link')).toHaveCount(0);
 
     await open(page, '/ar/dashboard', () =>
-      expect(page.getByTestId('level-complete')).toBeVisible({ timeout: 3000 }),
+      expect(card.getByTestId('level-complete')).toBeVisible({ timeout: 3000 }),
     );
-    await expect(page.getByTestId('level-complete')).toContainText(
+    await expect(card.getByTestId('level-complete')).toContainText(
       'اكتمل المستوى',
     );
-    await expect(page.getByTestId('continue-lesson')).toHaveCount(0);
-    await expect(page.getByTestId('level-count')).toContainText('أكملت ٢ من ٢');
+    await expect(card.getByTestId('continue-lesson')).toHaveCount(0);
+    await expect(card.getByTestId('level-count')).toContainText('أكملت ٢ من ٢');
   });
 });

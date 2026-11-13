@@ -35,45 +35,6 @@ const first = (value: string | string[] | undefined): string =>
 
 const DATE = /^\d{4}-\d{2}-\d{2}$/;
 
-const ACTION_CODES = [
-  'level.create',
-  'level.update',
-  'level.publish',
-  'level.unpublish',
-  'level.archive',
-  'level.unarchive',
-  'level.delete',
-  'level.reorder',
-  'lesson.create',
-  'lesson.update',
-  'lesson.free_preview',
-  'lesson.publish',
-  'lesson.unpublish',
-  'lesson.archive',
-  'lesson.unarchive',
-  'lesson.delete',
-  'lesson.reorder',
-  'image.upload',
-  'video.upload_local',
-  'video.upload_bunny',
-  'video.remove',
-  'quiz.create',
-  'quiz.update',
-  'quiz.archive',
-  'quiz.restore',
-  'quiz.delete',
-  'quiz.reorder',
-  'question.create',
-  'question.update',
-  'question.delete',
-  'question.reorder',
-  'enrollment.grant',
-  'enrollment.revoke',
-  'enrollment.reactivate',
-  'student.deactivate',
-  'student.reactivate',
-];
-
 export default async function AdminAuditPage({
   params,
   searchParams,
@@ -95,7 +56,6 @@ export default async function AdminAuditPage({
     entity: first(raw.entity),
     entityId: first(raw.entityId),
     actor: first(raw.actor),
-    action: first(raw.action),
     from: DATE.test(from) ? from : '',
     to: DATE.test(to) ? to : '',
   };
@@ -149,34 +109,6 @@ export default async function AdminAuditPage({
               </option>
             ))}
           </select>
-        </div>
-        <div>
-          <label
-            htmlFor="audit-action"
-            className="mb-2 block text-sm font-semibold text-deep"
-          >
-            {t('action')}
-          </label>
-          <input
-            id="audit-action"
-            name="action"
-            type="text"
-            list="audit-actions"
-            dir="ltr"
-            defaultValue={filters.action}
-            maxLength={200}
-            autoComplete="off"
-            aria-describedby="audit-action-helper"
-            className={inputClass}
-          />
-          <datalist id="audit-actions">
-            {ACTION_CODES.map((code) => (
-              <option key={code} value={code} />
-            ))}
-          </datalist>
-          <p id="audit-action-helper" className="mt-2 text-sm text-cobalt">
-            {t('actionHelper')}
-          </p>
         </div>
         <div>
           <label

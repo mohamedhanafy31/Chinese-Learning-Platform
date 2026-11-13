@@ -7,7 +7,7 @@ import type { Locale } from '@app/shared';
 import { LogoutButton } from '@/components/auth/logout-button';
 import { Notice } from '@/components/ui/notice';
 import { getAdminOverview } from '@/lib/admin-api';
-import { overviewStats, overviewWarnings } from '@/lib/overview-format';
+import { overviewStats } from '@/lib/overview-format';
 import { requireUser } from '@/lib/protected-session';
 
 export async function generateMetadata({
@@ -23,8 +23,6 @@ export async function generateMetadata({
 const quickLinks = [
   { key: 'levels', path: 'levels' },
   { key: 'students', path: 'students' },
-  { key: 'orders', path: 'orders' },
-  { key: 'diagnostics', path: 'settings/diagnostics' },
   { key: 'audit', path: 'audit' },
 ] as const;
 
@@ -41,7 +39,6 @@ export default async function AdminPage({
   const tNav = await getTranslations('Admin.nav');
   const overview = await getAdminOverview();
   const stats = overview ? overviewStats(overview, locale) : [];
-  const warnings = overview ? overviewWarnings(overview) : [];
 
   return (
     <section className="mx-auto max-w-[1100px] px-4 py-20 sm:px-8 lg:py-24">
@@ -51,19 +48,6 @@ export default async function AdminPage({
       <p className="mt-5 max-w-[34rem] text-lg leading-[1.8] text-cobalt">
         {t('intro')}
       </p>
-
-      {warnings.length > 0 ? (
-        <div className="mt-10 grid max-w-[44rem] gap-4">
-          {warnings.map((warning) => (
-            <Notice
-              key={warning}
-              title={tOverview(`warnings.${warning}.title`)}
-            >
-              {tOverview(`warnings.${warning}.body`)}
-            </Notice>
-          ))}
-        </div>
-      ) : null}
 
       <h2 className="mt-14 text-xl font-semibold text-deep">
         {tOverview('title')}
@@ -116,6 +100,7 @@ export default async function AdminPage({
       <div className="mt-12">
         <LogoutButton
           locale={locale}
+          portal="admin"
           label={t('logout')}
           pendingLabel={t('loggingOut')}
           errorLabel={t('logoutError')}

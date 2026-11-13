@@ -42,7 +42,11 @@ export async function AuthShell({
       </section>
 
       <aside className="relative hidden min-h-[42rem] overflow-hidden rounded-2xl bg-deep px-12 py-16 text-glaze lg:flex lg:flex-col lg:items-center lg:justify-center">
-        <span data-reveal="seal" style={{ '--reveal-delay': '200ms' } as React.CSSProperties}>
+        <span
+          data-reveal="seal"
+          suppressHydrationWarning
+          style={{ '--reveal-delay': '200ms' } as React.CSSProperties}
+        >
           <Seal size={120} />
         </span>
         <p

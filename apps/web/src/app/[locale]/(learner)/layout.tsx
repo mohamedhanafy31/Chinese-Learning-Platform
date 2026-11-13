@@ -1,4 +1,4 @@
-import type { Locale } from '@app/shared';
+import { Role, type Locale } from '@app/shared';
 
 import { SiteFooter } from '@/components/site-footer';
 import { SiteHeader } from '@/components/site-header';
@@ -13,7 +13,7 @@ export default async function LearnerLayout({
 }): Promise<React.JSX.Element> {
   const { locale: localeValue } = await params;
   const locale = localeValue as Locale;
-  await requireUser(locale, `/${locale}/dashboard`);
+  await requireUser(locale, `/${locale}/dashboard`, Role.STUDENT);
 
   return (
     <div className="flex min-h-dvh flex-col bg-glaze">

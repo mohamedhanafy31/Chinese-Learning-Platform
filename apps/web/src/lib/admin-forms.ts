@@ -11,20 +11,15 @@ import {
   isLocalizedInputBlank,
   type LocalizedInput,
 } from '@/lib/localized';
-import { parsePriceInput } from '@/lib/price';
 
 export type FieldErrorCode =
   | 'required'
   | 'tooLong'
   | 'invalid'
   | 'slugInvalid'
-  | 'hanziTooLong'
-  | 'priceInvalid'
-  | 'priceDecimals'
-  | 'priceSeparator'
-  | 'priceTooLarge';
+  | 'hanziTooLong';
 
-/** Keys look like "slug", "title.en", "topics.2.en", "price". */
+/** Keys look like "slug", "title.en", "topics.2.en". */
 export type FieldErrors = Record<string, FieldErrorCode>;
 
 export interface TopicRow extends LocalizedInput {
@@ -37,7 +32,6 @@ export interface LevelFormValues {
   title: LocalizedInput;
   summary: LocalizedInput;
   topics: TopicRow[];
-  price: string;
   coverImageId: string | null;
 }
 
@@ -75,24 +69,15 @@ function toErrors(issues: Issue[], hanziBlank: boolean): FieldErrors {
   return errors;
 }
 
-const priceReason = {
-  invalid: 'priceInvalid',
-  decimals: 'priceDecimals',
-  separator: 'priceSeparator',
-  'too-large': 'priceTooLarge',
-} as const;
-
 /**
  * Validates the level form with the same shared schema the API uses, so the
- * client and server can never disagree about what a valid level is. The price
- * is converted from EGP text to piasters by string parsing.
+ * client and server can never disagree about what a valid level is. Levels
+ * are free to every account, so the form never sends a price.
  */
 export function buildLevelPayload(
   values: LevelFormValues,
 ): BuildResult<CreateLevelRequest> {
   const errors: FieldErrors = {};
-  const price = parsePriceInput(values.price);
-  if (!price.ok) errors.price = priceReason[price.reason];
 
   if (values.topics.length > MAX_LEVEL_TOPICS) errors.topics = 'tooLong';
   const topics = values.topics
@@ -105,7 +90,6 @@ export function buildLevelPayload(
     title: fromLocalizedInput(values.title),
     summary: fromLocalizedInput(values.summary),
     topics,
-    priceMinor: price.ok ? price.minor : null,
     coverImageId: values.coverImageId,
   });
 

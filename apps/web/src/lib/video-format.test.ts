@@ -1,6 +1,12 @@
 import { describe, expect, it } from 'vitest';
 
-import { formatDuration, formatFileSize, formatPercent } from './video-format';
+import {
+  formatDuration,
+  formatFileSize,
+  formatPercent,
+  formatPlaybackRate,
+  formatVideoQuality,
+} from './video-format';
 
 describe('formatDuration', () => {
   it('formats minutes and seconds', () => {
@@ -25,6 +31,15 @@ describe('formatDuration', () => {
   it('treats invalid input as zero', () => {
     expect(formatDuration(Number.NaN, 'en')).toBe('0:00');
     expect(formatDuration(-4, 'en')).toBe('0:00');
+  });
+});
+
+describe('player setting values', () => {
+  it('localizes speed and quality digits', () => {
+    expect(formatPlaybackRate(1.25, 'en')).toBe('1.25×');
+    expect(formatPlaybackRate(1.25, 'ar')).toBe('١٫٢٥×');
+    expect(formatVideoQuality(1080, 'en')).toBe('1080p');
+    expect(formatVideoQuality(1080, 'ar')).toBe('١٠٨٠p');
   });
 });
 

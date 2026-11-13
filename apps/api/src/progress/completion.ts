@@ -25,8 +25,7 @@ export function watchedPercent(covered: number, duration: number): number {
 /**
  * The completion rule: the video is at least 90 % watched AND every live quiz
  * has a passing attempt. A lesson without a video needs only its quizzes, one
- * without quizzes only its video. With neither it is complete by definition;
- * the service only applies that when an enrolled learner opens the lesson.
+ * without quizzes only its video. An empty lesson is never complete.
  */
 export function isLessonComplete({
   hasVideo,
@@ -34,6 +33,7 @@ export function isLessonComplete({
   duration,
   quizzes,
 }: CompletionInput): boolean {
+  if (!hasVideo && quizzes.length === 0) return false;
   const videoDone = !hasVideo || isVideoWatched(videoCovered, duration);
   return videoDone && quizzes.every((quiz) => quiz.passed);
 }

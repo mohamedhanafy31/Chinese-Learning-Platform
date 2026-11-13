@@ -13,11 +13,13 @@ export function LogoutButton({
   label,
   locale,
   pendingLabel,
+  portal = 'student',
 }: {
   errorLabel: string;
   label: string;
   locale: Locale;
   pendingLabel: string;
+  portal?: 'admin' | 'student';
 }): React.JSX.Element {
   const router = useRouter();
   const [pending, setPending] = useState(false);
@@ -27,15 +29,24 @@ export function LogoutButton({
     if (pending) return;
     setPending(true);
     setFailed(false);
-    const result = await apiFetch<void>('/api/v1/auth/logout', {
+    // Revoke server-side first: the browser sends the path-scoped refresh
+    // cookie only to the API, even when the access token has expired. Then
+    // expire both cookies locally so logout also works if the API is down.
+    const revoked = await apiFetch<void>('/api/v1/auth/logout', {
+      method: 'POST',
+      signal: AbortSignal.timeout(2_500),
+    });
+    const cleared = await apiFetch<void>('/api/auth/logout', {
       method: 'POST',
     });
-    if (!result.ok) {
+    if (!revoked.ok && !cleared.ok) {
       setFailed(true);
       setPending(false);
       return;
     }
-    router.replace(`/${locale}/login`);
+    router.replace(
+      portal === 'admin' ? `/${locale}/admin/login` : `/${locale}/login`,
+    );
     router.refresh();
   };
 

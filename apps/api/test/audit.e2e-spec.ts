@@ -54,11 +54,15 @@ describe('audit log, admin overview and student status (e2e)', () => {
         email,
         password,
         name,
-        phone: `+2010${String(2_000_000 + phoneCounter)}`,
+        phone: `+2010${String(20_000_000 + phoneCounter)}`,
       })
       .expect(201);
     const user = await prisma.user.update({ where: { email }, data: { role } });
-    await call(agent, 'post', '/api/v1/auth/login')
+    await call(
+      agent,
+      'post',
+      role === Role.ADMIN ? '/api/v1/auth/admin/login' : '/api/v1/auth/login',
+    )
       .send({ email, password })
       .expect(200);
     return { agent, id: user.id };
@@ -631,7 +635,6 @@ describe('audit log, admin overview and student status (e2e)', () => {
       title: { en: 'Again' },
       summary: { en: 'S' },
     }).expect(409);
-    await call(admin, 'delete', `/api/v1/admin/levels/${levelId}`).expect(409);
     // Domain rule (422), unknown ids (404) and an incomplete order (400).
     const quizId = (
       await post(`/api/v1/admin/lessons/${lessonId}/quizzes`, {

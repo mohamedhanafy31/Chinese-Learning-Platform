@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import Image from 'next/image';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 
 import { RTL_LOCALES, type Locale } from '@app/shared';
@@ -14,7 +15,6 @@ import { getPublicLevels } from '@/lib/catalog';
 import { pick } from '@/lib/localized';
 import { numberFormat } from '@/lib/numbers';
 import { toSamplePathLessons } from '@/lib/path-lessons';
-import { formatEgp } from '@/lib/price';
 import { EmptyState } from '@/components/ui/empty-state';
 
 interface HomePageProps {
@@ -33,11 +33,6 @@ export default async function HomePage({
     ? 'rtl'
     : 'ltr';
 
-  const priceText = (priceMinor: number | null): string =>
-    priceMinor === null
-      ? t('pricePending')
-      : t('priceLabel', { price: formatEgp(priceMinor, locale) });
-
   // A failing API degrades to an honest message; it never breaks the page.
   const catalog = await getPublicLevels();
   const levels = catalog.status === 'ok' ? catalog.data : [];
@@ -49,8 +44,8 @@ export default async function HomePage({
     title: pick(level.title, locale),
     summary: pick(level.summary, locale),
     topics: level.topics.map((topic) => pick(topic, locale)),
-    price: priceText(level.priceMinor),
     href: `/${locale}/levels/${level.slug}`,
+    coverImage: level.coverImage,
   }));
 
   const firstLevel = levels[0];
@@ -88,11 +83,10 @@ export default async function HomePage({
               catalog.status === 'unavailable'
                 ? t('levelsUnavailable')
                 : t('emptyReadout'),
-            portraitPlaceholder: t('portraitPlaceholder'),
             portraitAlt: t('portraitAlt'),
           }}
         />
-        <div data-reveal="band" className="bg-deep">
+        <div data-reveal="band" suppressHydrationWarning className="bg-deep">
           <Band
             kind="wave"
             ink="var(--color-wash-strong)"
@@ -108,6 +102,7 @@ export default async function HomePage({
             </h2>
             <p
               data-reveal=""
+              suppressHydrationWarning
               style={{ '--reveal-delay': '300ms' } as React.CSSProperties}
               className="mt-6 max-w-[34rem] text-pretty text-lg leading-[1.85] text-cobalt"
             >
@@ -116,6 +111,7 @@ export default async function HomePage({
             <div className="mt-8 flex items-center gap-3 text-cobalt">
               <span
                 data-reveal="seal"
+                suppressHydrationWarning
                 style={{ '--reveal-delay': '700ms' } as React.CSSProperties}
               >
                 <Seal size={34} />
@@ -146,7 +142,7 @@ export default async function HomePage({
 
         {/* how it works */}
         <section className="bg-glaze-shade">
-          <div data-reveal="band">
+          <div data-reveal="band" suppressHydrationWarning>
             <Band kind="lotus" ink="var(--color-cobalt)" />
           </div>
           <div className="mx-auto max-w-[1440px] px-4 py-20 sm:px-8 lg:px-[72px] lg:py-24">
@@ -155,6 +151,7 @@ export default async function HomePage({
             </h2>
             <ol
               data-reveal="stagger"
+              suppressHydrationWarning
               className="mt-12 grid gap-12 md:grid-cols-3 md:gap-0"
             >
               {steps.map((step, index) => (
@@ -209,6 +206,7 @@ export default async function HomePage({
           ) : (
             <ul
               data-reveal="stagger"
+              suppressHydrationWarning
               className="mt-10 border-t-2 border-cobalt"
             >
               {plateLevels.map((level, index) => (
@@ -222,12 +220,26 @@ export default async function HomePage({
                     href={level.href}
                     className="group grid grid-cols-[6.5rem_minmax(0,1fr)] items-center gap-x-6 gap-y-2 py-8 transition-colors hover:bg-white sm:grid-cols-[9rem_minmax(0,1fr)_auto] sm:px-4"
                   >
-                    <span
-                      lang="zh"
-                      aria-hidden="true"
-                      className="font-brush row-span-2 whitespace-nowrap text-5xl leading-none text-cobalt sm:row-span-1 sm:text-6xl"
-                    >
-                      {level.hanzi}
+                    <span className="relative row-span-2 aspect-[4/3] overflow-hidden rounded-2xl bg-glaze-shade sm:row-span-1">
+                      {level.coverImage ? (
+                        <Image
+                          src={level.coverImage.url}
+                          alt=""
+                          width={level.coverImage.width}
+                          height={level.coverImage.height}
+                          unoptimized
+                          className="size-full object-cover opacity-75"
+                        />
+                      ) : null}
+                      <span
+                        lang="zh"
+                        aria-hidden="true"
+                        className="font-brush absolute inset-0 grid place-items-center whitespace-nowrap text-4xl leading-none text-deep sm:text-5xl"
+                      >
+                        <span className="rounded-xl bg-glaze/85 px-2 py-1">
+                          {level.hanzi}
+                        </span>
+                      </span>
                     </span>
                     <span className="min-w-0">
                       <span className="block text-2xl font-semibold text-deep">
@@ -240,11 +252,8 @@ export default async function HomePage({
                         {level.summary}
                       </span>
                     </span>
-                    <span className="text-cobalt sm:text-end">
-                      <span className="block text-sm">{level.price}</span>
-                      <span className="mt-1 block font-semibold text-deep underline decoration-wash-strong underline-offset-4 group-hover:decoration-deep">
+                    <span className="font-semibold text-deep underline decoration-wash-strong underline-offset-4 group-hover:decoration-deep sm:text-end">
                         {t('viewLevel')}
-                      </span>
                     </span>
                   </Link>
                 </li>
@@ -253,49 +262,9 @@ export default async function HomePage({
           )}
         </section>
 
-        {/* about Mazen */}
-        <section id="mazen" className="scroll-mt-6 bg-cobalt text-glaze">
-          <div className="mx-auto grid max-w-[1440px] items-center gap-12 px-4 py-20 sm:px-8 md:grid-cols-[minmax(0,0.8fr)_minmax(0,1.2fr)] lg:px-[72px] lg:py-28">
-            <div
-              data-reveal=""
-              className="grid aspect-[4/5] w-full max-w-[26rem] place-items-center rounded-t-full border-4 border-glaze bg-deep text-center"
-              role="img"
-              aria-label={t('portraitPlaceholder')}
-            >
-              <span>
-                <span
-                  lang="zh"
-                  aria-hidden="true"
-                  className="font-brush block text-8xl text-wash-strong"
-                >
-                  马
-                </span>
-                <span className="mt-3 block text-sm text-wash">
-                  {t('portraitPlaceholder')}
-                </span>
-              </span>
-            </div>
-            <div>
-              <h2 className="font-display text-[clamp(2.25rem,4.5vw,3.75rem)] leading-[1.1]">
-                <WriteOn text={t('aboutTitle')} />
-              </h2>
-              <p
-                data-reveal=""
-                style={{ '--reveal-delay': '300ms' } as React.CSSProperties}
-                className="mt-6 max-w-[36rem] text-lg leading-[1.85] text-wash"
-              >
-                {t('aboutBody')}
-              </p>
-              <p className="mt-4 inline-block rounded-full border border-wash-strong px-3 py-1 text-sm text-wash">
-                {t('aboutPending')}
-              </p>
-            </div>
-          </div>
-        </section>
-
         {/* close */}
         <section className="bg-deep text-glaze">
-          <div data-reveal="band">
+          <div data-reveal="band" suppressHydrationWarning>
             <Band kind="wave" ink="var(--color-cobalt-mid)" />
           </div>
           <div className="mx-auto flex max-w-[1440px] flex-col items-start gap-8 px-4 py-20 sm:px-8 lg:flex-row lg:items-end lg:justify-between lg:px-[72px] lg:py-24">

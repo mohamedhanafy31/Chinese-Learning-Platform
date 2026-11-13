@@ -64,4 +64,37 @@ describe('Paymob payload handling', () => {
     expect(redacted).not.toHaveProperty('shipping_data');
     expect(redacted).not.toHaveProperty('token');
   });
+
+  it.each([
+    ['4111 1111 1111 2346', 'xxxx-xxxx-xxxx-2346'],
+    ['xxxx-xxxx-xxxx-2346', 'xxxx-xxxx-xxxx-2346'],
+    ['2346', 'xxxx-xxxx-xxxx-2346'],
+  ])('stores only a masked PAN for input %s', (pan, safePan) => {
+    const object = transactionObjectSchema.parse({
+      ...(success as Record<string, unknown>),
+      source_data: { pan, type: 'card', sub_type: 'Visa' },
+    });
+    const redacted = redactPaymobPayload(object, {
+      amount: true,
+      currency: true,
+      integration: true,
+      order: true,
+    });
+    expect((redacted.source_data as Record<string, unknown>).pan).toBe(safePan);
+    expect(JSON.stringify(redacted)).not.toContain('4111 1111 1111 2346');
+  });
+
+  it('drops malformed PAN values that do not expose four digits', () => {
+    const object = transactionObjectSchema.parse({
+      ...(success as Record<string, unknown>),
+      source_data: { pan: '123', type: 'card', sub_type: 'Visa' },
+    });
+    const redacted = redactPaymobPayload(object, {
+      amount: true,
+      currency: true,
+      integration: true,
+      order: true,
+    });
+    expect((redacted.source_data as Record<string, unknown>).pan).toBeNull();
+  });
 });

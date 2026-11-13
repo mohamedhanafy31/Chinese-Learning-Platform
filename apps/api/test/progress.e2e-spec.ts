@@ -62,11 +62,15 @@ describe('progress and sequential unlocking (e2e)', () => {
         email,
         password,
         name: 'Progress User',
-        phone: `+2012${String(1_000_000 + phoneCounter)}`,
+        phone: `+2012${String(10_000_000 + phoneCounter)}`,
       })
       .expect(201);
     const user = await prisma.user.update({ where: { email }, data: { role } });
-    await call(agent, 'post', '/api/v1/auth/login')
+    await call(
+      agent,
+      'post',
+      role === Role.ADMIN ? '/api/v1/auth/admin/login' : '/api/v1/auth/login',
+    )
       .send({ email, password })
       .expect(200);
     return { agent, id: user.id };
@@ -496,31 +500,30 @@ describe('progress and sequential unlocking (e2e)', () => {
     expect(watched).toMatchObject({ videoComplete: true, complete: true });
     expect(watched.nextLessonId).toBe(l3.id);
 
-    // Lesson 3 has neither a video nor a quiz. Fetching it (a GET, which link
-    // prefetching also does) completes nothing; the page's opening POST does.
+    // Lesson 3 has neither a video nor a quiz, so it can never count as done.
     const peek = await playback(student, l3.id).expect(404);
     expect(peek.body.progress.complete).toBe(false);
-    expect((await opened(student, l3.id)).body.complete).toBe(true);
+    expect((await opened(student, l3.id)).body.complete).toBe(false);
     const third = await playback(student, l3.id).expect(404);
     expect(third.body.reason).toBe('no-video');
     expect(third.body.progress).toMatchObject({
-      complete: true,
+      complete: false,
       hasVideo: false,
       nextLessonId: null,
     });
     expect(accessMap(third.body)).toEqual({
       [l1.id]: 'done',
       [l2.id]: 'done',
-      [l3.id]: 'done',
+      [l3.id]: 'next',
     });
 
     // Counts on the learner's own endpoints, from the same sequence.
     const mine = await call(student, 'get', '/api/v1/me/levels').expect(200);
     expect(mine.body.levels[0].progress).toMatchObject({
-      completed: 3,
+      completed: 2,
       total: 3,
-      nextLessonId: null,
-      nextLesson: null,
+      nextLessonId: l3.id,
+      nextLesson: { id: l3.id },
     });
     const access = await call(
       student,
@@ -529,12 +532,12 @@ describe('progress and sequential unlocking (e2e)', () => {
     ).expect(200);
     expect(access.body).toMatchObject({
       enrolled: true,
-      progress: { completed: 3, total: 3, nextLessonId: null },
+      progress: { completed: 2, total: 3, nextLessonId: l3.id },
     });
     expect(access.body.lessons.map((l: Json) => l.access)).toEqual([
       'done',
       'done',
-      'done',
+      'next',
     ]);
 
     // Completion is sticky: a quiz added later does not undo lesson 1.
@@ -542,7 +545,7 @@ describe('progress and sequential unlocking (e2e)', () => {
     const afterEdit = await call(student, 'get', '/api/v1/me/levels').expect(
       200,
     );
-    expect(afterEdit.body.levels[0].progress.completed).toBe(3);
+    expect(afterEdit.body.levels[0].progress.completed).toBe(2);
     expect(
       (await playback(student, l1.id).expect(200)).body.progress.complete,
     ).toBe(true);
@@ -623,14 +626,14 @@ describe('progress and sequential unlocking (e2e)', () => {
     expect(
       (await playback(student, a.id).expect(404)).body.progress.complete,
     ).toBe(true);
-    // B has neither: it opens, and the page's opening report completes it.
+    // B has neither, so opening it cannot create progress.
     expect(
       (await playback(student, b.id).expect(404)).body.progress.complete,
     ).toBe(false);
     await opened(student, b.id);
     expect(
       (await playback(student, b.id).expect(404)).body.progress.complete,
-    ).toBe(true);
+    ).toBe(false);
   });
 
   it('uses the player duration once when the asset has none, and never again', async () => {
@@ -675,9 +678,9 @@ describe('progress and sequential unlocking (e2e)', () => {
 
   it('keeps free previews outside the lock, and counts them in the progress', async () => {
     const levelId = await createLevel('prog-preview');
-    const a = await createLesson(levelId, 'A');
+    const a = await createLesson(levelId, 'A', { video: 10 });
     const b = await createLesson(levelId, 'B', { video: 10, preview: true });
-    const c = await createLesson(levelId, 'C');
+    const c = await createLesson(levelId, 'C', { video: 10 });
     await verb('levels', levelId, 'publish');
     const { agent: student, id: studentId } = await signIn(
       'preview@example.com',
@@ -685,7 +688,7 @@ describe('progress and sequential unlocking (e2e)', () => {
     );
 
     // Anyone may open the preview lesson; a signed-in visitor's progress is
-    // kept but never completes a lesson that has neither video nor quiz.
+    // kept without changing the normal sequence.
     const anonymous = await playback(undefined, b.id).expect(200);
     expect(accessMap(anonymous.body)).toEqual({
       [a.id]: 'locked',
@@ -694,14 +697,12 @@ describe('progress and sequential unlocking (e2e)', () => {
     });
     expect(anonymous.body.progress).toBeNull();
     await report(undefined, b.id, { segments: [], positionSec: 0 }).expect(401);
-    await report(student, a.id, { segments: [], positionSec: 0 }).expect(403);
+    await playback(student, a.id).expect(200);
     await report(student, b.id, {
       segments: [[0, 5]],
       positionSec: 5,
     }).expect(200);
-    expect((await playback(student, a.id).expect(403)).body.reason).toBe(
-      'not-enrolled',
-    );
+    await playback(student, a.id).expect(200);
 
     await grant(studentId, levelId);
     // The preview lesson stays open although lesson A is not done.
@@ -717,11 +718,10 @@ describe('progress and sequential unlocking (e2e)', () => {
       requiredLessonId: a.id,
     });
 
-    // Opening A (neither video nor quiz) completes it. The preview lesson B
-    // is outside the lock, so C opens without B being finished.
-    await opened(student, a.id);
-    await opened(student, c.id);
-    const third = await playback(student, c.id).expect(404);
+    // Finishing A unlocks C even while preview lesson B remains unfinished.
+    await watch(student, studentId, a.id, 0, 10);
+    await watch(student, studentId, c.id, 0, 10);
+    const third = await playback(student, c.id).expect(200);
     expect(third.body.progress.complete).toBe(true);
     // Only the unfinished preview is left: it becomes the next lesson.
     expect(accessMap(third.body)).toEqual({
@@ -745,7 +745,7 @@ describe('progress and sequential unlocking (e2e)', () => {
     });
   });
 
-  it('lets admins open everything and keeps revoked learners out', async () => {
+  it('lets admins bypass the sequence and keeps public access after revocation', async () => {
     const levelId = await createLevel('prog-admin');
     const a = await createLesson(levelId, 'A', { video: 30 });
     const b = await createLesson(levelId, 'B', { video: 30 });
@@ -768,7 +768,7 @@ describe('progress and sequential unlocking (e2e)', () => {
       200,
     );
 
-    // A revoked learner is not-enrolled, never sequence-locked.
+    // Revocation does not remove public access; the lesson sequence still does.
     await call(
       admin,
       'delete',
@@ -776,26 +776,26 @@ describe('progress and sequential unlocking (e2e)', () => {
     )
       .send({})
       .expect(204);
-    for (const lessonId of [a.id, b.id]) {
-      expect((await playback(student, lessonId).expect(403)).body.reason).toBe(
-        'not-enrolled',
-      );
-      expect(
-        (
-          await report(student, lessonId, {
-            segments: [],
-            positionSec: 0,
-          }).expect(403)
-        ).body.reason,
-      ).toBe('not-enrolled');
-    }
+    await playback(student, a.id).expect(200);
+    await report(student, a.id, { segments: [], positionSec: 0 }).expect(200);
+    expect((await playback(student, b.id).expect(403)).body.reason).toBe(
+      'sequence-locked',
+    );
+    expect(
+      (
+        await report(student, b.id, {
+          segments: [],
+          positionSec: 0,
+        }).expect(403)
+      ).body.reason,
+    ).toBe('sequence-locked');
     expect(
       (
         await call(student, 'get', `/api/v1/videos/${b.assetId}/stream`).expect(
           403,
         )
       ).body.reason,
-    ).toBe('not-enrolled');
+    ).toBe('sequence-locked');
   });
 
   it('keeps progress and the sequence for buyers of an archived level', async () => {
@@ -821,7 +821,7 @@ describe('progress and sequential unlocking (e2e)', () => {
     expect(second.body.progress.watchedPercent).toBe(0);
   });
 
-  it('answers the progress endpoint matrix: 401, 403, 404, 400', async () => {
+  it('answers the progress endpoint matrix: 401, account access, 404, 400', async () => {
     const levelId = await createLevel('prog-matrix');
     const a = await createLesson(levelId, 'A', { video: 30 });
     await verb('levels', levelId, 'publish');
@@ -836,10 +836,7 @@ describe('progress and sequential unlocking (e2e)', () => {
     const body = { segments: [[0, 5]], positionSec: 5 };
 
     await report(undefined, a.id, body).expect(401);
-    expect((await report(student, a.id, body).expect(403)).body).toMatchObject({
-      reason: 'not-enrolled',
-      levelSlug: 'prog-matrix',
-    });
+    await report(student, a.id, body).expect(200);
     await report(student, hidden.body.id as string, body).expect(404);
     await report(student, randomUUID(), body).expect(404);
     await report(student, 'not-a-uuid', body).expect(400);

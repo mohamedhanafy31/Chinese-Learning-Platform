@@ -49,7 +49,9 @@ export function QuizzesPanel({
       return parsed.success ? parsed.data.quizzes : null;
     },
     onUnauthenticated: () =>
-      router.replace(`/${locale}/login?next=${encodeURIComponent(pathname)}`),
+      router.replace(
+        `/${locale}/admin/login?next=${encodeURIComponent(pathname)}`,
+      ),
   });
   const movedQuiz = moved ? items.find((q) => q.id === moved.id) : null;
 

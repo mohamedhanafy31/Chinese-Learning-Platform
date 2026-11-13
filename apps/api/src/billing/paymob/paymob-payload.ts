@@ -42,7 +42,7 @@ export const transactionObjectSchema = z
     special_reference: z.union([z.string(), z.number()]).optional(),
     source_data: z
       .object({
-        pan: z.string().optional(),
+        pan: z.unknown().optional(),
         sub_type: z.string().optional(),
         type: z.string().optional(),
       })
@@ -56,6 +56,13 @@ export const transactionObjectSchema = z
   });
 
 export type PaymobTransactionObject = z.infer<typeof transactionObjectSchema>;
+
+/** Keep only a last-four mask. Provider PAN input is never persisted verbatim. */
+function safePan(value: unknown): string | null {
+  if (typeof value !== 'string' && typeof value !== 'number') return null;
+  const digits = String(value).replace(/\D/g, '');
+  return digits.length >= 4 ? `xxxx-xxxx-xxxx-${digits.slice(-4)}` : null;
+}
 
 /** Explicit allow-list: billing/shipping data, tokens, email and phone vanish. */
 export function redactPaymobPayload(
@@ -78,7 +85,7 @@ export function redactPaymobPayload(
     },
     special_reference: scalarId(object.special_reference),
     source_data: {
-      pan: object.source_data?.pan ?? null,
+      pan: safePan(object.source_data?.pan),
       sub_type: object.source_data?.sub_type ?? null,
       type: object.source_data?.type ?? null,
     },

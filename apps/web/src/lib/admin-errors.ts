@@ -1,9 +1,6 @@
 export type AdminErrorKey =
   | 'slugTaken'
   | 'slugLocked'
-  | 'levelPublishedDelete'
-  | 'levelHasLessons'
-  | 'lessonPublishedDelete'
   | 'conflict'
   | 'unknownImage'
   | 'imageTooLarge'
@@ -36,13 +33,6 @@ export function adminErrorKey(status: number, message = ''): AdminErrorKey {
       if (text.includes('cannot be granted')) return 'levelNotGrantable';
       if (text.includes('slug already exists')) return 'slugTaken';
       if (text.includes('slug cannot change')) return 'slugLocked';
-      if (text.includes('published level cannot be deleted')) {
-        return 'levelPublishedDelete';
-      }
-      if (text.includes('level with lessons')) return 'levelHasLessons';
-      if (text.includes('published lesson cannot be deleted')) {
-        return 'lessonPublishedDelete';
-      }
       return 'conflict';
     case 413:
       return 'imageTooLarge';

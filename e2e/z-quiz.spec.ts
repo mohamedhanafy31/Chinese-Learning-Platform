@@ -69,7 +69,7 @@ test.describe.serial('quizzes: build, take, review, history', () => {
       extraHTTPHeaders: { origin: webUrl },
     });
     const login = await withRetry(() =>
-      admin.post('/api/v1/auth/login', {
+      admin.post('/api/v1/auth/admin/login', {
         data: {
           email: process.env.E2E_ADMIN_EMAIL ?? '',
           password: process.env.E2E_ADMIN_PASSWORD ?? '',

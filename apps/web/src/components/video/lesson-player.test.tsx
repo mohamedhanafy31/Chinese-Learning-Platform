@@ -1,4 +1,10 @@
-import { cleanup, fireEvent, render, screen } from '@testing-library/react';
+import {
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { LessonPlayer, PLAYERJS_SRC } from './lesson-player';
@@ -16,7 +22,11 @@ vi.mock('next/script', async () => {
 });
 
 describe('LessonPlayer', () => {
-  afterEach(cleanup);
+  afterEach(() => {
+    cleanup();
+    vi.restoreAllMocks();
+    Reflect.deleteProperty(document, 'fullscreenElement');
+  });
 
   it('plays a LOCAL video with the native element', () => {
     render(
@@ -37,6 +47,190 @@ describe('LessonPlayer', () => {
     expect(video).toHaveAttribute('src', '/api/v1/videos/abc/stream');
     expect(video).toHaveAttribute('poster', '/media/poster.webp');
     expect(screen.queryByTestId('lesson-embed')).toBeNull();
+  });
+
+  it('supports an established video locator when reused by another surface', () => {
+    render(
+      <LessonPlayer
+        label="Preview"
+        poster={null}
+        unsupported="No support"
+        videoTestId="video-preview"
+        video={{
+          provider: 'LOCAL',
+          src: '/api/v1/videos/abc/stream',
+          mime: 'video/mp4',
+          durationSec: 12,
+        }}
+      />,
+    );
+
+    expect(screen.getByTestId('video-preview')).toHaveAttribute(
+      'src',
+      '/api/v1/videos/abc/stream',
+    );
+    expect(screen.queryByTestId('lesson-video')).toBeNull();
+  });
+
+  it('shows localized custom controls and reconciles an already-ready video', () => {
+    const readyState = vi
+      .spyOn(HTMLMediaElement.prototype, 'readyState', 'get')
+      .mockReturnValue(HTMLMediaElement.HAVE_FUTURE_DATA);
+    const duration = vi
+      .spyOn(HTMLMediaElement.prototype, 'duration', 'get')
+      .mockReturnValue(12);
+    vi.spyOn(HTMLVideoElement.prototype, 'videoHeight', 'get').mockReturnValue(
+      1080,
+    );
+
+    render(
+      <LessonPlayer
+        label="Lesson video"
+        poster={null}
+        unsupported="No support"
+        labels={{
+          loading: 'Loading',
+          play: 'Start',
+          pause: 'Stop',
+          seek: 'Position',
+          mute: 'Silence',
+          unmute: 'Sound on',
+          fullscreen: 'Expand',
+          exitFullscreen: 'Shrink',
+          settings: 'Settings',
+          playbackSpeed: 'Speed',
+          quality: 'Quality',
+          originalQuality: 'Original',
+        }}
+        video={{
+          provider: 'LOCAL',
+          src: '/api/v1/videos/abc/stream',
+          mime: 'video/mp4',
+          durationSec: 12,
+        }}
+      />,
+    );
+
+    expect(screen.queryByRole('status')).toBeNull();
+    expect(screen.getAllByRole('button', { name: 'Start' })).toHaveLength(2);
+    expect(screen.getByRole('slider', { name: 'Position' })).toBeEnabled();
+    expect(screen.getByTestId('video-progress-track')).toHaveAttribute(
+      'dir',
+      'ltr',
+    );
+    expect(screen.getByRole('button', { name: 'Silence' })).toBeVisible();
+    expect(screen.getByRole('button', { name: 'Expand' })).toBeVisible();
+    expect(screen.getByTestId('lesson-video')).not.toHaveAttribute('controls');
+
+    fireEvent.click(screen.getByRole('button', { name: 'Settings' }));
+    expect(screen.getByRole('dialog', { name: 'Settings' })).toBeVisible();
+    expect(screen.getByText('Original')).toBeVisible();
+    expect(screen.getByText('1080p')).toBeVisible();
+    fireEvent.click(screen.getByRole('button', { name: '1.5×' }));
+    expect((screen.getByTestId('lesson-video') as HTMLVideoElement).playbackRate).toBe(
+      1.5,
+    );
+
+    readyState.mockRestore();
+    duration.mockRestore();
+  });
+
+  it('keeps the progress fill and localized time in timeline order in Arabic', () => {
+    vi.spyOn(HTMLMediaElement.prototype, 'readyState', 'get').mockReturnValue(
+      HTMLMediaElement.HAVE_FUTURE_DATA,
+    );
+    vi.spyOn(HTMLMediaElement.prototype, 'duration', 'get').mockReturnValue(277);
+
+    render(
+      <LessonPlayer
+        label="فيديو الدرس"
+        poster={null}
+        unsupported="الفيديو غير مدعوم"
+        locale="ar"
+        video={{
+          provider: 'LOCAL',
+          src: '/api/v1/videos/abc/stream',
+          mime: 'video/mp4',
+          durationSec: 277,
+        }}
+      />,
+    );
+
+    expect(screen.getByTestId('video-progress-track')).toHaveAttribute(
+      'dir',
+      'ltr',
+    );
+    expect(screen.getByTestId('video-progress-fill')).toHaveClass('start-0');
+    expect(screen.getByTestId('video-time')).toHaveAttribute('dir', 'ltr');
+    expect(screen.getByTestId('video-time')).toHaveTextContent('٠:٠٠ / ٤:٣٧');
+  });
+
+  it('switches from the framed card to a viewport-filling fullscreen layout', async () => {
+    let fullscreenElement: Element | null = null;
+    Object.defineProperty(document, 'fullscreenElement', {
+      configurable: true,
+      get: () => fullscreenElement,
+    });
+
+    render(
+      <LessonPlayer
+        label="Lesson video"
+        poster={null}
+        unsupported="No support"
+        labels={{
+          loading: 'Loading',
+          play: 'Start',
+          pause: 'Stop',
+          seek: 'Position',
+          mute: 'Silence',
+          unmute: 'Sound on',
+          fullscreen: 'Expand',
+          exitFullscreen: 'Shrink',
+          settings: 'Settings',
+          playbackSpeed: 'Speed',
+          quality: 'Quality',
+          originalQuality: 'Original',
+        }}
+        video={{
+          provider: 'LOCAL',
+          src: '/api/v1/videos/abc/stream',
+          mime: 'video/mp4',
+          durationSec: 12,
+        }}
+      />,
+    );
+
+    const shell = screen.getByTestId('player-shell');
+    Object.defineProperty(shell, 'requestFullscreen', {
+      configurable: true,
+      value: vi.fn(async () => {
+        fullscreenElement = shell;
+        document.dispatchEvent(new Event('fullscreenchange'));
+      }),
+    });
+
+    fireEvent.click(screen.getByRole('button', { name: 'Expand' }));
+
+    await waitFor(() => expect(shell).toHaveClass('flex', 'size-full'));
+    expect(shell).toHaveClass('rounded-none', 'bg-deep', 'p-0', 'shadow-none');
+    expect(screen.getByTestId('player-stage')).toHaveClass(
+      'min-h-0',
+      'flex-1',
+      'items-center',
+    );
+    expect(screen.getByTestId('lesson-video')).toHaveClass(
+      'h-full',
+      'object-contain',
+    );
+    expect(screen.getByTestId('player-controls')).toHaveClass(
+      'shrink-0',
+      'rounded-none',
+    );
+    expect(screen.getByTestId('video-progress-track')).toHaveClass(
+      'basis-full',
+      'sm:basis-0',
+    );
+    expect(screen.getByRole('button', { name: 'Shrink' })).toBeVisible();
   });
 
   it('embeds a BUNNY video in a titled, responsive iframe', () => {

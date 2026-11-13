@@ -90,7 +90,9 @@ export function QuizSettingsForm({
     if (!result.ok) {
       const key = await quizFailureKey(result);
       if (key === 'unauthenticated') {
-        router.replace(`/${locale}/login?next=${encodeURIComponent(pathname)}`);
+        router.replace(
+          `/${locale}/admin/login?next=${encodeURIComponent(pathname)}`,
+        );
         return;
       }
       setFormError(errorText(key));

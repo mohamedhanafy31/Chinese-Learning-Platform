@@ -193,7 +193,7 @@ describe('decideLesson with a sequence block', () => {
     ).toBe(true);
   });
 
-  it('does not reveal the sequence to someone who is not enrolled', () => {
+  it('applies the sequence to any account on a published level', () => {
     expect(
       decideLesson({
         user: student,
@@ -202,7 +202,7 @@ describe('decideLesson with a sequence block', () => {
         enrollment: { revokedAt: new Date() },
         requiredLessonId: 'earlier',
       }).reason,
-    ).toBe('not-enrolled');
+    ).toBe('sequence-locked');
   });
 });
 

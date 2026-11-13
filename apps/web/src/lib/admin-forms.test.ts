@@ -15,7 +15,6 @@ const level = (overrides: Partial<LevelFormValues> = {}): LevelFormValues => ({
   title: { ar: 'البداية', en: 'First steps', zh: '' },
   summary: { ar: '', en: 'Pinyin and tones', zh: '' },
   topics: [],
-  price: '',
   coverImageId: null,
   ...overrides,
 });
@@ -24,7 +23,6 @@ describe('buildLevelPayload', () => {
   it('builds the API payload, omitting blank translations', () => {
     const result = buildLevelPayload(
       level({
-        price: '1500.50',
         topics: [
           { key: 'a', ar: '', en: 'Tones', zh: '声调' },
           { key: 'b', ...blank },
@@ -40,31 +38,29 @@ describe('buildLevelPayload', () => {
         title: { ar: 'البداية', en: 'First steps' },
         summary: { en: 'Pinyin and tones' },
         topics: [{ en: 'Tones', zh: '声调' }],
-        priceMinor: 150_050,
+        priceMinor: null,
         coverImageId: '11111111-1111-4111-8111-111111111111',
       },
     });
   });
 
-  it('treats an empty price as not announced', () => {
-    const result = buildLevelPayload(level({ price: '' }));
+  it('never sends a price: every level is free', () => {
+    const result = buildLevelPayload(level());
     expect(result.ok && result.payload.priceMinor).toBeNull();
   });
 
-  it('reports required English text, slug, hanzi and price problems by field', () => {
+  it('reports required English text, slug, and hanzi problems by field', () => {
     const result = buildLevelPayload(
       level({
         slug: 'Bad Slug',
         hanzi: '',
         title: { ar: 'عنوان', en: '', zh: '' },
         summary: blank,
-        price: '10.555',
       }),
     );
     expect(result).toEqual({
       ok: false,
       errors: {
-        price: 'priceDecimals',
         slug: 'slugInvalid',
         hanzi: 'required',
         'title.en': 'required',
@@ -73,13 +69,13 @@ describe('buildLevelPayload', () => {
     });
   });
 
-  it('flags an over-long hanzi and separators in the price', () => {
+  it('flags an over-long hanzi', () => {
     const result = buildLevelPayload(
-      level({ hanzi: '一二三四五六七八九', price: '1,000' }),
+      level({ hanzi: '一二三四五六七八九' }),
     );
     expect(result).toMatchObject({
       ok: false,
-      errors: { hanzi: 'hanziTooLong', price: 'priceSeparator' },
+      errors: { hanzi: 'hanziTooLong' },
     });
   });
 
@@ -93,7 +89,10 @@ describe('buildLevelPayload', () => {
         ],
       }),
     );
-    expect(result).toEqual({ ok: false, errors: { 'topics.2.en': 'required' } });
+    expect(result).toEqual({
+      ok: false,
+      errors: { 'topics.2.en': 'required' },
+    });
   });
 });
 

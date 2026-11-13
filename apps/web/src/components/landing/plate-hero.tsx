@@ -4,6 +4,8 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { useState } from 'react';
 
+import type { ImageRef } from '@app/shared';
+
 import { WriteOn } from '@/components/motion/write-on';
 import {
   PANEL_RADIUS,
@@ -18,8 +20,8 @@ export interface PlateLevel {
   title: string;
   summary: string;
   topics: string[];
-  price: string;
   href: string;
+  coverImage?: ImageRef | null;
 }
 
 export interface PlateHeroCopy {
@@ -35,7 +37,6 @@ export interface PlateHeroCopy {
   levelWord: string;
   viewLevel: string;
   emptyReadout: string;
-  portraitPlaceholder: string;
   portraitAlt: string;
 }
 
@@ -75,8 +76,8 @@ export function PlateHero({
 
   return (
     <section className="relative overflow-hidden bg-deep text-glaze">
-      <div className="mx-auto grid max-w-[1440px] items-center gap-6 px-4 pb-14 pt-2 sm:px-8 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.05fr)] lg:gap-6 lg:px-[72px] lg:pb-24 lg:pt-10">
-        <div className="order-2 lg:order-1">
+      <div className="mx-auto grid max-w-[1440px] items-center gap-0 px-4 pb-14 pt-2 sm:gap-4 sm:px-8 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.05fr)] lg:gap-6 lg:px-[72px] lg:pb-24 lg:pt-10">
+        <div className="order-2 -mt-4 lg:order-1 lg:mt-0">
           <h1 className="text-balance">
             <span
               lang={copy.headlineSecondLang}
@@ -98,12 +99,14 @@ export function PlateHero({
           </h1>
           <p
             data-reveal=""
+            suppressHydrationWarning
             style={{ '--reveal-delay': '1100ms' } as React.CSSProperties}
             className="mt-4 max-w-[34rem] text-pretty text-base leading-[1.8] text-wash sm:text-xl lg:mt-6">
             {copy.lede}
           </p>
           <div
             data-reveal=""
+            suppressHydrationWarning
             style={{ '--reveal-delay': '1300ms' } as React.CSSProperties}
             className="mt-6 flex flex-wrap items-center gap-x-4 gap-y-2 lg:mt-9"
           >
@@ -143,7 +146,7 @@ export function PlateHero({
                 </span>
               </p>
               <p className="mt-1 text-sm text-wash-strong">
-                {copy.levelWord} {current.number} · {current.price}
+                {copy.levelWord} {current.number}
               </p>
               <p className="mt-3 leading-relaxed text-wash">
                 {current.summary}
@@ -164,7 +167,8 @@ export function PlateHero({
         <div className="order-1 flex justify-center lg:order-2">
           <div
             data-reveal="plate"
-            className="relative aspect-square w-[min(80vw,46vw+12rem,720px)] drop-shadow-[0_34px_40px_rgb(3_10_40/0.55)] @container"
+            suppressHydrationWarning
+            className="relative aspect-square w-[min(72vw,19rem)] drop-shadow-[0_34px_40px_rgb(3_10_40/0.55)] @container sm:w-[min(76vw,36rem)] lg:w-[min(80vw,46vw+12rem,720px)]"
           >
             {/* the plate turns as one painted object */}
             <div
@@ -241,18 +245,13 @@ export function PlateHero({
                 />
               ) : (
                 <div className="grid h-full place-items-center bg-[radial-gradient(circle_at_50%_38%,var(--color-wash-strong),var(--color-cobalt)_72%)] text-center">
-                  <div>
-                    <span
-                      lang="zh"
-                      aria-hidden="true"
-                      className="font-brush block text-[17cqw] leading-none text-glaze/90"
-                    >
-                      马
-                    </span>
-                    <span className="mt-2 block px-6 text-[max(0.72rem,2cqw)] leading-snug text-glaze">
-                      {copy.portraitPlaceholder}
-                    </span>
-                  </div>
+                  <span
+                    lang="zh"
+                    aria-hidden="true"
+                    className="font-brush block text-[17cqw] leading-none text-glaze/90"
+                  >
+                    马
+                  </span>
                 </div>
               )}
             </div>

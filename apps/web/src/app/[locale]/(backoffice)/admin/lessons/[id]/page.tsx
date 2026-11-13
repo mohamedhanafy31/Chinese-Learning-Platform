@@ -77,7 +77,6 @@ export default async function EditLessonPage({
           locale={locale}
           isPublished={lesson.isPublished}
           archivedAt={lesson.archivedAt}
-          firstPublishedAt={lesson.firstPublishedAt}
           afterDeleteHref={`/${locale}/admin/levels/${level.id}`}
         />
       </div>
@@ -90,7 +89,6 @@ export default async function EditLessonPage({
           pending={lesson.pendingVideo}
           activeProvider={diagnostics ? diagnostics.active : null}
           uploadOrigin={videoUploadOrigin()}
-          bunnyConfigured={diagnostics ? diagnostics.bunny.configured : null}
         />
       </div>
 

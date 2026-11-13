@@ -53,7 +53,6 @@ test.describe
   let studentContext: BrowserContext;
   let adminPage: Page;
   let studentPage: Page;
-  let studentId = '';
   let levelId = '';
   const lessons: Record<'alpha' | 'beta' | 'gamma', string> = {
     alpha: '',
@@ -82,7 +81,7 @@ test.describe
       extraHTTPHeaders: { origin: webUrl },
     });
     const login = await withRetry(() =>
-      admin.post('/api/v1/auth/login', {
+      admin.post('/api/v1/auth/admin/login', {
         data: {
           email: process.env.E2E_ADMIN_EMAIL ?? '',
           password: process.env.E2E_ADMIN_PASSWORD ?? '',
@@ -152,7 +151,6 @@ test.describe
       }),
     );
     expect(registered.status()).toBe(201);
-    studentId = ((await registered.json()) as { user: { id: string } }).user.id;
     studentContext = await browser.newContext({
       baseURL: webUrl,
       storageState: await studentApi.storageState(),
@@ -171,9 +169,7 @@ test.describe
     await adminPage.goto(`/en/admin/lessons/${lessons.alpha}`);
     const panel = adminPage.getByTestId('video-panel');
     await expect(panel.getByRole('heading', { name: 'Video' })).toBeVisible();
-    await expect(panel.getByTestId('video-dev-notice')).toContainText(
-      'development only',
-    );
+    await expect(panel.getByTestId('video-dev-notice')).toHaveCount(0);
     await expect(panel.getByTestId('video-empty')).toBeVisible();
 
     await panel.getByLabel('Video file').setInputFiles(fixture);
@@ -185,10 +181,7 @@ test.describe
     ).toBeVisible();
 
     const details = panel.getByTestId('video-details');
-    await expect(details).toContainText('e2e-lesson.mp4');
-    await expect(details).toContainText('Ready');
     await expect(details).toContainText(/0:0[1-3]/);
-    await expect(details).toContainText(/\d+(\.\d)?\s?kB/);
 
     const preview = panel.getByTestId('video-preview');
     await expect(preview).toBeVisible();
@@ -291,26 +284,7 @@ test.describe
     expect(status).toBe(401);
   });
 
-  test('a signed-in learner without the level sees the level card, then plays it once granted', async () => {
-    await studentPage.goto(`/en/learn/${slug}/${lessons.beta}`);
-    const gate = studentPage.getByTestId('lesson-gate');
-    await expect(
-      gate.getByRole('heading', {
-        name: `This lesson is part of ${levelTitle}`,
-      }),
-    ).toBeVisible();
-    await expect(
-      gate.getByRole('link', { name: 'View the level' }),
-    ).toHaveAttribute('href', `/en/levels/${slug}`);
-    await expect(studentPage.getByTestId('lesson-video')).toHaveCount(0);
-
-    const grant = await withRetry(() =>
-      admin.post(`/api/v1/admin/students/${studentId}/enrollments`, {
-        data: { levelId },
-      }),
-    );
-    expect(grant.status()).toBe(201);
-
+  test('a signed-in learner plays a published level without a grant', async () => {
     await studentPage.goto(`/en/learn/${slug}/${lessons.beta}`);
     await expect(
       studentPage.getByRole('heading', { name: lessonBeta, level: 1 }),

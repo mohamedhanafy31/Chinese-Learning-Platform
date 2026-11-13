@@ -8,8 +8,6 @@ describe('parsePriceInput', () => {
     ['10.5', 1050],
     ['10.50', 1050],
     ['10.05', 1005],
-    ['0', 0],
-    ['0.00', 0],
     ['0.99', 99],
     ['1500', 150_000],
     ['  25 ', 2500],
@@ -22,6 +20,11 @@ describe('parsePriceInput', () => {
   it('treats empty input as not announced', () => {
     expect(parsePriceInput('')).toEqual({ ok: true, minor: null });
     expect(parsePriceInput('   ')).toEqual({ ok: true, minor: null });
+  });
+
+  it('rejects zero as a sale price', () => {
+    expect(parsePriceInput('0')).toEqual({ ok: false, reason: 'invalid' });
+    expect(parsePriceInput('0.00')).toEqual({ ok: false, reason: 'invalid' });
   });
 
   it('accepts Arabic-Indic and Persian digits and the Arabic decimal mark', () => {
@@ -69,7 +72,6 @@ describe('parsePriceInput', () => {
 describe('priceToInput', () => {
   it('formats piasters for editing', () => {
     expect(priceToInput(null)).toBe('');
-    expect(priceToInput(0)).toBe('0');
     expect(priceToInput(1000)).toBe('10');
     expect(priceToInput(1050)).toBe('10.50');
     expect(priceToInput(1005)).toBe('10.05');
@@ -77,7 +79,7 @@ describe('priceToInput', () => {
   });
 
   it('round-trips through the parser', () => {
-    for (const minor of [0, 1, 99, 100, 1050, 150_000, 10_000_000]) {
+    for (const minor of [1, 99, 100, 1050, 150_000, 10_000_000]) {
       expect(parsePriceInput(priceToInput(minor))).toEqual({ ok: true, minor });
     }
   });

@@ -30,6 +30,7 @@ export class ForgotPasswordDto implements ForgotPasswordRequest {
 
   declare email: string;
   declare locale: ForgotPasswordRequest['locale'];
+  declare portal: ForgotPasswordRequest['portal'];
 }
 
 export class ResetPasswordDto implements ResetPasswordRequest {

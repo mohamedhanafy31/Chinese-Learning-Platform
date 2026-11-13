@@ -142,14 +142,14 @@ describe('decideLesson', () => {
       decision(false, 'unavailable'),
     ],
 
-    // free previews on publicly visible levels
+    // free previews require an account but not an enrollment
     [
       'anonymous, free preview',
       null,
       lesson.preview,
       level.published,
       null,
-      decision(true, 'free-preview'),
+      decision(false, 'login-required'),
     ],
     [
       'student, free preview',
@@ -157,7 +157,7 @@ describe('decideLesson', () => {
       lesson.preview,
       level.published,
       null,
-      decision(true, 'free-preview'),
+      decision(true, 'enrolled'),
     ],
     [
       'revoked student, free preview',
@@ -165,7 +165,7 @@ describe('decideLesson', () => {
       lesson.preview,
       level.published,
       revoked,
-      decision(true, 'free-preview'),
+      decision(true, 'enrolled'),
     ],
     [
       'anonymous, free preview on archived level',
@@ -255,7 +255,7 @@ describe('decideLesson', () => {
       lesson.live,
       level.published,
       revoked,
-      decision(false, 'not-enrolled'),
+      decision(true, 'enrolled'),
     ],
     [
       'revoked, archived level',
@@ -276,12 +276,12 @@ describe('decideLesson', () => {
       decision(false, 'login-required'),
     ],
     [
-      'student, locked lesson',
+      'student account, published lesson',
       student,
       lesson.live,
       level.published,
       null,
-      decision(false, 'not-enrolled'),
+      decision(true, 'enrolled'),
     ],
     [
       'anonymous, lesson of archived level',
@@ -377,7 +377,7 @@ describe('decideLevel', () => {
       student,
       level.published,
       revoked,
-      decision(false, 'not-enrolled'),
+      decision(true, 'enrolled'),
     ],
     [
       'revoked, draft',
@@ -391,7 +391,7 @@ describe('decideLevel', () => {
       student,
       level.published,
       null,
-      decision(false, 'not-enrolled'),
+      decision(true, 'enrolled'),
     ],
     [
       'anonymous, published',

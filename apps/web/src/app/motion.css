@@ -1,11 +1,67 @@
 /*
  * Motion: ink, glaze and kiln.
- * Everything here is gated on :root[data-motion='ready'], set before first
- * paint by MOTION_BOOT_SCRIPT unless the visitor prefers reduced motion.
- * Without it, every element renders in its final state.
+ * Reveal motion is gated on :root[data-motion='ready'], enabled only after
+ * hydration has yielded. Until then, every element stays visibly in its final
+ * state; reduced-motion visitors keep that static fallback.
  */
 
 /* ---- Write-on: an unseen pen lays ink in the reading direction ---------- */
+
+/* A route arrives like fresh glaze settling onto the same porcelain body. */
+[data-page-transition] {
+  animation: page-glaze-arrive 360ms var(--ease-glaze) both;
+}
+
+@keyframes page-glaze-arrive {
+  from {
+    opacity: 0.72;
+    clip-path: inset(0 0 1.25rem 0 round 1rem);
+    filter: blur(2px);
+  }
+  to {
+    opacity: 1;
+    clip-path: inset(0 0 0 0 round 0);
+    filter: blur(0);
+  }
+}
+
+/* Small process feedback: an ink ring turns while the action is pending. */
+button[aria-busy='true']::after {
+  content: '';
+  inline-size: 1rem;
+  block-size: 1rem;
+  margin-inline-start: 0.65rem;
+  flex: none;
+  border: 2px solid currentColor;
+  border-block-start-color: transparent;
+  border-radius: 9999px;
+  animation: ink-turn 720ms linear infinite;
+}
+
+button:not(:disabled):active {
+  transform: translateY(1px) scale(0.99);
+}
+
+[data-process-feedback] {
+  animation: process-settle 300ms var(--ease-glaze) both;
+}
+
+@keyframes ink-turn {
+  to {
+    transform: rotate(1turn);
+  }
+}
+
+@keyframes process-settle {
+  from {
+    opacity: 0;
+    clip-path: inset(0 0 45% 0);
+  }
+  to {
+    opacity: 1;
+    clip-path: inset(0);
+  }
+}
 
 [data-write] .ink-stroke {
   /*
@@ -231,6 +287,9 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
+  [data-page-transition],
+  [data-process-feedback],
+  button[aria-busy='true']::after,
   [data-write] .ink-stroke,
   [data-reveal],
   [data-reveal] * {

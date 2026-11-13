@@ -44,6 +44,8 @@ describe('identity contracts', () => {
   it('rejects invalid Egyptian and non-E.164 values', () => {
     expect(() => phoneSchema.parse('0130 123 4567')).toThrow();
     expect(() => phoneSchema.parse('0100')).toThrow();
+    expect(() => phoneSchema.parse('+1 202-555-0100')).toThrow();
+    expect(() => phoneSchema.parse('+20 2 2345 6789')).toThrow();
   });
 
   it('normalises registration transport fields', () => {
@@ -129,12 +131,15 @@ describe('catalog request schemas', () => {
     },
   );
 
-  it('rejects negative, fractional and oversized prices', () => {
-    for (const priceMinor of [-1, 10.5, 10_000_001]) {
+  it('rejects zero, negative, fractional and oversized prices while allowing null', () => {
+    for (const priceMinor of [0, -1, 10.5, 10_000_001]) {
       expect(() =>
         createLevelRequestSchema.parse({ ...level, priceMinor }),
       ).toThrow();
     }
+    expect(
+      createLevelRequestSchema.parse({ ...level, priceMinor: null }).priceMinor,
+    ).toBeNull();
     expect(
       createLevelRequestSchema.parse({ ...level, priceMinor: 10_000_000 })
         .priceMinor,

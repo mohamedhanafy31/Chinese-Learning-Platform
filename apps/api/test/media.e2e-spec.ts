@@ -64,7 +64,11 @@ describe('media images (e2e)', () => {
       .send({ ...credentials, email })
       .expect(201);
     await prisma.user.update({ where: { email }, data: { role } });
-    await call(agent, 'post', '/api/v1/auth/login')
+    await call(
+      agent,
+      'post',
+      role === Role.ADMIN ? '/api/v1/auth/admin/login' : '/api/v1/auth/login',
+    )
       .send({ email, password: credentials.password })
       .expect(200);
     return agent;
@@ -380,7 +384,6 @@ describe('media images (e2e)', () => {
       thumbnailId: thumb.id,
       thumbnail: { url: thumb.url, width: 400, height: 400 },
     });
-
     // Not public until published.
     await call(undefined, 'get', '/api/v1/catalog/levels/with-cover').expect(
       404,

@@ -202,7 +202,7 @@ The palette is a single cobalt pigment at every depth on a cool porcelain white,
 - **Brush hanzi** (Ma Shan Zheng): the Chinese headline line in the hero (clamp 1.4rem to 2.75rem, tracking 0.06em, `wash-strong`), step numerals 一二三 (3.75rem), ledger and level hanzi (3rem to 3.75rem; clamp 5rem to 8.5rem on the level page, line-height 0.9), and lesson hanzi (1.875rem).
 - **Title** (600, 1.5rem; lesson rows 1.125rem to 1.25rem): level names, step titles, lesson titles.
 - **Body** (400, 1.125rem, line-height 1.8 to 1.85): ledes and section copy, capped at 32rem to 40rem (`measure` is 34rem).
-- **Label** (400, 0.875rem): meta lines ("Level ١ · price"), path meta, locale switcher, and captions. Sample tags use 0.75rem.
+- **Label** (400, 0.875rem): level numbers, path meta, locale switcher, and captions. Sample tags use 0.75rem.
 
 ### Named Rules
 **The Locale Voice Rule.** Display text never uses Alexandria. It always goes through `font-display` so each locale gets its own brush.
@@ -242,7 +242,7 @@ Round and lobed, like thrown and painted ware. Buttons, pills, path nodes, tags 
 ### Buttons
 - **Shape:** full pill (9999px), minimum height 56px, 32px inline padding, 1.125rem semibold.
 - **Primary on cobalt:** `glaze` ground with `deep` text. Hover goes to `glaze-bright` and lifts 2px over 300ms `ease-glaze`.
-- **Primary on glaze:** `deep` ground with `glaze` text, hovering to `cobalt`. Disabled is `wash` ground with `cobalt` text and a not-allowed cursor (for example, buy while the price is pending).
+- **Primary on glaze:** `deep` ground with `glaze` text, hovering to `cobalt`. Disabled is `wash` ground with `cobalt` text and a not-allowed cursor.
 - **Secondary:** a text link on the same baseline with a `wash-strong` underline at 8px offset, and the same 56px hit area.
 - **Seal start pill:** `seal` ground, `glaze` text, 8px by 16px, 0.875rem semibold. Used only on the next lesson.
 
@@ -287,7 +287,7 @@ Quizzes are a calm exam sheet on glaze. They are built from the ledger, the form
 - **History:** a ruled list of past attempts, newest first, each with the date (`Intl.DateTimeFormat`), the tabular score and a passed label. A row links to that attempt's review.
 
 ### Porcelain Plate (signature)
-An authored SVG on a 1000-unit viewBox. It has a glaze radial body, a cobalt rim pooled with turbulence pigment, one continuous swelling-and-tapering 缠枝莲 scroll stem with tendrils, leaves and a lotus blossom between each pair of panels, and painted double rings (heavy outer, fine inner). Each level gets one lobed reserve panel. The selected panel washes to `seal` (600ms fill) and its lines invert to glaze. The panels form a `radiogroup` of `radio` buttons. Choosing one rotates the whole rim so that level sits at the top, over 1100ms `ease-glaze`. Levels advance clockwise in LTR and counter-clockwise in RTL. The well stays upright and holds Mazen, and an `aria-live="polite"` readout under the hero copy shows the selected level's title, hanzi, number, price, summary and topics.
+An authored SVG on a 1000-unit viewBox. It has a glaze radial body, a cobalt rim pooled with turbulence pigment, one continuous swelling-and-tapering 缠枝莲 scroll stem with tendrils, leaves and a lotus blossom between each pair of panels, and painted double rings (heavy outer, fine inner). Each level gets one lobed reserve panel. The selected panel washes to `seal` (600ms fill) and its lines invert to glaze. The panels form a `radiogroup` of `radio` buttons. Choosing one rotates the whole rim so that level sits at the top, over 1100ms `ease-glaze`. Levels advance clockwise in LTR and counter-clockwise in RTL. The well stays upright and holds Mazen, and an `aria-live="polite"` readout under the hero copy shows the selected level's title, hanzi, number, summary and topics.
 
 ### Seal
 Mazen's cinnabar 印章, an authored SVG: an irregular octagon with a chipped-stone displacement edge and seal-script 马 cut in three heavy glaze strokes. It appears at 38px in the header, 32px in the footer, 34px as the path legend, and 30px on fired lessons. It is decorative unless it is given a label.
@@ -305,7 +305,7 @@ Painted border bands, one per section boundary, always decorative (`aria-hidden`
 ### Sample Tag / Placeholders
 Pending content is labelled honestly. A 0.75rem pill with a dashed `unfired` border and `cobalt` text marks sample data (the levels ledger, the example path, level topics). A solid `wash-strong` pill on cobalt marks pending biography. Mazen's portrait slot shows a brush 马 on a `wash-strong`-to-`cobalt` radial ground with a "photo to come" line.
 
-**Pending assets:** the portrait of Mazen (the plate well and the about-section arch frame) and the real syllabus and prices (all levels and lessons are sample content). When the portrait arrives, it renders in the well as a cobalt duotone (luminosity blend at 90% over `cobalt`).
+**Pending assets:** the portrait of Mazen (the plate well and the about-section arch frame) and the real syllabus (all levels and lessons are sample content). When the portrait arrives, it renders in the well as a cobalt duotone (luminosity blend at 90% over `cobalt`).
 
 ### Motion
 - **`ease-glaze`** (`cubic-bezier(0.16, 1, 0.3, 1)`): the only custom easing, a slow glaze-like settle.
@@ -319,7 +319,7 @@ Pending content is labelled honestly. A 0.75rem pill with a dashed `unfired` bor
 - **Kiln path (`data-reveal="path"`):** the spine draws downward and each row then fires in turn, with the node scaling in about 160ms after the previous one.
 - **Plate:** settles onto the field from a 28° turn against the reading direction at 94% scale (1600ms).
 - **Seal (`data-reveal="seal"`):** stamps down from 135% with a slight overshoot.
-- **Boot:** an inline pre-paint script opts in (`html[data-motion="ready"]`) only when motion is allowed, and starts the observer on DOMContentLoaded. If the observer never starts within 4s, everything is shown, so without JavaScript or under reduced motion all content renders in its final state.
+- **Boot:** the client observer opts in (`html[data-motion="ready"]`) only after hydration yields and only when motion is allowed. It watches both the initial document and later App Router streamed nodes, so client navigation cannot leave new lesson content transparent. Before opt-in, without JavaScript, and under reduced motion, everything remains visibly in its final state.
 
 ### Accessibility
 - **Focus ring:** 2px `glaze` outline at 2px offset plus a 5px `cobalt-mid` halo. The outline carries on cobalt fields and the halo on glaze.
@@ -347,4 +347,4 @@ Pending content is labelled honestly. A 0.75rem pill with a dashed `unfired` bor
 - **Don't** use physical `left`/`right`, `ml-`/`mr-`/`pl-`/`pr-` or `text-left`/`text-right`.
 - **Don't** let the `unfired` line be the only signal of a state.
 - **Don't** replace the authored plate, seal or bands with raster images, stock porcelain or icon fonts.
-- **Don't** invent testimonials, learner counts, ratings or prices to fill placeholders.
+- **Don't** invent testimonials, learner counts or ratings to fill placeholders.

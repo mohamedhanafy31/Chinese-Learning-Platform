@@ -60,6 +60,13 @@
 		reverse_proxy api:4000
 	}
 
+	# Same-origin Next route handler that clears the HttpOnly identity cookies
+	# after the browser asks the API to revoke the session. It must reach Next,
+	# not the API, so it is matched before the catch-all /api/* below.
+	handle /api/auth/* {
+		reverse_proxy web:3000
+	}
+
 	handle /api/* {
 		encode zstd gzip
 		request_body {

@@ -23,12 +23,16 @@ export default async function ResetPasswordPage({
   searchParams,
 }: {
   params: Promise<{ locale: Locale }>;
-  searchParams: Promise<{ token?: string | string[] }>;
+  searchParams: Promise<{
+    portal?: string | string[];
+    token?: string | string[];
+  }>;
 }): Promise<React.JSX.Element> {
   const { locale } = await params;
   setRequestLocale(locale);
   const query = await searchParams;
   const token = typeof query.token === 'string' ? query.token : undefined;
+  const portal = query.portal === 'admin' ? 'admin' : 'student';
   const t = await getTranslations('Auth');
 
   if (!token) {
@@ -38,7 +42,10 @@ export default async function ResetPasswordPage({
         hanzi={t('resetHanzi')}
         description={t('missingTokenBody')}
       >
-        <Link href={`/${locale}/forgot-password`} className={secondaryLink}>
+        <Link
+          href={`/${locale}/forgot-password${portal === 'admin' ? '?portal=admin' : ''}`}
+          className={secondaryLink}
+        >
           {t('requestNewLink')}
         </Link>
       </AuthShell>
@@ -51,7 +58,7 @@ export default async function ResetPasswordPage({
       hanzi={t('resetHanzi')}
       description={t('resetDescription')}
     >
-      <ResetPasswordForm locale={locale} token={token} />
+      <ResetPasswordForm locale={locale} portal={portal} token={token} />
     </AuthShell>
   );
 }

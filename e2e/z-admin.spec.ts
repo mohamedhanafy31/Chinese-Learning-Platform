@@ -53,7 +53,7 @@ test.describe.serial('M13 admin overview, audit and student status', () => {
       extraHTTPHeaders: { origin: webUrl },
     });
     const adminLogin = await withRetry(() =>
-      adminApi.post('/api/v1/auth/login', {
+      adminApi.post('/api/v1/auth/admin/login', {
         data: {
           email: process.env.E2E_ADMIN_EMAIL ?? '',
           password: process.env.E2E_ADMIN_PASSWORD ?? '',
@@ -84,9 +84,7 @@ test.describe.serial('M13 admin overview, audit and student status', () => {
       studentApi.post('/api/v1/auth/register', { data: student }),
     );
     expect(registered.status()).toBe(201);
-    studentId = (
-      (await registered.json()) as { user: { id: string } }
-    ).user.id;
+    studentId = ((await registered.json()) as { user: { id: string } }).user.id;
 
     adminContext = await browser.newContext({
       baseURL: webUrl,
@@ -131,10 +129,7 @@ test.describe.serial('M13 admin overview, audit and student status', () => {
       name: `نشر المستوى «${levelTitle}»`,
     });
     await expect(link).toBeVisible();
-    await expect(link).toHaveAttribute(
-      'href',
-      `/ar/admin/levels/${levelId}`,
-    );
+    await expect(link).toHaveAttribute('href', `/ar/admin/levels/${levelId}`);
   });
 
   test('deactivating a student signs out their open session on navigation', async () => {
@@ -151,39 +146,28 @@ test.describe.serial('M13 admin overview, audit and student status', () => {
       'حساب معطَّل',
     );
 
-    await studentPage.goto('/ar/orders');
+    await studentPage.goto('/ar/dashboard');
     await expect(studentPage).toHaveURL(/\/ar\/login\?next=/);
     await expect(
       studentPage.getByRole('heading', { name: 'مرحباً بعودتك', level: 1 }),
     ).toBeVisible();
   });
 
-  test('the admin home renders the live overview and honest configuration state', async () => {
+  test('the admin home renders learner-focused overview information', async () => {
     const overviewResponse = await adminApi.get('/api/v1/admin/overview');
     expect(overviewResponse.status()).toBe(200);
     const overview = (await overviewResponse.json()) as {
       students: { total: number };
-      payments: { available: boolean };
     };
 
     await adminPage.goto('/ar/admin');
     const expectedStudents = new Intl.NumberFormat('ar-EG').format(
       overview.students.total,
     );
-    await expect(
-      adminPage.locator('[data-stat="students"] dd'),
-    ).toHaveText(expectedStudents);
-
-    const paymentNotice = adminPage.getByText('الدفع غير مُعدّ بعد', {
-      exact: true,
-    });
-    if (overview.payments.available) {
-      await expect(paymentNotice).toHaveCount(0);
-    } else {
-      await expect(paymentNotice).toBeVisible();
-      await expect(
-        adminPage.getByText(/لا يستطيع الطلاب شراء المستويات/),
-      ).toBeVisible();
-    }
+    await expect(adminPage.locator('[data-stat="students"] dd')).toHaveText(
+      expectedStudents,
+    );
+    await expect(adminPage.getByText('الدفع غير مُعدّ بعد')).toHaveCount(0);
+    await expect(adminPage.getByText(/Bunny|Paymob|الخادم/)).toHaveCount(0);
   });
 });

@@ -6,11 +6,9 @@ import { NextIntlClientProvider } from 'next-intl';
 
 import { RTL_LOCALES, type Locale } from '@app/shared';
 
-import {
-  MOTION_BOOT_SCRIPT,
-  MotionObserver,
-} from '@/components/motion/motion-observer';
 import { routing } from '@/i18n/routing';
+import { MotionObserver } from '@/components/motion/motion-observer';
+import { PageTransition } from '@/components/motion/page-transition';
 
 import '../globals.css';
 import '../motion.css';
@@ -53,13 +51,10 @@ export default async function LocaleLayout({
       className={fontVariables}
       suppressHydrationWarning
     >
-      <head>
-        <script dangerouslySetInnerHTML={{ __html: MOTION_BOOT_SCRIPT }} />
-      </head>
       <body className="min-h-dvh antialiased">
-        <MotionObserver />
         <NextIntlClientProvider messages={messages}>
-          {children}
+          <MotionObserver />
+          <PageTransition>{children}</PageTransition>
         </NextIntlClientProvider>
       </body>
     </html>

@@ -159,6 +159,30 @@ export class BillingService {
       ) {
         throw new ConflictException({ reason: 'not-for-sale' });
       }
+      const liveLessonWhere = {
+        levelId: level.id,
+        isPublished: true,
+        archivedAt: null,
+      } as const;
+      const [liveLessonCount, usableLessonCount] = await Promise.all([
+        tx.lesson.count({ where: liveLessonWhere }),
+        tx.lesson.count({
+          where: {
+            ...liveLessonWhere,
+            OR: [
+              { activeVideo: { is: { status: 'READY' as const } } },
+              {
+                quizzes: {
+                  some: { archivedAt: null, questions: { some: {} } },
+                },
+              },
+            ],
+          },
+        }),
+      ]);
+      if (liveLessonCount === 0 || usableLessonCount !== liveLessonCount) {
+        throw new ConflictException({ reason: 'not-for-sale' });
+      }
       const enrollment = await tx.enrollment.findUnique({
         where: { userId_levelId: { userId: user.id, levelId: level.id } },
         select: { revokedAt: true },

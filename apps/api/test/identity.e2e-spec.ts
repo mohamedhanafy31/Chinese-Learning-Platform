@@ -270,6 +270,56 @@ describe('identity API (e2e)', () => {
     await agent.get('/api/v1/auth/me').expect(401);
   });
 
+  it('isolates student and admin credential entry points', async () => {
+    const studentCredentials = {
+      ...validRegistration,
+      email: 'portal-student@example.com',
+      phone: '+201001234568',
+    };
+    await registerAgent(studentCredentials, '198.51.100.25');
+    await request(apiUrl)
+      .post('/api/v1/auth/admin/login')
+      .set('Origin', origin)
+      .set('X-Forwarded-For', '198.51.100.26')
+      .send({
+        email: studentCredentials.email,
+        password: studentCredentials.password,
+      })
+      .expect(401);
+
+    const adminCredentials = {
+      ...validRegistration,
+      email: 'portal-admin@example.com',
+      phone: '+201001234569',
+    };
+    await registerAgent(adminCredentials, '198.51.100.27');
+    await prisma.user.update({
+      where: { email: adminCredentials.email },
+      data: { role: Role.ADMIN },
+    });
+    await request(apiUrl)
+      .post('/api/v1/auth/login')
+      .set('Origin', origin)
+      .set('X-Forwarded-For', '198.51.100.28')
+      .send({
+        email: adminCredentials.email,
+        password: adminCredentials.password,
+      })
+      .expect(401);
+    await request(apiUrl)
+      .post('/api/v1/auth/admin/login')
+      .set('Origin', origin)
+      .set('X-Forwarded-For', '198.51.100.29')
+      .send({
+        email: adminCredentials.email,
+        password: adminCredentials.password,
+      })
+      .expect(200)
+      .expect(({ body }: Response) => {
+        expect(body.user.role).toBe(Role.ADMIN);
+      });
+  });
+
   it('rotates refresh tokens and revokes a family when a rotated token is reused after grace', async () => {
     const { response: registered } = await registerAgent(
       validRegistration,
@@ -436,7 +486,7 @@ describe('identity API (e2e)', () => {
     });
     const admin = request.agent(apiUrl);
     await admin
-      .post('/api/v1/auth/login')
+      .post('/api/v1/auth/admin/login')
       .set('Origin', origin)
       .set('X-Forwarded-For', '198.51.100.71')
       .send({

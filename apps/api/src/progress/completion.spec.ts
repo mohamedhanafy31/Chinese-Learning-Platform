@@ -90,9 +90,9 @@ describe('isLessonComplete', () => {
       false,
     ],
     [
-      'neither is complete by definition',
+      'an empty lesson is incomplete',
       { hasVideo: false, videoCovered: 0, duration: 0, quizzes: [] },
-      true,
+      false,
     ],
     [
       'a video of unknown length is never watched',

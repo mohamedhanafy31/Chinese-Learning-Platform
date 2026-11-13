@@ -21,10 +21,10 @@ vi.mock('next/navigation', () => ({
   useRouter: () => navigation,
 }));
 
-function renderForm(): void {
+function renderForm(portal: 'admin' | 'student' = 'student'): void {
   render(
     <NextIntlClientProvider locale="en" messages={messages}>
-      <LoginForm locale="en" />
+      <LoginForm locale="en" portal={portal} />
     </NextIntlClientProvider>,
   );
 }
@@ -42,7 +42,9 @@ describe('LoginForm', () => {
     expect(screen.getByLabelText('Email address')).toBeVisible();
     expect(screen.getByLabelText('Password')).toBeVisible();
 
-    fireEvent.click(screen.getByRole('button', { name: 'Log in' }));
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Sign in as a student' }),
+    );
 
     expect(
       await screen.findByText('Enter a valid email address.'),
@@ -77,7 +79,9 @@ describe('LoginForm', () => {
     fireEvent.change(screen.getByLabelText('Password'), {
       target: { value: 'password123' },
     });
-    fireEvent.click(screen.getByRole('button', { name: 'Log in' }));
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Sign in as a student' }),
+    );
 
     const pending = await screen.findByRole('button', { name: 'Logging in…' });
     expect(pending).toBeDisabled();
@@ -85,5 +89,38 @@ describe('LoginForm', () => {
 
     resolveFetch?.(new Response(null, { status: 500 }));
     await waitFor(() => expect(pending).not.toBeDisabled());
+  });
+
+  it('uses the isolated admin endpoint and exposes no public portal switch', async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValue(new Response(null, { status: 401 }));
+    vi.stubGlobal('fetch', fetchMock);
+    renderForm('admin');
+    fireEvent.change(screen.getByLabelText('Email address'), {
+      target: { value: 'admin@example.com' },
+    });
+    fireEvent.change(screen.getByLabelText('Password'), {
+      target: { value: 'password123' },
+    });
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Sign in as an admin' }),
+    );
+
+    await waitFor(() =>
+      expect(fetchMock).toHaveBeenCalledWith(
+        '/api/v1/auth/admin/login',
+        expect.objectContaining({ method: 'POST' }),
+      ),
+    );
+    expect(
+      screen.queryByRole('link', { name: 'Create an account' }),
+    ).toBeNull();
+    expect(screen.queryByRole('link', { name: 'Student sign in' })).toBeNull();
+  });
+
+  it('does not advertise the admin portal from student sign in', () => {
+    renderForm('student');
+    expect(screen.queryByRole('link', { name: 'Admin sign in' })).toBeNull();
   });
 });

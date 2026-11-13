@@ -23,7 +23,6 @@ interface LifecycleActionsProps {
   locale: string;
   isPublished: boolean;
   archivedAt: string | null;
-  firstPublishedAt: string | null;
   /** Where to go after a successful delete. */
   afterDeleteHref: string;
 }
@@ -39,7 +38,6 @@ const doneKey = {
 export function LifecycleActions({
   afterDeleteHref,
   archivedAt,
-  firstPublishedAt,
   id,
   isPublished,
   kind,
@@ -67,7 +65,9 @@ export function LifecycleActions({
         : t('draftHint');
 
   function signIn(): void {
-    router.replace(`/${locale}/login?next=${encodeURIComponent(pathname)}`);
+    router.replace(
+      `/${locale}/admin/login?next=${encodeURIComponent(pathname)}`,
+    );
   }
 
   async function run(verb: Verb): Promise<void> {
@@ -107,8 +107,6 @@ export function LifecycleActions({
   }
 
   const busy = pending !== null;
-  const canDelete = firstPublishedAt === null;
-
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center gap-3">
@@ -165,23 +163,18 @@ export function LifecycleActions({
           </button>
         )}
 
-        {canDelete ? (
-          <button
-            type="button"
-            disabled={busy}
-            onClick={() => {
-              setDialogError(null);
-              dialogRef.current?.showModal();
-            }}
-            className={secondaryButton}
-          >
-            {t('delete')}
-          </button>
-        ) : null}
+        <button
+          type="button"
+          disabled={busy}
+          onClick={() => {
+            setDialogError(null);
+            dialogRef.current?.showModal();
+          }}
+          className={secondaryButton}
+        >
+          {t('delete')}
+        </button>
       </div>
-      {canDelete ? null : (
-        <p className="text-sm text-cobalt">{t('deleteHint')}</p>
-      )}
       <StatusLine message={status} />
 
       <dialog
@@ -195,9 +188,7 @@ export function LifecycleActions({
           id={`${id}-delete-title`}
           className="font-display text-3xl leading-tight"
         >
-          {kind === 'level'
-            ? t('deleteTitleLevel')
-            : t('deleteTitleLesson')}
+          {kind === 'level' ? t('deleteTitleLevel') : t('deleteTitleLesson')}
         </h2>
         <p id={`${id}-delete-body`} className="mt-4 leading-[1.8] text-cobalt">
           {kind === 'level'

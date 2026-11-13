@@ -34,13 +34,23 @@ import {
 import { failureKey } from '@/lib/admin-client';
 import { apiFetch, jsonRequest } from '@/lib/api-client';
 import { emptyLocalizedInput, toLocalizedInput } from '@/lib/localized';
-import { priceToInput } from '@/lib/price';
 
 let topicCounter = 0;
 const newTopic = (values = emptyLocalizedInput): TopicRow => ({
   key: `topic-${(topicCounter += 1)}`,
   ...values,
 });
+
+function createSlug(title: string): string {
+  const base = title
+    .normalize('NFKD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-|-$/g, '')
+    .slice(0, 48);
+  return `${base || 'level'}-${crypto.randomUUID().slice(0, 8)}`;
+}
 
 function initialValues(level: AdminLevel | undefined): LevelFormValues {
   return {
@@ -51,7 +61,6 @@ function initialValues(level: AdminLevel | undefined): LevelFormValues {
     topics: (level?.topics ?? []).map((topic) =>
       newTopic(toLocalizedInput(topic)),
     ),
-    price: priceToInput(level?.priceMinor ?? null),
     coverImageId: level?.coverImageId ?? null,
   };
 }
@@ -126,6 +135,7 @@ export function LevelForm({
 
     const built = buildLevelPayload({
       ...values,
+      slug: values.slug || createSlug(values.title.en),
       coverImageId: cover?.id ?? null,
     });
     if (!built.ok) {
@@ -150,7 +160,7 @@ export function LevelForm({
       const key = await failureKey(result);
       if (key === 'unauthenticated') {
         router.replace(
-          `/${locale}/login?next=${encodeURIComponent(pathname)}`,
+          `/${locale}/admin/login?next=${encodeURIComponent(pathname)}`,
         );
         return;
       }
@@ -185,18 +195,7 @@ export function LevelForm({
         </div>
       ) : null}
 
-      <div className="grid gap-6 md:grid-cols-2">
-        <TextField
-          id="level-slug"
-          label={t('slug')}
-          helper={slugLocked ? t('slugLocked') : t('slugHelper')}
-          value={values.slug}
-          disabled={slugLocked}
-          dir="ltr"
-          lang="en"
-          error={message('slug')}
-          onChange={(value) => update('slug', value)}
-        />
+      <div className="max-w-[34rem]">
         <TextField
           id="level-hanzi"
           label={t('hanzi')}
@@ -285,20 +284,6 @@ export function LevelForm({
         </div>
       </fieldset>
 
-      <div className="max-w-sm">
-        <TextField
-          id="level-price"
-          label={t('price')}
-          helper={t('priceHelper')}
-          value={values.price}
-          dir="ltr"
-          inputMode="decimal"
-          placeholder="1500"
-          error={message('price')}
-          onChange={(value) => update('price', value)}
-        />
-      </div>
-
       <ImageUpload
         id="level-cover"
         label={t('cover')}
@@ -307,7 +292,7 @@ export function LevelForm({
         onChange={setCover}
         onUnauthenticated={() =>
           router.replace(
-            `/${locale}/login?next=${encodeURIComponent(pathname)}`,
+            `/${locale}/admin/login?next=${encodeURIComponent(pathname)}`,
           )
         }
       />

@@ -1,16 +1,11 @@
 'use client';
 
-import { CircleAlert, Film, Info, Trash2, Upload, X } from 'lucide-react';
+import { CircleAlert, Film, Trash2, Upload, X } from 'lucide-react';
 import { usePathname, useRouter } from 'next/navigation';
 import { useLocale, useTranslations } from 'next-intl';
 import { useEffect, useId, useRef, useState } from 'react';
 
-import {
-  uploadedVideoSchema,
-  type AdminVideo,
-  type Locale,
-  type PendingVideo,
-} from '@app/shared';
+import type { AdminVideo, Locale, PendingVideo } from '@app/shared';
 
 import {
   StatusLine,
@@ -18,16 +13,13 @@ import {
   secondaryButton,
 } from '@/components/admin/controls';
 import { FormAlert } from '@/components/auth/form-controls';
+import { LessonPlayer } from '@/components/video/lesson-player';
 import { adminErrorKey } from '@/lib/admin-errors';
 import { failureKey } from '@/lib/admin-client';
 import { apiFetch } from '@/lib/api-client';
 import { startBunnyUpload } from '@/lib/bunny-upload';
 import { usePendingVideo } from '@/lib/use-pending-video';
-import {
-  formatDuration,
-  formatFileSize,
-  formatPercent,
-} from '@/lib/video-format';
+import { formatDuration, formatPercent } from '@/lib/video-format';
 import {
   readVideoDuration,
   startVideoUpload,
@@ -51,14 +43,11 @@ interface VideoPanelProps {
    * large file.
    */
   uploadOrigin: string;
-  /** False when Bunny Stream is not configured; null when unknown. */
-  bunnyConfigured: boolean | null;
 }
 
 /** The lesson's video: details, preview, upload with progress, remove. */
 export function VideoPanel({
   activeProvider,
-  bunnyConfigured,
   lessonId,
   lessonTitle,
   pending: initialPending,
@@ -66,6 +55,7 @@ export function VideoPanel({
   video: initialVideo,
 }: VideoPanelProps): React.JSX.Element {
   const t = useTranslations('Admin.video');
+  const tWatch = useTranslations('Watch');
   const tErrors = useTranslations('Admin.errors');
   const locale = useLocale() as Locale;
   const router = useRouter();
@@ -79,7 +69,6 @@ export function VideoPanel({
   const [showProgress, setShowProgress] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [status, setStatus] = useState<string | null>(null);
-  const [devOnly, setDevOnly] = useState(false);
   const [removing, setRemoving] = useState(false);
   const [dialogError, setDialogError] = useState<string | null>(null);
 
@@ -104,7 +93,9 @@ export function VideoPanel({
   );
 
   function signIn(): void {
-    router.replace(`/${locale}/login?next=${encodeURIComponent(pathname)}`);
+    router.replace(
+      `/${locale}/admin/login?next=${encodeURIComponent(pathname)}`,
+    );
   }
 
   function describe(outcome: UploadOutcome): string | 'unauthenticated' | null {
@@ -130,12 +121,21 @@ export function VideoPanel({
     if (!file || busy) return;
     setError(null);
     setStatus(null);
-    setDevOnly(false);
     setProgress(0);
     setShowProgress(true);
     setPhase('reading');
 
     const durationSec = await readVideoDuration(file);
+    // Local videos are served as-is, so a file that this browser cannot read
+    // would upload successfully but leave both the admin preview and learner
+    // player unusable. Bunny uploads are allowed through because Bunny
+    // transcodes their source before learners receive it.
+    if (!useBunny && durationSec === undefined) {
+      setPhase('idle');
+      setShowProgress(false);
+      setError(t('errors.unplayable'));
+      return;
+    }
     setPhase('uploading');
     const started = useBunny
       ? startBunnyUpload({
@@ -163,10 +163,8 @@ export function VideoPanel({
       return;
     }
     if (outcome.kind === 'success') {
-      const parsed = uploadedVideoSchema.safeParse(outcome.data);
       setProgress(1);
-      setDevOnly(!useBunny && parsed.success && parsed.data.devOnly);
-      setStatus(useBunny ? t('bunny.uploadedProcessing') : t('done'));
+      setStatus(useBunny ? t('processing') : t('done'));
       router.refresh();
       return;
     }
@@ -193,21 +191,8 @@ export function VideoPanel({
     }
     dialogRef.current?.close();
     setShowProgress(false);
-    setDevOnly(false);
     setStatus(t('removed'));
     router.refresh();
-  }
-
-  function failureText(reason: string | undefined): string {
-    const known = [
-      'encoding-failed',
-      'upload-failed',
-      'upload-abandoned',
-      'video-missing',
-    ];
-    return t(
-      `bunny.reasons.${reason && known.includes(reason) ? reason : 'unknown'}`,
-    );
   }
 
   const percent = Math.round(progress * 100);
@@ -225,60 +210,51 @@ export function VideoPanel({
       </h2>
       <p className="mt-2 max-w-[34rem] text-cobalt">{t('intro')}</p>
 
-      {bunnyConfigured === false ? (
-        <p
-          role="note"
-          data-testid="video-dev-notice"
-          className="mt-4 flex items-start gap-3 rounded-2xl bg-glaze-shade px-4 py-3 text-sm font-semibold leading-relaxed text-deep"
-        >
-          <Info aria-hidden="true" className="mt-0.5 size-5 shrink-0" />
-          {t('devNotice')}
-        </p>
-      ) : null}
-
       <div className="mt-6">
         {video ? (
           <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,20rem)]">
             {video.status === 'READY' && video.provider === 'BUNNY' ? (
               <p
-                data-testid="video-bunny-note"
+                data-testid="video-ready-note"
                 className="flex items-center gap-3 rounded-2xl bg-glaze-shade px-5 py-8 text-cobalt"
               >
                 <Film aria-hidden="true" className="size-6 shrink-0" />
-                {t('bunny.previewNote')}
+                {t('ready')}
               </p>
             ) : video.status === 'READY' ? (
-              <div className="overflow-hidden rounded-2xl bg-deep">
-                <video
-                  key={video.id}
-                  data-testid="video-preview"
-                  controls
-                  playsInline
-                  preload="metadata"
-                  aria-label={t('previewLabel')}
-                  src={`/api/v1/videos/${video.id}/stream`}
-                  className="block aspect-video w-full bg-deep"
-                />
-              </div>
+              <LessonPlayer
+                key={video.id}
+                label={t('previewLabel')}
+                poster={null}
+                unsupported={tWatch('unsupported')}
+                locale={locale}
+                videoTestId="video-preview"
+                video={{
+                  provider: 'LOCAL',
+                  src: `/api/v1/videos/${video.id}/stream`,
+                  mime: video.mime,
+                  durationSec: video.durationSec,
+                }}
+                labels={{
+                  loading: tWatch('player.loading'),
+                  play: tWatch('player.play'),
+                  pause: tWatch('player.pause'),
+                  seek: tWatch('player.seek'),
+                  mute: tWatch('player.mute'),
+                  unmute: tWatch('player.unmute'),
+                  fullscreen: tWatch('player.fullscreen'),
+                  exitFullscreen: tWatch('player.exitFullscreen'),
+                  settings: tWatch('player.settings'),
+                  playbackSpeed: tWatch('player.playbackSpeed'),
+                  quality: tWatch('player.quality'),
+                  originalQuality: tWatch('player.originalQuality'),
+                }}
+              />
             ) : null}
             <dl
               data-testid="video-details"
               className="grid content-start gap-3 text-sm"
             >
-              <div>
-                <dt className="font-semibold text-deep">{t('fileName')}</dt>
-                <dd className="break-words text-cobalt" dir="auto">
-                  {video.originalName}
-                </dd>
-              </div>
-              {video.sizeBytes === null ? null : (
-                <div>
-                  <dt className="font-semibold text-deep">{t('fileSize')}</dt>
-                  <dd className="text-cobalt tabular">
-                    {formatFileSize(video.sizeBytes, locale)}
-                  </dd>
-                </div>
-              )}
               {video.durationSec === null ? null : (
                 <div>
                   <dt className="font-semibold text-deep">{t('fileLength')}</dt>
@@ -287,16 +263,6 @@ export function VideoPanel({
                   </dd>
                 </div>
               )}
-              <div>
-                <dt className="font-semibold text-deep">{t('storage')}</dt>
-                <dd className="text-cobalt">
-                  {t(`provider.${video.provider}`)}
-                </dd>
-              </div>
-              <div>
-                <dt className="font-semibold text-deep">{t('fileStatus')}</dt>
-                <dd className="text-cobalt">{t(`status.${video.status}`)}</dd>
-              </div>
             </dl>
           </div>
         ) : pending ? null : (
@@ -326,16 +292,12 @@ export function VideoPanel({
                 aria-hidden="true"
                 className="mt-0.5 size-5 shrink-0"
               />
-              {t('bunny.failed', {
-                reason: failureText(pending.failureReason),
-              })}
+              {t('processingFailed')}
             </p>
           ) : (
             <div role="status">
               <p className="font-semibold text-deep">
-                {pending.status === 'PROCESSING'
-                  ? t('bunny.processing')
-                  : t('bunny.pendingUploading')}
+                {t('processing')}
               </p>
               {pending.status === 'PROCESSING' ? (
                 <>
@@ -346,7 +308,7 @@ export function VideoPanel({
                     <div className="h-full w-2/5 rounded-full bg-cobalt motion-safe:animate-pulse" />
                   </div>
                   <p className="mt-3 text-sm text-cobalt">
-                    {t('bunny.processingHelp')}
+                    {t('processingHelp')}
                   </p>
                 </>
               ) : null}
@@ -443,11 +405,6 @@ export function VideoPanel({
         <div className="mt-4">
           <FormAlert>{error}</FormAlert>
         </div>
-      ) : null}
-      {devOnly ? (
-        <p role="note" className="mt-4 text-sm font-semibold text-deep">
-          {t('devOnlyUploaded')}
-        </p>
       ) : null}
       <div className="mt-2">
         <StatusLine message={status} />

@@ -17,7 +17,6 @@ import { catalogStatus, StatusBadge } from '@/components/admin/status-badge';
 import { useReorder } from '@/components/admin/use-reorder';
 import { pick } from '@/lib/localized';
 import { numberFormat } from '@/lib/numbers';
-import { formatEgp } from '@/lib/price';
 
 export function LevelsList({
   levels,
@@ -40,10 +39,14 @@ export function LevelsList({
       return parsed.success ? parsed.data.levels : null;
     },
     onUnauthenticated: () =>
-      router.replace(`/${locale}/login?next=${encodeURIComponent(pathname)}`),
+      router.replace(
+        `/${locale}/admin/login?next=${encodeURIComponent(pathname)}`,
+      ),
   });
 
-  const movedLevel = moved ? items.find((level) => level.id === moved.id) : null;
+  const movedLevel = moved
+    ? items.find((level) => level.id === moved.id)
+    : null;
 
   return (
     <div>
@@ -85,8 +88,7 @@ export function LevelsList({
                     {title}
                   </Link>
                   <p className="mt-1 text-sm text-cobalt tabular">
-                    {t('numberLabel', { n: nf.format(index + 1) })} ·{' '}
-                    <span dir="ltr">/{level.slug}</span>
+                    {t('numberLabel', { n: nf.format(index + 1) })}
                   </p>
                   <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-cobalt">
                     <StatusBadge
@@ -94,12 +96,9 @@ export function LevelsList({
                       label={tStatus(catalogStatus(level))}
                     />
                     <span className="tabular">
-                      {t('lessonsMeta', { count: nf.format(level.lessonCount) })}
-                    </span>
-                    <span className="tabular">
-                      {level.priceMinor === null
-                        ? t('priceNotSet')
-                        : formatEgp(level.priceMinor, locale)}
+                      {t('lessonsMeta', {
+                        count: nf.format(level.lessonCount),
+                      })}
                     </span>
                   </div>
                 </div>

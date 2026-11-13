@@ -48,16 +48,10 @@ export default async function DashboardPage({
         {t('greeting', { name: user.name })}
       </h1>
 
-      <div className="mt-14 flex flex-wrap items-center justify-between gap-4">
+      <div className="mt-14">
         <h2 className="font-display text-[clamp(2rem,4vw,2.75rem)] leading-[1.1] text-deep">
           <WriteOn text={t('myLevels')} />
         </h2>
-        <Link
-          href={`/${locale}/orders`}
-          className="inline-flex min-h-11 items-center text-cobalt underline decoration-wash-strong underline-offset-8 hover:text-deep"
-        >
-          {t('myOrders')}
-        </Link>
       </div>
 
       {result.status === 'error' ? (
@@ -65,7 +59,7 @@ export default async function DashboardPage({
           <Notice role="alert">{t('loadError')}</Notice>
         </div>
       ) : result.levels.length === 0 ? (
-        <div data-reveal="" className="mt-8">
+        <div data-reveal="" suppressHydrationWarning className="mt-8">
           <EmptyState
             body={t('empty')}
             action={{ href: `/${locale}#levels`, label: t('browse') }}
@@ -74,6 +68,7 @@ export default async function DashboardPage({
       ) : (
         <ul
           data-reveal="stagger"
+          suppressHydrationWarning
           aria-label={t('myLevels')}
           className="mt-8 border-t-2 border-cobalt"
         >
@@ -86,6 +81,7 @@ export default async function DashboardPage({
             return (
               <li
                 key={level.slug}
+                data-level={level.slug}
                 data-reveal-item=""
                 className="border-b border-wash"
               >

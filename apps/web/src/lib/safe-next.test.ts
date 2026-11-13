@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { safeNext } from '@/lib/safe-next';
+import { loginPathForNext, safeNext, safePortalNext } from '@/lib/safe-next';
 
 describe('safeNext', () => {
   const fallback = '/ar/dashboard';
@@ -23,5 +23,24 @@ describe('safeNext', () => {
     'javascript:alert(1)',
   ])('rejects unsafe redirect %s', (value) => {
     expect(safeNext(value, fallback)).toBe(fallback);
+  });
+
+  it('keeps student and admin destinations inside their own portals', () => {
+    expect(safePortalNext('/ar/admin/levels', 'ar', 'student')).toBe(
+      '/ar/dashboard',
+    );
+    expect(safePortalNext('/ar/dashboard', 'ar', 'admin')).toBe('/ar/admin');
+    expect(safePortalNext('/ar/admin/levels', 'ar', 'admin')).toBe(
+      '/ar/admin/levels',
+    );
+  });
+
+  it('selects the login portal from the protected destination', () => {
+    expect(loginPathForNext('ar', '/ar/admin/levels')).toBe(
+      '/ar/admin/login?next=%2Far%2Fadmin%2Flevels',
+    );
+    expect(loginPathForNext('ar', '/ar/dashboard')).toBe(
+      '/ar/login?next=%2Far%2Fdashboard',
+    );
   });
 });

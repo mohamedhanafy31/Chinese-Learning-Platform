@@ -41,6 +41,7 @@ export function WriteOn({
   return (
     <span
       data-write={mode}
+      suppressHydrationWarning
       className={className}
       style={{ '--ink-delay': `${delay}ms` } as React.CSSProperties}
     >

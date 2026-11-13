@@ -13,11 +13,11 @@ import {
 import { roleHome } from '@/lib/role-home';
 
 interface AccountLinkProps {
+  accountLabel: string;
   adminLabel: string;
   className: string;
   locale: Locale;
   loginLabel: string;
-  learningLabel: string;
 }
 
 let currentUserRequest: Promise<PublicUser | null> | null = null;
@@ -39,11 +39,11 @@ function loadCurrentUser(): Promise<PublicUser | null> {
 }
 
 export function AccountLink({
+  accountLabel,
   adminLabel,
   className,
   locale,
   loginLabel,
-  learningLabel,
 }: AccountLinkProps): React.JSX.Element {
   const [account, setAccount] = useState<{ href: string; label: string }>({
     href: `/${locale}/login`,
@@ -55,8 +55,11 @@ export function AccountLink({
     void loadCurrentUser().then((user) => {
       if (active && user) {
         setAccount({
-          href: roleHome(locale, user.role),
-          label: user.role === Role.ADMIN ? adminLabel : learningLabel,
+          href:
+            user.role === Role.ADMIN
+              ? roleHome(locale, user.role)
+              : `/${locale}/account`,
+          label: user.role === Role.ADMIN ? adminLabel : accountLabel,
         });
       }
     });
@@ -64,7 +67,7 @@ export function AccountLink({
     return () => {
       active = false;
     };
-  }, [adminLabel, learningLabel, locale]);
+  }, [accountLabel, adminLabel, locale]);
 
   return (
     <Link href={account.href} className={`min-w-24 ${className}`}>

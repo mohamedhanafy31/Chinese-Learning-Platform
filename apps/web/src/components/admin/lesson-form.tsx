@@ -85,7 +85,9 @@ export function LessonForm({
     zh: message(`${prefix}.zh`),
   });
   const signIn = (): void =>
-    router.replace(`/${locale}/login?next=${encodeURIComponent(pathname)}`);
+    router.replace(
+      `/${locale}/admin/login?next=${encodeURIComponent(pathname)}`,
+    );
 
   useEffect(() => {
     if (focusTick === 0) return;
@@ -217,11 +219,7 @@ export function LessonForm({
           aria-busy={pending}
           className={`${primaryButton} w-full sm:w-auto`}
         >
-          {pending
-            ? t('saving')
-            : isEdit
-              ? t('saveLesson')
-              : t('createLesson')}
+          {pending ? t('saving') : isEdit ? t('saveLesson') : t('createLesson')}
         </button>
         <StatusLine message={status} />
       </div>

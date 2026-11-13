@@ -115,6 +115,7 @@ export function FormAlert({
   return (
     <div
       role="alert"
+      data-process-feedback=""
       className="rounded-2xl border-s-4 border-deep bg-glaze-shade px-4 py-3 font-semibold leading-relaxed text-deep"
     >
       {children}
@@ -156,6 +157,7 @@ export function FieldErrorMessage({
   return (
     <p
       id={id}
+      data-process-feedback=""
       className="mt-2 flex items-start gap-2 text-sm font-semibold text-deep"
     >
       <CircleAlert aria-hidden="true" className="mt-0.5 size-4 shrink-0" />

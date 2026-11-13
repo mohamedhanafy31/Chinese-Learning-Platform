@@ -79,7 +79,7 @@ export function isLevelPubliclyVisible(level: AccessLevel): boolean {
 }
 
 /**
- * Buyers keep archived levels, so a level stays readable for its enrollees
+ * Historical learners keep archived levels, so a level stays readable for its enrollees
  * while it is published or archived. Only a level that is unpublished and not
  * archived (a draft, or a level pulled back) is unavailable to them.
  */
@@ -104,6 +104,7 @@ export function decideLevel({
   enrollment,
 }: LevelAccessInput): AccessDecision {
   if (user?.role === Role.ADMIN) return allow('admin');
+  if (user && isLevelPubliclyVisible(level)) return allow('enrolled');
   if (isActiveEnrollment(enrollment) && isLevelReadableByEnrollees(level)) {
     return allow('enrolled');
   }
@@ -114,10 +115,12 @@ export function decideLevel({
 /**
  * May this user open this lesson? Order matters:
  * admins see everything; lessons that are not live are unavailable to everyone
- * else; an active enrollment opens the lesson (even on an archived level); a
- * free preview on a publicly visible level opens for anyone, anonymous included.
+ * else; any account opens a lesson on a public level, while an active historic
+ * enrollment still opens lessons on an archived level. A free preview removes
+ * subscription/enrollment and sequence requirements, but it never removes the
+ * login requirement.
  *
- * Sequential unlocking (decision 4) applies to an active enrollment only. The
+ * Sequential unlocking applies to every signed-in learner with access. The
  * sequence is the ordered list of the level's visible lessons; a free preview
  * lesson is outside the lock (always open, and never required before a later
  * lesson), and any other lesson opens once every earlier non-preview lesson is
@@ -135,14 +138,14 @@ export function decideLesson({
   if (!lesson.isPublished || lesson.archivedAt !== null) {
     return deny('unavailable');
   }
-  if (isActiveEnrollment(enrollment) && isLevelReadableByEnrollees(level)) {
+  const hasLearnerAccess =
+    (user !== null && isLevelPubliclyVisible(level)) ||
+    (isActiveEnrollment(enrollment) && isLevelReadableByEnrollees(level));
+  if (hasLearnerAccess) {
     if (requiredLessonId && !lesson.isFreePreview) {
       return denySequence(requiredLessonId);
     }
     return allow('enrolled');
-  }
-  if (lesson.isFreePreview && isLevelPubliclyVisible(level)) {
-    return allow('free-preview');
   }
   if (!isLevelReadableByEnrollees(level)) return deny('unavailable');
   return withoutAccess(user);

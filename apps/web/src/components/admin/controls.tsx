@@ -234,6 +234,7 @@ export function StatusLine({
   return (
     <p
       role="status"
+      data-process-feedback={message ? '' : undefined}
       className={`flex min-h-6 items-center gap-2 text-sm font-semibold text-cobalt ${
         message ? '' : 'sr-only'
       }`}

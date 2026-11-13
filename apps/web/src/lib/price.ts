@@ -29,7 +29,7 @@ function toAsciiDigits(value: string): string {
  * - Empty input means "price not announced" and returns `null`.
  * - Western, Arabic-Indic and Persian digits are accepted.
  * - The decimal separator is "." (or the Arabic decimal separator "٫").
- * - At most two decimals; zero is a valid price.
+ * - At most two decimals; a sale price must be greater than zero.
  * - Thousands separators ("1,000", "1٬000") and decimal commas are rejected
  *   rather than guessed at: "1,000" could mean one thousand or one.
  * - Signs, exponents, spaces inside the number and anything else are invalid.
@@ -54,6 +54,7 @@ export function parsePriceInput(raw: string): PriceParseResult {
   if (wholeDigits.length > 9) return { ok: false, reason: 'too-large' };
   const minor =
     Number(wholeDigits) * 100 + Number((fraction ?? '').padEnd(2, '0'));
+  if (minor === 0) return { ok: false, reason: 'invalid' };
   if (minor > MAX_PRICE_MINOR) return { ok: false, reason: 'too-large' };
   return { ok: true, minor };
 }

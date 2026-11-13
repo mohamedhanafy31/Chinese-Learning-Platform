@@ -12,7 +12,7 @@ import {
 import { ConfigService } from '@nestjs/config';
 import { Throttle } from '@nestjs/throttler';
 import type { Request, Response } from 'express';
-import type { PublicUser, UserResponse } from '@app/shared';
+import { Role, type PublicUser, type UserResponse } from '@app/shared';
 
 import {
   ForgotPasswordDto,
@@ -80,6 +80,27 @@ export class IdentityController {
     const issued = await this.identity.login(
       input,
       this.sessionMetadata(request),
+      Role.STUDENT,
+    );
+    this.setIdentityCookies(response, issued);
+    return { user: issued.user };
+  }
+
+  @Public()
+  @Post('admin/login')
+  @HttpCode(HttpStatus.OK)
+  @Throttle({
+    default: { limit: 5, ttl: minute, getTracker: loginTracker },
+  })
+  async adminLogin(
+    @Body(new ZodValidationPipe(LoginDto.schema)) input: LoginDto,
+    @Req() request: Request,
+    @Res({ passthrough: true }) response: Response,
+  ): Promise<UserResponse> {
+    const issued = await this.identity.login(
+      input,
+      this.sessionMetadata(request),
+      Role.ADMIN,
     );
     this.setIdentityCookies(response, issued);
     return { user: issued.user };

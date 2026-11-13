@@ -1,6 +1,6 @@
 import { getTranslations } from 'next-intl/server';
 
-import type { LessonAccess, Locale } from '@app/shared';
+import type { ImageRef, LessonAccess, Locale } from '@app/shared';
 
 import type { PathLesson } from '@/components/learning/lesson-path';
 import { samplePathLessons } from '@/content/sample-path';
@@ -31,12 +31,13 @@ export interface RealLessonInput {
   title: Parameters<typeof pick>[0];
   hanzi: string | null;
   isFreePreview: boolean;
+  thumbnail: ImageRef | null;
 }
 
 /**
  * Catalog lessons for the level page. `access` is what the API said this
- * viewer may do (see `getLevelAccess`); without it the view is anonymous: a
- * lesson is a free preview or locked. "Done" and "next" arrive with progress.
+ * viewer may do (see `getLevelAccess`); without a confirmed answer the view
+ * fails closed and every lesson is locked. "Done" and "next" arrive with progress.
  */
 export async function toCatalogPathLessons(
   lessons: RealLessonInput[],
@@ -53,6 +54,7 @@ export async function toCatalogPathLessons(
     number: t('lessonNumber', { n: nf.format(lesson.number) }),
     title: pick(lesson.title, locale),
     hanzi: lesson.hanzi ?? '',
+    thumbnail: lesson.thumbnail,
     state: pathStateFor(lesson, access.get(lesson.id)),
     href: hrefFor?.(lesson.id),
   }));

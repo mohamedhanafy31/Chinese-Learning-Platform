@@ -340,8 +340,8 @@ model QuizAttempt {
 
 /// One learner's watch coverage and completion of one lesson. `completedAt` is
 /// sticky: once set it is never cleared, even if a quiz is added later. The
-/// lesson FK cascades (a lesson is only hard-deleted while it was never
-/// published, and its progress goes with it); the user FK restricts.
+/// lesson FK cascades so progress goes with a lesson when an administrator
+/// permanently deletes it; the user FK restricts.
 model LessonProgress {
   userId           String    @db.Uuid
   lessonId         String    @db.Uuid

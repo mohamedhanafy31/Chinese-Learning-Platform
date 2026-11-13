@@ -300,11 +300,7 @@ export default async function LessonPage({
           <LessonStage
             levelSlug={data.level.slug}
             lessonId={data.lesson.id}
-            label={
-              result.status === 'ok' && result.data.video.provider === 'BUNNY'
-                ? title
-                : t('playerLabel')
-            }
+            label={t('playerLabel')}
             poster={data.poster}
             progress={data.progress}
             video={result.status === 'ok' ? result.data.video : null}
@@ -338,6 +334,7 @@ export default async function LessonPage({
           {description ? (
             <p
               data-reveal=""
+              suppressHydrationWarning
               className="mt-5 max-w-[40rem] text-lg leading-[1.85] text-cobalt"
             >
               {description}

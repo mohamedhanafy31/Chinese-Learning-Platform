@@ -243,11 +243,15 @@ describe('bunny video (e2e)', () => {
         email,
         password,
         name: 'Bunny User',
-        phone: `+2011${String(3_000_000 + phoneCounter)}`,
+        phone: `+2011${String(30_000_000 + phoneCounter)}`,
       })
       .expect(201);
     const user = await prisma.user.update({ where: { email }, data: { role } });
-    await call(agent, 'post', '/api/v1/auth/login')
+    await call(
+      agent,
+      'post',
+      role === Role.ADMIN ? '/api/v1/auth/admin/login' : '/api/v1/auth/login',
+    )
       .send({ email, password })
       .expect(200);
     return { agent, id: user.id };
@@ -256,7 +260,7 @@ describe('bunny video (e2e)', () => {
   /** The beforeEach admin, signed in on the server without Bunny. */
   async function plainAdmin(): Promise<Agent> {
     const agent = request.agent(plain.url);
-    await call(agent, 'post', '/api/v1/auth/login')
+    await call(agent, 'post', '/api/v1/auth/admin/login')
       .send({ email: 'bunny-admin@example.com', password })
       .expect(200);
     return agent;
@@ -942,7 +946,8 @@ describe('bunny video (e2e)', () => {
     const playback = (agent: Agent | undefined, lessonId: string) =>
       call(agent, 'get', `/api/v1/lessons/${lessonId}/playback`);
 
-    const free = await playback(undefined, f.preview).expect(200);
+    await playback(undefined, f.preview).expect(401);
+    const free = await playback(student, f.preview).expect(200);
     expect(free.headers['cache-control']).toBe('private, no-store');
     const video = (free.body as { video: Json }).video;
     expect(video).toMatchObject({ provider: 'BUNNY', durationSec: 33 });
@@ -968,11 +973,10 @@ describe('bunny video (e2e)', () => {
     expect(JSON.stringify(free.body)).not.toContain(API_KEY);
 
     await playback(undefined, f.locked).expect(401);
-    const refused = await playback(student, f.locked).expect(403);
-    expect(refused.body).toMatchObject({
-      reason: 'not-enrolled',
-      levelSlug: f.slug,
-    });
+    const accountAccess = await playback(student, f.locked).expect(200);
+    expect((accountAccess.body as { video: Json }).video.provider).toBe(
+      'BUNNY',
+    );
     await playback(undefined, f.hidden).expect(404);
     await playback(student, f.hidden).expect(404);
     await playback(undefined, randomUUID()).expect(404);
@@ -994,14 +998,18 @@ describe('bunny video (e2e)', () => {
     )
       .send({})
       .expect(204);
-    await playback(student, f.locked).expect(403);
+    await playback(student, f.locked).expect(200);
   });
 
   it('answers 404 no-video while the only upload is still processing', async () => {
     const f = await seed('bunny-novideo');
     await processing(f.preview);
+    const { agent: student } = await signIn(
+      'bunny-novideo-student@example.com',
+      Role.STUDENT,
+    );
     const response = await call(
-      undefined,
+      student,
       'get',
       `/api/v1/lessons/${f.preview}/playback`,
     ).expect(404);
@@ -1011,8 +1019,12 @@ describe('bunny video (e2e)', () => {
   it('keeps LOCAL assets streaming after Bunny is configured, and never streams BUNNY ones', async () => {
     const f = await seed('bunny-local-stream');
     const local = await localAsset(f.preview);
+    const { agent: student } = await signIn(
+      'bunny-local-student@example.com',
+      Role.STUDENT,
+    );
     const playback = await call(
-      undefined,
+      student,
       'get',
       `/api/v1/lessons/${f.preview}/playback`,
     ).expect(200);
@@ -1024,7 +1036,7 @@ describe('bunny video (e2e)', () => {
       },
     });
     const stream = await call(
-      undefined,
+      student,
       'get',
       `/api/v1/videos/${local.id}/stream`,
     )
@@ -1081,9 +1093,14 @@ describe('bunny video (e2e)', () => {
     ).expect(204);
   });
 
-  it('deleting a never-published lesson deletes its Bunny videos', async () => {
+  it('deleting a published lesson deletes its Bunny videos', async () => {
     const { lessonId } = await bareLesson();
     const pending = await processing(lessonId);
+    await call(
+      admin,
+      'post',
+      `/api/v1/admin/lessons/${lessonId}/publish`,
+    ).expect(200);
     await call(admin, 'delete', `/api/v1/admin/lessons/${lessonId}`).expect(
       204,
     );

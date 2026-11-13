@@ -55,8 +55,11 @@ async function signIn(
   email: string,
   password: string,
   labels: { email: string; password: string; submit: string },
+  portal: 'admin' | 'student' = 'admin',
 ): Promise<void> {
-  await page.goto(`/${locale}/login`);
+  await page.goto(
+    portal === 'admin' ? `/${locale}/admin/login` : `/${locale}/login`,
+  );
   await page.getByLabel(labels.email).fill(email);
   await page.getByLabel(labels.password, { exact: true }).fill(password);
   await page.getByRole('button', { name: labels.submit }).click();
@@ -65,7 +68,7 @@ async function signIn(
 const english = {
   email: 'Email address',
   password: 'Password',
-  submit: 'Log in',
+  submit: 'Sign in as an admin',
 };
 
 test.describe.serial('catalog admin and public catalog', () => {
@@ -87,7 +90,7 @@ test.describe.serial('catalog admin and public catalog', () => {
     await expect(
       page.getByRole('heading', { name: 'Levels', level: 1 }),
     ).toBeVisible();
-    await page.getByRole('link', { name: 'New level' }).click();
+    await page.getByRole('link', { name: 'New level' }).first().click();
     await expect(page).toHaveURL(/\/en\/admin\/levels\/new$/);
 
     await page.getByLabel('Slug').fill(slug);
@@ -102,7 +105,8 @@ test.describe.serial('catalog admin and public catalog', () => {
     const topic = page.getByRole('group', { name: 'Topic 1' });
     await topic.getByLabel('English').fill('Tones');
     await topic.getByLabel('العربية').fill('النغمات');
-    await page.getByLabel('Price in EGP').fill('1500.50');
+    // Levels are free: the form has no price field.
+    await expect(page.getByLabel('Price in EGP')).toHaveCount(0);
 
     await page.locator('#level-cover').setInputFiles({
       name: 'cover.png',
@@ -183,7 +187,6 @@ test.describe.serial('catalog admin and public catalog', () => {
       name: new RegExp(arabicTitle),
     });
     await expect(ledgerLink).toBeVisible();
-    await expect(ledgerLink).toContainText('١٬٥٠٠٫٥٠');
     await expect(ledgerLink).toHaveAttribute('href', `/ar/levels/${slug}`);
 
     // ----- public level page --------------------------------------------------
@@ -191,19 +194,19 @@ test.describe.serial('catalog admin and public catalog', () => {
     await expect(
       page.getByRole('heading', { name: arabicTitle, level: 1 }),
     ).toBeVisible();
-    await expect(page.getByText('١٬٥٠٠٫٥٠').first()).toBeVisible();
     const lessons = page
       .getByRole('list', { name: 'دروس هذا المستوى' })
       .getByRole('listitem');
     await expect(lessons).toHaveCount(2);
     await expect(lessons.nth(0)).toContainText(lessonBeta);
-    await expect(lessons.nth(0)).toContainText('مغلق');
+    await expect(lessons.nth(0)).toContainText('التالي');
     await expect(lessons.nth(1)).toContainText(lessonAlpha);
     await expect(lessons.nth(1)).toContainText('مجاني');
-    // M11: a signed-in, unenrolled viewer of a priced level gets the live buy pill.
+    // Free access: a signed-in viewer has the level, and nothing offers to sell it.
+    await expect(page.getByTestId('level-enrolled')).toBeVisible();
     await expect(
       page.getByRole('button', { name: /اشترِ المستوى/ }),
-    ).toBeEnabled();
+    ).toHaveCount(0);
 
     const cover = page.getByTestId('level-cover').locator('img');
     await expect(cover).toBeVisible();
@@ -272,11 +275,18 @@ test.describe.serial('catalog admin and public catalog', () => {
     );
     expect(registered.status()).toBe(201);
 
-    await signIn(page, 'ar', email, password, {
-      email: 'البريد الإلكتروني',
-      password: 'كلمة المرور',
-      submit: 'سجّل الدخول',
-    });
+    await signIn(
+      page,
+      'ar',
+      email,
+      password,
+      {
+        email: 'البريد الإلكتروني',
+        password: 'كلمة المرور',
+        submit: 'الدخول كطالب',
+      },
+      'student',
+    );
     await expect(page).toHaveURL(/\/ar\/dashboard$/);
     await page.goto('/ar/admin/levels');
     await expect(page).toHaveURL(/\/ar\/admin\/levels$/);

@@ -43,10 +43,14 @@ export function LessonsList({
       return parsed.success ? parsed.data.lessons : null;
     },
     onUnauthenticated: () =>
-      router.replace(`/${locale}/login?next=${encodeURIComponent(pathname)}`),
+      router.replace(
+        `/${locale}/admin/login?next=${encodeURIComponent(pathname)}`,
+      ),
   });
 
-  const movedLesson = moved ? items.find((lesson) => lesson.id === moved.id) : null;
+  const movedLesson = moved
+    ? items.find((lesson) => lesson.id === moved.id)
+    : null;
 
   return (
     <div>

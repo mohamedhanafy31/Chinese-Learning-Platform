@@ -26,8 +26,10 @@ type ForgotInput = z.input<typeof forgotPasswordRequestSchema>;
 
 export function ForgotPasswordForm({
   locale,
+  portal = 'student',
 }: {
   locale: Locale;
+  portal?: 'admin' | 'student';
 }): React.JSX.Element {
   const t = useTranslations('Auth');
   const [sent, setSent] = useState(false);
@@ -38,14 +40,14 @@ export function ForgotPasswordForm({
     register,
   } = useForm<ForgotInput, unknown, ForgotPasswordRequest>({
     resolver: zodResolver(forgotPasswordRequestSchema),
-    defaultValues: { locale },
+    defaultValues: { locale, portal },
   });
 
   const submit = handleSubmit(async (values) => {
     setFormError(null);
     const result = await apiFetch<void>(
       '/api/v1/auth/forgot-password',
-      jsonRequest({ ...values, locale }, { method: 'POST' }),
+      jsonRequest({ ...values, locale, portal }, { method: 'POST' }),
     );
     if (!result.ok) {
       setFormError(authErrorKey(result.status, 'generic'));
@@ -58,7 +60,12 @@ export function ForgotPasswordForm({
     return (
       <div className="space-y-6">
         <FormAlert>{t('forgotConfirmation')}</FormAlert>
-        <Link href={`/${locale}/login`} className={secondaryLink}>
+        <Link
+          href={
+            portal === 'admin' ? `/${locale}/admin/login` : `/${locale}/login`
+          }
+          className={secondaryLink}
+        >
           {t('backToLogin')}
         </Link>
       </div>
@@ -83,7 +90,12 @@ export function ForgotPasswordForm({
           pending={isSubmitting}
           pendingLabel={t('forgotPending')}
         />
-        <Link href={`/${locale}/login`} className={secondaryLink}>
+        <Link
+          href={
+            portal === 'admin' ? `/${locale}/admin/login` : `/${locale}/login`
+          }
+          className={secondaryLink}
+        >
           {t('backToLogin')}
         </Link>
       </div>

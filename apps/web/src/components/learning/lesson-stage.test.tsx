@@ -1,5 +1,5 @@
 import { NextIntlClientProvider } from 'next-intl';
-import { cleanup, render, waitFor } from '@testing-library/react';
+import { cleanup, render } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type { LessonProgress } from '@app/shared';
@@ -61,16 +61,10 @@ describe('LessonStage opening report', () => {
   });
   afterEach(cleanup);
 
-  it('reports the opening of a lesson with nothing to watch or pass', async () => {
+  it('does not report an empty lesson as progress', async () => {
     show(base);
-    await waitFor(() => expect(apiFetch).toHaveBeenCalledTimes(1));
-    const [path, init] = apiFetch.mock.calls[0] as [string, RequestInit];
-    expect(path).toBe(`/api/v1/lessons/${lessonId}/progress`);
-    expect(init.method).toBe('POST');
-    expect(JSON.parse(String(init.body))).toEqual({
-      segments: [],
-      positionSec: 0,
-    });
+    await new Promise((resolve) => setTimeout(resolve, 20));
+    expect(apiFetch).not.toHaveBeenCalled();
   });
 
   it('sends nothing for anonymous viewers, quizzes or a finished lesson', async () => {

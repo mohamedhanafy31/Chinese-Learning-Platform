@@ -27,6 +27,22 @@ export function formatDuration(seconds: number, locale: Locale): string {
     : [plain.format(minutes), padded.format(rest)].join(':');
 }
 
+/** A player speed such as "1.25×", with locale-appropriate digits. */
+export function formatPlaybackRate(rate: number, locale: Locale): string {
+  return `${new Intl.NumberFormat(intlLocale(locale), {
+    useGrouping: false,
+    maximumFractionDigits: 2,
+  }).format(rate)}×`;
+}
+
+/** A vertical video resolution such as "1080p", localized like other counts. */
+export function formatVideoQuality(height: number, locale: Locale): string {
+  const safe = Number.isFinite(height) ? Math.max(0, Math.round(height)) : 0;
+  return `${new Intl.NumberFormat(intlLocale(locale), {
+    useGrouping: false,
+  }).format(safe)}p`;
+}
+
 const UNITS = [
   { limit: 1024, unit: 'byte', divisor: 1 },
   { limit: 1024 ** 2, unit: 'kilobyte', divisor: 1024 },

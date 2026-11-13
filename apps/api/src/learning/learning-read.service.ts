@@ -35,11 +35,6 @@ const visibleLessons = {
   orderBy: { sortOrder: 'asc' },
 } as const;
 
-/** Levels the learner can still read: published, or archived (kept by buyers). */
-const readableLevel = {
-  OR: [{ isPublished: true }, { archivedAt: { not: null } }],
-};
-
 @Injectable()
 export class LearningReadService {
   constructor(
@@ -93,33 +88,41 @@ export class LearningReadService {
   async myLevels(userId: string): Promise<MyLevelsResponse> {
     const [numbers, rows] = await Promise.all([
       this.publicNumbers(),
-      this.prisma.enrollment.findMany({
-        where: { userId, revokedAt: null, level: readableLevel },
-        orderBy: { level: { sortOrder: 'asc' } },
-        include: {
-          level: {
-            include: {
-              ...levelImageInclude,
-              lessons: {
-                ...visibleLessons,
-                select: { id: true, title: true, isFreePreview: true },
-              },
+      this.prisma.level.findMany({
+        where: {
+          OR: [
+            { isPublished: true, archivedAt: null },
+            {
+              archivedAt: { not: null },
+              enrollments: { some: { userId, revokedAt: null } },
             },
+          ],
+        },
+        orderBy: { sortOrder: 'asc' },
+        include: {
+          ...levelImageInclude,
+          lessons: {
+            ...visibleLessons,
+            select: { id: true, title: true, isFreePreview: true },
+          },
+          enrollments: {
+            where: { userId, revokedAt: null },
+            select: { createdAt: true },
+            take: 1,
           },
         },
       }),
     ]);
     const completed = await this.progress.completedLessonIds(
       userId,
-      rows.flatMap(({ level }) => level.lessons.map(({ id }) => id)),
+      rows.flatMap(({ lessons }) => lessons.map(({ id }) => id)),
     );
     return {
-      levels: rows.map(({ level, createdAt }) => {
-        const { lessons, ...row } = level;
+      levels: rows.map(({ lessons, enrollments, ...row }) => {
         return this.toMyLevel(
           row,
           lessons.length,
-          createdAt,
+          enrollments[0]?.createdAt ?? row.firstPublishedAt ?? row.createdAt,
           numbers,
           summariseLevel(lessons, completed),
         );
@@ -127,22 +130,32 @@ export class LearningReadService {
     };
   }
 
-  /** One owned level with its lessons, including archived levels. */
+  /** One public level, or an archived level retained by a historical learner. */
   async myLevel(userId: string, slug: string): Promise<MyLevelDetail> {
-    const enrollment = await this.prisma.enrollment.findFirst({
-      where: { userId, revokedAt: null, level: { slug, ...readableLevel } },
-      include: {
-        level: {
-          include: {
-            ...levelImageInclude,
-            lessons: { ...visibleLessons, include: lessonImageInclude },
+    const level = await this.prisma.level.findFirst({
+      where: {
+        slug,
+        OR: [
+          { isPublished: true, archivedAt: null },
+          {
+            archivedAt: { not: null },
+            enrollments: { some: { userId, revokedAt: null } },
           },
+        ],
+      },
+      include: {
+        ...levelImageInclude,
+        lessons: { ...visibleLessons, include: lessonImageInclude },
+        enrollments: {
+          where: { userId, revokedAt: null },
+          select: { createdAt: true },
+          take: 1,
         },
       },
     });
-    if (!enrollment) throw new NotFoundException('Level not found');
+    if (!level) throw new NotFoundException('Level not found');
     const numbers = await this.publicNumbers();
-    const { lessons, ...row } = enrollment.level;
+    const { lessons, enrollments, ...row } = level;
     const completed = await this.progress.completedLessonIds(
       userId,
       lessons.map(({ id }) => id),
@@ -151,7 +164,7 @@ export class LearningReadService {
       ...this.toMyLevel(
         row,
         lessons.length,
-        enrollment.createdAt,
+        enrollments[0]?.createdAt ?? row.firstPublishedAt ?? row.createdAt,
         numbers,
         summariseLevel(lessons, completed),
       ),
@@ -194,10 +207,13 @@ export class LearningReadService {
     // without an enrollment would see (their own access goes through
     // `ContentAccessPolicy` on the lesson itself).
     const viewer = user ? { id: user.id, role: Role.STUDENT } : null;
-    const enrolled =
-      isActiveEnrollment(enrollment) && isLevelReadableByEnrollees(level);
-    // An enrolled learner's lessons follow the sequence (done, next, preview,
-    // locked); everyone else sees a free preview or locked.
+    const enrolled = Boolean(
+      user &&
+      (isLevelPubliclyVisible(level) ||
+        (isActiveEnrollment(enrollment) && isLevelReadableByEnrollees(level))),
+    );
+    // A signed-in learner's lessons follow the sequence (done, next, preview,
+    // locked); anonymous visitors see every lesson as login-locked.
     const completed =
       enrolled && user
         ? await this.progress.completedLessonIds(

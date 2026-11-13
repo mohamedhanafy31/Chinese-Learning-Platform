@@ -48,7 +48,9 @@ export function QuizLifecycle({
 
   const archived = archivedAt !== null;
   const signIn = (): void =>
-    router.replace(`/${locale}/login?next=${encodeURIComponent(pathname)}`);
+    router.replace(
+      `/${locale}/admin/login?next=${encodeURIComponent(pathname)}`,
+    );
 
   async function run(verb: 'archive' | 'restore'): Promise<void> {
     if (busy) return;

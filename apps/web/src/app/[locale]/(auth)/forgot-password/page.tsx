@@ -18,11 +18,15 @@ export async function generateMetadata({
 
 export default async function ForgotPasswordPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ locale: Locale }>;
+  searchParams: Promise<{ portal?: string | string[] }>;
 }): Promise<React.JSX.Element> {
   const { locale } = await params;
   setRequestLocale(locale);
+  const query = await searchParams;
+  const portal = query.portal === 'admin' ? 'admin' : 'student';
   const t = await getTranslations('Auth');
   return (
     <AuthShell
@@ -30,7 +34,7 @@ export default async function ForgotPasswordPage({
       hanzi={t('forgotHanzi')}
       description={t('forgotDescription')}
     >
-      <ForgotPasswordForm locale={locale} />
+      <ForgotPasswordForm locale={locale} portal={portal} />
     </AuthShell>
   );
 }

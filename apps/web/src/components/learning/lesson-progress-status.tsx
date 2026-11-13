@@ -79,7 +79,12 @@ export function LessonProgressStatus({
           data-testid="lesson-complete"
           className="mt-4 flex flex-wrap items-center gap-x-5 gap-y-4"
         >
-          <span ref={sealRef} data-reveal="seal" className="inline-flex">
+          <span
+            ref={sealRef}
+            data-reveal="seal"
+            suppressHydrationWarning
+            className="inline-flex"
+          >
             <Seal size={30} label={tPath('sealedBy')} />
           </span>
           <p className="text-lg font-semibold text-deep">{t('complete')}</p>

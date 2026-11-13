@@ -28,9 +28,11 @@ type ResetForm = z.infer<typeof resetFormSchema>;
 
 export function ResetPasswordForm({
   locale,
+  portal = 'student',
   token,
 }: {
   locale: Locale;
+  portal?: 'admin' | 'student';
   token: string;
 }): React.JSX.Element {
   const t = useTranslations('Auth');
@@ -64,7 +66,12 @@ export function ResetPasswordForm({
     return (
       <div className="space-y-6">
         <FormAlert>{t('resetSuccess')}</FormAlert>
-        <Link href={`/${locale}/login`} className={secondaryLink}>
+        <Link
+          href={
+            portal === 'admin' ? `/${locale}/admin/login` : `/${locale}/login`
+          }
+          className={secondaryLink}
+        >
           {t('backToLogin')}
         </Link>
       </div>

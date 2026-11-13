@@ -4,9 +4,13 @@ import { NextResponse, type NextRequest } from 'next/server';
 import { routing } from './i18n/routing';
 
 const handleI18n = createMiddleware(routing);
-const protectedPath = /^\/(ar|en|zh)\/(dashboard|orders|admin)(?:\/|$)/;
+const protectedPath = /^\/(ar|en|zh)\/(account|dashboard|admin)(?:\/|$)/;
 
 export function proxy(request: NextRequest): NextResponse {
+  if (/^\/(ar|en|zh)\/admin\/login\/?$/.test(request.nextUrl.pathname)) {
+    return handleI18n(request);
+  }
+
   const match = protectedPath.exec(request.nextUrl.pathname);
 
   if (!match) return handleI18n(request);

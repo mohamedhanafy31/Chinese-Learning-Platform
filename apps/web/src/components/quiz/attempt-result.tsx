@@ -134,7 +134,12 @@ export function AttemptResult({
           </p>
         </div>
         {model.passed ? (
-          <span ref={sealRef} data-reveal="seal" data-testid="pass-seal">
+          <span
+            ref={sealRef}
+            data-reveal="seal"
+            suppressHydrationWarning
+            data-testid="pass-seal"
+          >
             <Seal size={72} label={t('sealedBy')} />
           </span>
         ) : null}

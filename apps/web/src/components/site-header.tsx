@@ -32,14 +32,13 @@ export async function SiteHeader({
 
   const items = navItems ?? [
     { href: `/${locale}#levels`, label: t('levels') },
-    { href: `/${locale}#mazen`, label: t('about') },
   ];
   const navigationLabel = navLabel ?? t('label');
   const account = (
     <AccountLink
       locale={locale}
       loginLabel={t('login')}
-      learningLabel={t('myLearning')}
+      accountLabel={t('account')}
       adminLabel={t('admin')}
       className={`inline-flex min-h-11 items-center justify-center px-3 transition-colors ${link}`}
     />

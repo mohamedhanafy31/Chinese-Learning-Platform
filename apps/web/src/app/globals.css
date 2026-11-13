@@ -69,6 +69,41 @@
   textarea {
     caret-color: var(--color-seal);
   }
+
+  .video-scrubber {
+    appearance: none;
+    background: transparent;
+  }
+
+  .video-scrubber::-webkit-slider-runnable-track {
+    height: 1.5rem;
+    background: transparent;
+  }
+
+  .video-scrubber::-webkit-slider-thumb {
+    appearance: none;
+    width: 0.875rem;
+    height: 0.875rem;
+    margin-top: 0.3125rem;
+    border: 2px solid var(--color-deep);
+    border-radius: 9999px;
+    background: var(--color-glaze);
+    box-shadow: 0 4px 12px -4px rgb(3 10 40 / 0.65);
+  }
+
+  .video-scrubber::-moz-range-track {
+    height: 1.5rem;
+    background: transparent;
+  }
+
+  .video-scrubber::-moz-range-thumb {
+    width: 0.875rem;
+    height: 0.875rem;
+    border: 2px solid var(--color-deep);
+    border-radius: 9999px;
+    background: var(--color-glaze);
+    box-shadow: 0 4px 12px -4px rgb(3 10 40 / 0.65);
+  }
 }
 
 @layer utilities {

@@ -58,7 +58,9 @@ export function QuestionsList({
   const [dialogError, setDialogError] = useState<string | null>(null);
 
   const signIn = (): void =>
-    router.replace(`/${locale}/login?next=${encodeURIComponent(pathname)}`);
+    router.replace(
+      `/${locale}/admin/login?next=${encodeURIComponent(pathname)}`,
+    );
 
   const { errorKey, items, move, moved, pending } = useReorder(questions, {
     url: `/api/v1/admin/quizzes/${quizId}/questions/order`,

@@ -107,7 +107,9 @@ export function QuestionEditor({
     zh: message(`${prefix}.zh`),
   });
   const signIn = (): void =>
-    router.replace(`/${locale}/login?next=${encodeURIComponent(pathname)}`);
+    router.replace(
+      `/${locale}/admin/login?next=${encodeURIComponent(pathname)}`,
+    );
 
   function update(patch: Partial<QuestionFormValues>): void {
     setValues((current) => ({ ...current, ...patch }));

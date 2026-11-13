@@ -52,6 +52,32 @@ async function lockLessonRow(tx: Tx, id: string): Promise<void> {
   await tx.$executeRaw`SELECT 1 FROM "Lesson" WHERE id = ${id}::uuid FOR UPDATE`;
 }
 
+async function lockLevelLessons(tx: Tx, levelId: string): Promise<string[]> {
+  const rows = await tx.$queryRaw<Array<{ id: string }>>`
+    SELECT id
+    FROM "Lesson"
+    WHERE "levelId" = ${levelId}::uuid
+    ORDER BY id
+    FOR UPDATE
+  `;
+  return rows.map((row) => row.id);
+}
+
+async function lockLessonQuizzes(
+  tx: Tx,
+  lessonIds: readonly string[],
+): Promise<string[]> {
+  const quizzes = await tx.quiz.findMany({
+    where: { lessonId: { in: [...lessonIds] } },
+    select: { id: true },
+    orderBy: { id: 'asc' },
+  });
+  for (const quiz of quizzes) {
+    await tx.$executeRaw`SELECT 1 FROM "Quiz" WHERE id = ${quiz.id}::uuid FOR UPDATE`;
+  }
+  return quizzes.map((quiz) => quiz.id);
+}
+
 function toJson(value: unknown): Prisma.InputJsonValue {
   return value as Prisma.InputJsonValue;
 }
@@ -236,22 +262,38 @@ export class CatalogAdminService {
   }
 
   async deleteLevel(id: string, actorId: string): Promise<void> {
-    await this.prisma.$transaction(async (tx) => {
+    const removedVideos = await this.prisma.$transaction(async (tx) => {
       // Taking the lesson-scope lock keeps a concurrent lesson create from
-      // slipping in between the "no lessons" check and the delete.
+      // slipping into the level while its complete content tree is removed.
       await lockScope(tx, lessonsLockKey(id));
       await lockScope(tx, LEVELS_LOCK_KEY);
       const level = await this.findLevelOrThrow(tx, id);
-      if (level.firstPublishedAt) {
-        throw new ConflictException(
-          'A published level cannot be deleted. Archive it instead.',
-        );
+      await lockLevelRow(tx, id);
+      const lessonIds = await lockLevelLessons(tx, id);
+      const quizIds = await lockLessonQuizzes(tx, lessonIds);
+      const videos = await tx.videoAsset.findMany({
+        where: { lessonId: { in: lessonIds } },
+      });
+      const orderIds = (
+        await tx.order.findMany({
+          where: { levelId: id },
+          select: { id: true },
+        })
+      ).map((order) => order.id);
+
+      if (quizIds.length > 0) {
+        await tx.quizAttempt.deleteMany({ where: { quizId: { in: quizIds } } });
+        await tx.quiz.deleteMany({ where: { id: { in: quizIds } } });
       }
-      const lessons = await tx.lesson.count({ where: { levelId: id } });
-      if (lessons > 0) {
-        throw new ConflictException(
-          'A level with lessons cannot be deleted. Delete its lessons or archive the level instead.',
-        );
+      if (lessonIds.length > 0) {
+        await tx.lesson.deleteMany({ where: { id: { in: lessonIds } } });
+      }
+      await tx.enrollment.deleteMany({ where: { levelId: id } });
+      if (orderIds.length > 0) {
+        await tx.paymentTransaction.deleteMany({
+          where: { orderId: { in: orderIds } },
+        });
+        await tx.order.deleteMany({ where: { id: { in: orderIds } } });
       }
       await tx.level.delete({ where: { id } });
       await this.audit.record(tx, {
@@ -259,9 +301,17 @@ export class CatalogAdminService {
         action: 'level.delete',
         entity: 'Level',
         entityId: id,
-        data: { slug: level.slug },
+        data: {
+          slug: level.slug,
+          lessons: lessonIds.length,
+          quizzes: quizIds.length,
+          videos: videos.length,
+          orders: orderIds.length,
+        },
       });
+      return videos;
     });
+    await this.videos.discardAssets(removedVideos);
   }
 
   publishLevel(id: string, actorId: string): Promise<AdminLevel> {
@@ -426,28 +476,27 @@ export class CatalogAdminService {
     const removedVideos = await this.prisma.$transaction(async (tx) => {
       const lesson = await this.findLessonOrThrow(tx, id);
       await lockScope(tx, lessonsLockKey(lesson.levelId));
+      await lockLessonRow(tx, id);
       const current = await this.findLessonOrThrow(tx, id);
-      if (current.firstPublishedAt) {
-        throw new ConflictException(
-          'A published lesson cannot be deleted. Archive it instead.',
-        );
-      }
-      const quizzes = await tx.quiz.count({ where: { lessonId: id } });
-      if (quizzes > 0) {
-        throw new ConflictException(
-          'A lesson with quizzes cannot be deleted. Delete its quizzes first, or archive the lesson if they have attempts.',
-        );
-      }
+      const quizIds = await lockLessonQuizzes(tx, [id]);
       // Video rows go with the lesson (cascade); their stored videos (files or
       // Bunny videos) are removed once the delete has committed.
       const videos = await tx.videoAsset.findMany({ where: { lessonId: id } });
+      if (quizIds.length > 0) {
+        await tx.quizAttempt.deleteMany({ where: { quizId: { in: quizIds } } });
+        await tx.quiz.deleteMany({ where: { id: { in: quizIds } } });
+      }
       await tx.lesson.delete({ where: { id } });
       await this.audit.record(tx, {
         actorId,
         action: 'lesson.delete',
         entity: 'Lesson',
         entityId: id,
-        data: { levelId: current.levelId },
+        data: {
+          levelId: current.levelId,
+          quizzes: quizIds.length,
+          videos: videos.length,
+        },
       });
       return videos;
     });

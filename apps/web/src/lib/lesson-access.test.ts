@@ -23,7 +23,7 @@ describe('pathStateFor', () => {
   );
 
   it('falls back to the anonymous view without an access answer', () => {
-    expect(pathStateFor({ isFreePreview: true }, undefined)).toBe('preview');
+    expect(pathStateFor({ isFreePreview: true }, undefined)).toBe('locked');
     expect(pathStateFor({ isFreePreview: false }, undefined)).toBe('locked');
   });
 });

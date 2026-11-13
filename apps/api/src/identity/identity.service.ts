@@ -9,7 +9,14 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { Locale, type PublicUser, type UserResponse } from '@app/shared';
+import {
+  AuthPortal,
+  Locale,
+  Role,
+  type PublicUser,
+  type Role as UserRole,
+  type UserResponse,
+} from '@app/shared';
 
 import {
   MAIL_SERVICE,
@@ -95,6 +102,7 @@ export class IdentityService {
   async login(
     input: LoginDto,
     metadata: SessionMetadata,
+    expectedRole: UserRole = Role.STUDENT,
   ): Promise<IssuedIdentity> {
     const user = await this.prisma.user.findUnique({
       where: { email: input.email },
@@ -108,7 +116,7 @@ export class IdentityService {
       user.passwordHash,
       input.password,
     );
-    if (!passwordMatches || !user.isActive) {
+    if (!passwordMatches || !user.isActive || user.role !== expectedRole) {
       throw new UnauthorizedException('Invalid email or password');
     }
 
@@ -229,7 +237,9 @@ export class IdentityService {
     const user = await this.prisma.user.findUnique({
       where: { email: input.email },
     });
-    if (!user?.isActive) {
+    const expectedRole =
+      input.portal === AuthPortal.ADMIN ? Role.ADMIN : Role.STUDENT;
+    if (!user?.isActive || user.role !== expectedRole) {
       return;
     }
 
@@ -255,6 +265,9 @@ export class IdentityService {
       this.config.get('APP_URL', { infer: true }),
     );
     resetLink.searchParams.set('token', token);
+    if (input.portal === AuthPortal.ADMIN) {
+      resetLink.searchParams.set('portal', AuthPortal.ADMIN);
+    }
     try {
       await this.mail.sendPasswordReset({
         to: user.email,

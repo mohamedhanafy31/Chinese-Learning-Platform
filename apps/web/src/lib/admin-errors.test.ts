@@ -8,17 +8,11 @@ describe('adminErrorKey', () => {
       'slugTaken',
     );
     expect(
-      adminErrorKey(409, 'The slug cannot change once the level has been published'),
+      adminErrorKey(
+        409,
+        'The slug cannot change once the level has been published',
+      ),
     ).toBe('slugLocked');
-    expect(
-      adminErrorKey(409, 'A published level cannot be deleted. Archive it instead.'),
-    ).toBe('levelPublishedDelete');
-    expect(
-      adminErrorKey(409, 'A level with lessons cannot be deleted. Delete its lessons'),
-    ).toBe('levelHasLessons');
-    expect(
-      adminErrorKey(409, 'A published lesson cannot be deleted. Archive it instead.'),
-    ).toBe('lessonPublishedDelete');
     expect(adminErrorKey(409, 'something new')).toBe('conflict');
   });
 
@@ -45,7 +39,9 @@ describe('adminErrorKey', () => {
 describe('readApiMessage', () => {
   it('reads a string message and ignores anything else', async () => {
     expect(
-      await readApiMessage(Response.json({ message: 'Hello' }, { status: 409 })),
+      await readApiMessage(
+        Response.json({ message: 'Hello' }, { status: 409 }),
+      ),
     ).toBe('Hello');
     expect(await readApiMessage(Response.json({ message: ['x'] }))).toBe('');
     expect(await readApiMessage(new Response('plain'))).toBe('');

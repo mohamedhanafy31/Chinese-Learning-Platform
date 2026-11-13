@@ -75,7 +75,6 @@ export default async function EditLevelPage({
           locale={locale}
           isPublished={level.isPublished}
           archivedAt={level.archivedAt}
-          firstPublishedAt={level.firstPublishedAt}
           afterDeleteHref={`/${locale}/admin/levels`}
         />
       </div>

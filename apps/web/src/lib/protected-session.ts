@@ -11,7 +11,7 @@ import { getCurrentUser } from '@/lib/session';
 export async function requireUser(
   locale: Locale,
   fallback: string,
-  adminOnly = false,
+  requiredRole?: (typeof Role)[keyof typeof Role] | true,
 ): Promise<PublicUser> {
   const user = await getCurrentUser();
   if (!user) {
@@ -19,6 +19,7 @@ export async function requireUser(
     const next = safeNext(currentPath, fallback);
     redirect(`/${locale}/session/renew?${new URLSearchParams({ next })}`);
   }
-  if (adminOnly && user.role !== Role.ADMIN) notFound();
+  const role = requiredRole === true ? Role.ADMIN : requiredRole;
+  if (role && user.role !== role) notFound();
   return user;
 }
