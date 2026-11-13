@@ -60,10 +60,16 @@ const quiz: LearnerQuiz = {
   ],
 };
 
-function renderSheet(): void {
+function renderSheet(nextLessonHref: string | null = null): void {
   render(
     <NextIntlClientProvider locale="en" messages={messages}>
-      <QuizSheet quiz={quiz} lessonHref="/en/learn/x/y" loginHref="/en/login" />
+      <QuizSheet
+        quiz={quiz}
+        lessonHref="/en/learn/x/y"
+        nextLessonHref={nextLessonHref}
+        levelHref="/en/levels/x"
+        loginHref="/en/login"
+      />
     </NextIntlClientProvider>,
   );
 }
@@ -195,6 +201,8 @@ describe('QuizSheet', () => {
   it('labels groups with a fieldset legend and says when several apply', () => {
     renderSheet();
     expect(screen.getAllByRole('group')).toHaveLength(2);
+    expect(screen.getByRole('radio', { name: 'Nǐ hǎo' })).toBeVisible();
+    expect(screen.getByRole('checkbox', { name: 'Nǐ hǎo' })).toBeVisible();
     expect(screen.getByText('Question 1 of 2')).toBeVisible();
     expect(screen.getByText('Choose all that apply')).toBeVisible();
     expect(screen.getByText('你好')).toHaveAttribute('lang', 'zh');
@@ -290,15 +298,11 @@ describe('QuizSheet', () => {
           questionId: id(10),
           correct: false,
           chosen: [id(12)],
-          correctOptionIds: [id(11)],
-          explanation: { en: 'Nǐ hǎo means hello.' },
         },
         {
           questionId: id(20),
           correct: true,
           chosen: [id(21)],
-          correctOptionIds: [id(21)],
-          explanation: null,
         },
       ],
     };
@@ -322,11 +326,57 @@ describe('QuizSheet', () => {
     expect(screen.getByText('Not yet: the pass mark is 70%')).toBeVisible();
     expect(screen.queryByTestId('pass-seal')).toBeNull();
     expect(screen.getByRole('heading', { name: /Your result/ })).toHaveFocus();
+    expect(
+      screen.getByText('Pass the quiz to see the correct answers.'),
+    ).toBeVisible();
+    expect(screen.queryByText('Correct answer')).toBeNull();
+    expect(screen.queryByText('Nǐ hǎo means hello.')).toBeNull();
 
     fireEvent.click(screen.getByRole('button', { name: 'Try again' }));
     expect(screen.getByTestId('answered-count')).toHaveTextContent(
       'Answered 0 of 2',
     );
+  });
+
+  it('offers a forward action after passing and keeps retry secondary', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue(
+        new Response(
+          JSON.stringify({
+            attempt: {
+              id: id(51),
+              score: 100,
+              earnedPoints: 2,
+              totalPoints: 2,
+              passed: true,
+              createdAt: '2026-01-01T10:00:00.000Z',
+            },
+            results: quiz.questions.map((question) => ({
+              questionId: question.id,
+              correct: true,
+              chosen: question.options.map((option) => option.id),
+              correctOptionIds: question.options.map((option) => option.id),
+              explanation: null,
+            })),
+          }),
+          { status: 201, headers: { 'content-type': 'application/json' } },
+        ),
+      ),
+    );
+    renderSheet('/en/learn/x/next');
+    fireEvent.click(document.getElementById(`opt-${id(11)}`) as HTMLElement);
+    fireEvent.click(document.getElementById(`opt-${id(21)}`) as HTMLElement);
+    fireEvent.click(document.getElementById(`opt-${id(22)}`) as HTMLElement);
+    fireEvent.click(document.getElementById(`opt-${id(23)}`) as HTMLElement);
+    fireEvent.click(screen.getByRole('button', { name: 'Submit answers' }));
+
+    const forward = await screen.findByRole('link', { name: 'Next lesson' });
+    expect(forward).toHaveAttribute('href', '/en/learn/x/next');
+    expect(
+      screen.getByRole('link', { name: 'Back to the lesson' }),
+    ).toHaveAttribute('href', '/en/learn/x/y');
+    expect(screen.getByRole('button', { name: 'Try again' })).toBeVisible();
   });
 });
 
@@ -344,12 +394,20 @@ const review = (passed: boolean): ReviewModel => ({
       prompt: { en: 'How do you say hello?' },
       hanzi: null,
       image: null,
-      explanation: { en: 'Nǐ hǎo means hello.' },
+      ...(passed ? { explanation: { en: 'Nǐ hǎo means hello.' } } : {}),
       correct: passed,
       chosen: [id(passed ? 11 : 12)],
       options: [
-        { id: id(11), text: { en: 'Nǐ hǎo' }, isCorrect: true },
-        { id: id(12), text: { en: 'Zàijiàn' }, isCorrect: false },
+        {
+          id: id(11),
+          text: { en: 'Nǐ hǎo' },
+          ...(passed ? { isCorrect: true } : {}),
+        },
+        {
+          id: id(12),
+          text: { en: 'Zàijiàn' },
+          ...(passed ? { isCorrect: false } : {}),
+        },
       ],
     },
   ],
@@ -358,23 +416,16 @@ const review = (passed: boolean): ReviewModel => ({
 describe('AttemptResult review', () => {
   afterEach(cleanup);
 
-  it('marks the right and wrong answers with labels and shows the explanation', () => {
+  it('keeps correct options and explanations hidden after a failed attempt', () => {
     wrap(<AttemptResult model={review(false)} />);
     expect(screen.getByText('Not quite')).toBeVisible();
-    const rows = screen
-      .getAllByRole('listitem')
-      .filter((li) => li.dataset.marker);
-    const correct = rows.find(
-      (li) => li.dataset.marker === 'correct',
-    ) as HTMLElement;
-    const yours = rows.find(
-      (li) => li.dataset.marker === 'yours',
-    ) as HTMLElement;
-    expect(correct).toHaveTextContent('Correct answer');
-    expect(correct.querySelector('svg')).not.toBeNull();
-    expect(yours).toHaveTextContent('Your answer');
-    expect(yours).toHaveAttribute('data-chosen', 'true');
-    expect(screen.getByText('Nǐ hǎo means hello.')).toBeVisible();
+    expect(
+      screen.getByText('Pass the quiz to see the correct answers.'),
+    ).toBeVisible();
+    expect(screen.queryByText('Correct answer')).toBeNull();
+    expect(screen.queryByText('Nǐ hǎo means hello.')).toBeNull();
+    const selectedRow = screen.getByText('Zàijiàn').closest('li');
+    expect(selectedRow).toHaveAttribute('data-chosen', 'true');
     expect(screen.queryByTestId('pass-seal')).toBeNull();
   });
 
@@ -387,5 +438,12 @@ describe('AttemptResult review', () => {
       'data-reveal',
       'seal',
     );
+    const correct = screen
+      .getAllByRole('listitem')
+      .find((li) => li.dataset.marker === 'correct');
+    expect(correct?.textContent?.indexOf('Correct answer')).toBeLessThan(
+      correct?.textContent?.indexOf('Nǐ hǎo') ?? 0,
+    );
+    expect(screen.getByText('Nǐ hǎo means hello.')).toBeVisible();
   });
 });

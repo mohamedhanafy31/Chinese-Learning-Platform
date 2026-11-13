@@ -1173,8 +1173,8 @@ export const attemptResultSchema = z.object({
   questionId: z.uuid(),
   correct: z.boolean(),
   chosen: z.array(z.uuid()),
-  correctOptionIds: z.array(z.uuid()),
-  explanation: localizedTextSchema.nullable(),
+  correctOptionIds: z.array(z.uuid()).optional(),
+  explanation: localizedTextSchema.nullable().optional(),
 });
 
 export const submitAttemptResponseSchema = z.object({
@@ -1216,7 +1216,18 @@ export const attemptDetailSchema = z.object({
     quizId: z.uuid(),
     passingScore: passingScoreSchema,
   }),
-  questions: z.array(attemptSnapshotQuestionSchema),
+  questions: z.array(
+    attemptSnapshotQuestionSchema.extend({
+      explanation: localizedTextSchema.nullable().optional(),
+      options: z.array(
+        z.object({
+          id: z.uuid(),
+          text: localizedTextSchema,
+          isCorrect: z.boolean().optional(),
+        }),
+      ),
+    }),
+  ),
 });
 
 export type QuestionImage = z.infer<typeof questionImageSchema>;

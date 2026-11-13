@@ -125,7 +125,9 @@
     "sequenceTitle": "请先完成“{lesson}”",
     "sequenceTitleGeneric": "请先完成上一课",
     "sequenceBody": "课程按顺序解锁。看完上一课并通过其测验，才能解锁这一课。",
-    "openRequired": "前往那一课"
+    "openRequired": "前往那一课",
+    "levelCongratulations": "恭喜你完成了本级别。",
+    "goToMyLevels": "前往我的级别"
   },
   "Auth": {
     "loginTitle": "学员登录",
@@ -907,7 +909,10 @@
     "errorBody": "请稍后再试。",
     "quizFallback": "测验",
     "attemptOn": "{date} 的作答",
-    "historyEmpty": "还没有作答记录。完成上面的题目并提交，第一次成绩会显示在这里。"
+    "historyEmpty": "还没有作答记录。完成上面的题目并提交，第一次成绩会显示在这里。",
+    "nextLesson": "下一课",
+    "backToLevel": "返回级别",
+    "failedReviewHint": "通过测验后即可查看正确答案。"
   },
   "Errors": {
     "title": "出错了",

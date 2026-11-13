@@ -13,10 +13,10 @@ export interface ReviewQuestion {
   prompt: LocalizedText;
   hanzi: string | null;
   image: QuestionImage | null;
-  explanation: LocalizedText | null;
+  explanation?: LocalizedText | null;
   correct: boolean;
   chosen: string[];
-  options: { id: string; text: LocalizedText; isCorrect: boolean }[];
+  options: { id: string; text: LocalizedText; isCorrect?: boolean }[];
 }
 
 export interface ReviewModel {

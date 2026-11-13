@@ -15,7 +15,7 @@ import { isLessonComplete, isVideoWatched, watchedPercent } from './completion';
 import { applyReport, coverage, parseRanges, type Range } from './segments';
 import type { Prisma } from '../generated/prisma/client';
 import type { LessonProgress } from '../generated/prisma/client';
-import { sequenceState } from '../learning/content-access';
+import { continueAfter } from '../learning/level-progress';
 import { ContentAccessPolicy } from '../learning/content-access.policy';
 import { assertLessonAccess } from '../learning/lesson-access';
 import { PrismaService } from '../prisma/prisma.service';
@@ -349,22 +349,4 @@ export class ProgressService {
       completed: new Set(done.map(({ lessonId }) => lessonId)),
     };
   }
-}
-
-/**
- * Where the learner continues once they leave `lessonId`: the sequence's `next`
- * lesson, or null when that is this very lesson (not done yet) or nothing is
- * left. The lesson page only offers it once the lesson is complete.
- */
-export function continueAfter(
-  lessons: readonly { id: string; isFreePreview: boolean }[],
-  completed: ReadonlySet<string>,
-  lessonId: string,
-): string | null {
-  const next = sequenceState(
-    lessons,
-    completed,
-    new Set(lessons.filter((lesson) => lesson.isFreePreview).map((l) => l.id)),
-  ).find(({ state }) => state === 'next');
-  return next && next.id !== lessonId ? next.id : null;
 }

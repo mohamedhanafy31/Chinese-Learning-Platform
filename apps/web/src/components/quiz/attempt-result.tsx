@@ -16,19 +16,20 @@ import type { ReviewModel, ReviewQuestion } from '@/lib/quiz-review';
 function ReviewItem({
   index,
   question,
+  passed,
   total,
 }: {
   index: number;
   question: ReviewQuestion;
+  passed: boolean;
   total: number;
 }): React.JSX.Element {
   const t = useTranslations('Quiz');
   const locale = useLocale() as Locale;
   const nf = numberFormat(locale);
   const multiple = question.type === QuestionType.MULTIPLE;
-  const explanation = question.explanation
-    ? pick(question.explanation, locale)
-    : null;
+  const explanation =
+    passed && question.explanation ? pick(question.explanation, locale) : null;
   const StatusIcon = question.correct ? Check : CircleAlert;
 
   return (
@@ -58,7 +59,15 @@ function ReviewItem({
               multiple={multiple}
               text={pick(option.text, locale)}
               chosen={chosen}
-              marker={option.isCorrect ? 'correct' : chosen ? 'yours' : null}
+              marker={
+                passed
+                  ? option.isCorrect
+                    ? 'correct'
+                    : chosen
+                      ? 'yours'
+                      : null
+                  : null
+              }
               correctLabel={t('correctAnswer')}
               yoursLabel={t('yourAnswer')}
               selectedLabel={t('selected')}
@@ -148,12 +157,16 @@ export function AttemptResult({
       <h3 className="mt-12 text-xl font-semibold text-deep">
         {t('reviewTitle')}
       </h3>
+      {!model.passed ? (
+        <p className="mt-2 text-cobalt">{t('failedReviewHint')}</p>
+      ) : null}
       <ol className="mt-6 space-y-12">
         {model.questions.map((question, index) => (
           <ReviewItem
             key={question.id}
             index={index}
             question={question}
+            passed={model.passed}
             total={model.questions.length}
           />
         ))}

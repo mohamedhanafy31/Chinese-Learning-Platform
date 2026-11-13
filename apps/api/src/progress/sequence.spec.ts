@@ -7,7 +7,7 @@ import {
   sequenceState,
   type SequenceState,
 } from '../learning/content-access';
-import { summariseLevel } from '../learning/level-progress';
+import { continueAfter, summariseLevel } from '../learning/level-progress';
 
 const ids = (...names: string[]) => names.map((id) => ({ id }));
 const set = (...names: string[]) => new Set(names);
@@ -258,5 +258,18 @@ describe('summariseLevel', () => {
       nextLessonId: null,
       nextLesson: null,
     });
+  });
+});
+
+describe('continueAfter', () => {
+  const lessons = [
+    { id: 'preview', isFreePreview: true },
+    { id: 'one', isFreePreview: false },
+    { id: 'two', isFreePreview: false },
+  ];
+
+  it('uses only the immediate following lesson and never wraps to a preview', () => {
+    expect(continueAfter(lessons, set('one', 'two'), 'two')).toBeNull();
+    expect(continueAfter(lessons, set('one'), 'one')).toBe('two');
   });
 });

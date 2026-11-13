@@ -47,3 +47,20 @@ export function summariseLevel(
     })),
   };
 }
+
+/** Immediate reachable neighbour after the current lesson, without wrapping. */
+export function continueAfter(
+  lessons: readonly { id: string; isFreePreview: boolean }[],
+  completed: ReadonlySet<string>,
+  lessonId: string,
+): string | null {
+  const states = sequenceState(
+    lessons,
+    completed,
+    new Set(lessons.filter((lesson) => lesson.isFreePreview).map((l) => l.id)),
+  );
+  const currentIndex = lessons.findIndex(({ id }) => id === lessonId);
+  const next = currentIndex >= 0 ? lessons[currentIndex + 1] : undefined;
+  const nextState = next && states[currentIndex + 1]?.state;
+  return next && nextState !== 'locked' ? next.id : null;
+}

@@ -219,10 +219,14 @@ export class AssessmentLearnerService {
             questionId: question.id,
             correct: question.correct,
             chosen: question.chosen,
-            correctOptionIds: question.options
-              .filter((option) => option.isCorrect)
-              .map((option) => option.id),
-            explanation: question.explanation,
+            ...(passed
+              ? {
+                  correctOptionIds: question.options
+                    .filter((option) => option.isCorrect)
+                    .map((option) => option.id),
+                  explanation: question.explanation,
+                }
+              : {}),
           })),
         };
       });
@@ -282,7 +286,19 @@ export class AssessmentLearnerService {
         quizId: row.quizId,
         passingScore: snapshot.passingScore,
       },
-      questions: snapshot.questions,
+      questions:
+        row.passed || user.role === Role.ADMIN
+          ? snapshot.questions
+          : snapshot.questions.map((question) => ({
+              id: question.id,
+              type: question.type,
+              prompt: question.prompt,
+              hanzi: question.hanzi,
+              points: question.points,
+              chosen: question.chosen,
+              correct: question.correct,
+              options: question.options.map(({ id, text }) => ({ id, text })),
+            })),
     };
   }
 

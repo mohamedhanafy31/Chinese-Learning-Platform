@@ -37,6 +37,7 @@ function show(progress: LessonProgress | null) {
     <NextIntlClientProvider locale="en" messages={en}>
       <LessonStage
         levelSlug="starter"
+        levelTitle="Starter"
         lessonId={lessonId}
         label="Lesson"
         poster={null}

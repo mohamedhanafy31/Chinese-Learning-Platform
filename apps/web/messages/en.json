@@ -125,7 +125,9 @@
     "sequenceTitle": "Finish {lesson} first",
     "sequenceTitleGeneric": "Finish the earlier lesson first",
     "sequenceBody": "Lessons open one after another. Watch the earlier lesson and pass its quizzes to unlock this one.",
-    "openRequired": "Go to that lesson"
+    "openRequired": "Go to that lesson",
+    "levelCongratulations": "Congratulations, you have completed this level.",
+    "goToMyLevels": "Go to my levels"
   },
   "Auth": {
     "loginTitle": "Student sign in",
@@ -907,7 +909,10 @@
     "errorBody": "Please try again in a moment.",
     "quizFallback": "Quiz",
     "attemptOn": "Attempt on {date}",
-    "historyEmpty": "No attempts yet. Answer the questions above and submit to see your first result here."
+    "historyEmpty": "No attempts yet. Answer the questions above and submit to see your first result here.",
+    "nextLesson": "Next lesson",
+    "backToLevel": "Back to the level",
+    "failedReviewHint": "Pass the quiz to see the correct answers."
   },
   "Errors": {
     "title": "Something went wrong",

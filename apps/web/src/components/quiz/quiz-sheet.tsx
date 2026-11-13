@@ -45,11 +45,15 @@ async function readBody(response: Response | undefined): Promise<unknown> {
 /** The exam sheet, and (after submit) the result and review in its place. */
 export function QuizSheet({
   lessonHref,
+  nextLessonHref,
+  levelHref,
   loginHref,
   quiz,
 }: {
   quiz: LearnerQuiz;
   lessonHref: string;
+  nextLessonHref: string | null;
+  levelHref: string;
   loginHref: string;
 }): React.JSX.Element {
   const t = useTranslations('Quiz');
@@ -156,9 +160,24 @@ export function QuizSheet({
           <AttemptResult model={review} focusHeading />
         </div>
         <div className="mt-12 flex flex-wrap items-center gap-x-6 gap-y-3">
-          <button type="button" onClick={tryAgain} className={primaryButton}>
-            {t('tryAgain')}
-          </button>
+          {review.passed ? (
+            <Link href={nextLessonHref ?? levelHref} className={primaryButton}>
+              {nextLessonHref ? t('nextLesson') : t('backToLevel')}
+            </Link>
+          ) : (
+            <button type="button" onClick={tryAgain} className={primaryButton}>
+              {t('tryAgain')}
+            </button>
+          )}
+          {review.passed ? (
+            <button
+              type="button"
+              onClick={tryAgain}
+              className="min-h-11 text-sm text-cobalt underline decoration-wash-strong underline-offset-4 hover:text-deep"
+            >
+              {t('tryAgain')}
+            </button>
+          ) : null}
           <Link href={lessonHref} className={secondaryButton}>
             {t('backToLesson')}
           </Link>

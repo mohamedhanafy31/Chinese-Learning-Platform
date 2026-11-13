@@ -23,6 +23,7 @@ import { useLessonProgress } from '@/lib/use-lesson-progress';
  */
 export function LessonStage({
   levelSlug,
+  levelTitle,
   lessonId,
   label,
   poster,
@@ -30,6 +31,7 @@ export function LessonStage({
   video,
 }: {
   levelSlug: string;
+  levelTitle: string;
   lessonId: string;
   label: string;
   poster: string | null;
@@ -103,7 +105,11 @@ export function LessonStage({
         />
       )}
       {progress ? (
-        <LessonProgressStatus levelSlug={levelSlug} progress={progress} />
+        <LessonProgressStatus
+          levelSlug={levelSlug}
+          levelTitle={levelTitle}
+          progress={progress}
+        />
       ) : null}
     </>
   );

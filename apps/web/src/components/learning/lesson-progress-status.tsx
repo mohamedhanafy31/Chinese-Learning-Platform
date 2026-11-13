@@ -26,9 +26,11 @@ export interface StatusProgress {
  */
 export function LessonProgressStatus({
   levelSlug,
+  levelTitle,
   progress,
 }: {
   levelSlug: string;
+  levelTitle: string;
   progress: StatusProgress;
 }): React.JSX.Element | null {
   const t = useTranslations('Watch');
@@ -96,7 +98,26 @@ export function LessonProgressStatus({
               {t('nextLesson')}
             </Link>
           ) : (
-            <p className="text-cobalt">{t('levelFinished')}</p>
+            <div className="w-full basis-full">
+              <p className="font-semibold text-deep">
+                {t('levelCongratulations')}
+              </p>
+              <p className="mt-1 text-cobalt">{levelTitle}</p>
+              <div className="mt-4 flex flex-wrap gap-x-6 gap-y-3">
+                <Link
+                  href={`/${locale}/levels/${levelSlug}`}
+                  className="text-cobalt underline decoration-wash-strong underline-offset-4 hover:text-deep"
+                >
+                  {t('backToLevel')}
+                </Link>
+                <Link
+                  href={`/${locale}/dashboard`}
+                  className="text-cobalt underline decoration-wash-strong underline-offset-4 hover:text-deep"
+                >
+                  {t('goToMyLevels')}
+                </Link>
+              </div>
+            </div>
           )}
         </div>
       ) : null}

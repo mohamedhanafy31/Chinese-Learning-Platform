@@ -299,6 +299,7 @@ export default async function LessonPage({
         <article className="min-w-0">
           <LessonStage
             levelSlug={data.level.slug}
+            levelTitle={levelTitle}
             lessonId={data.lesson.id}
             label={t('playerLabel')}
             poster={data.poster}

@@ -110,6 +110,12 @@ export function ReviewOptionRow({
     >
       <Indicator multiple={multiple} selected={chosen} />
       <span className="min-w-0 flex-1">
+        {marker === 'correct' ? (
+          <span className="sr-only">{correctLabel}: </span>
+        ) : null}
+        {marker === 'yours' ? (
+          <span className="sr-only">{yoursLabel}: </span>
+        ) : null}
         {chosen ? <span className="sr-only">{selectedLabel}: </span> : null}
         {text}
       </span>

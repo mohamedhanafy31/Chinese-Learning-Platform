@@ -28,6 +28,7 @@ function show(locale: Locale, progress: Partial<StatusProgress> = {}) {
     <NextIntlClientProvider locale={locale} messages={messages[locale]}>
       <LessonProgressStatus
         levelSlug="starter"
+        levelTitle="Starter"
         progress={{ ...base, ...progress }}
       />
     </NextIntlClientProvider>,
@@ -94,10 +95,16 @@ describe('LessonProgressStatus', () => {
 
   it('says so when it was the last lesson', () => {
     show('en', { complete: true, nextLessonId: null });
-    expect(screen.queryByRole('link')).toBeNull();
+    expect(
+      screen.getByRole('link', { name: 'Back to the level' }),
+    ).toHaveAttribute('href', '/en/levels/starter');
+    expect(
+      screen.getByRole('link', { name: 'Go to my levels' }),
+    ).toHaveAttribute('href', '/en/dashboard');
     expect(screen.getByTestId('lesson-complete')).toHaveTextContent(
-      'You have finished every lesson in this level.',
+      'Congratulations, you have completed this level.',
     );
+    expect(screen.getByTestId('lesson-complete')).toHaveTextContent('Starter');
   });
 
   it('links in the reader’s locale', () => {

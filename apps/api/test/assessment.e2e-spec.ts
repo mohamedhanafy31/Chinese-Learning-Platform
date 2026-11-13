@@ -990,9 +990,26 @@ describe('assessment API (e2e)', () => {
       ],
     }).expect(201);
     expect(superset.body.attempt).toMatchObject({ score: 25, passed: false });
+    for (const result of superset.body.results as Json[]) {
+      expect(result).not.toHaveProperty('correctOptionIds');
+      expect(result).not.toHaveProperty('explanation');
+    }
+    const failedReview = await call(
+      agent,
+      'get',
+      `/api/v1/attempts/${superset.body.attempt.id}`,
+    ).expect(200);
+    expect(failedReview.body.questions[0]).not.toHaveProperty('explanation');
+    expect(failedReview.body.questions[0].options[0]).not.toHaveProperty(
+      'isCorrect',
+    );
+    expect(failedReview.body.questions[0]).toHaveProperty('chosen');
+    expect(failedReview.body.questions[0]).toHaveProperty('correct');
 
     const perfect = await attempt(agent, quiz.id, allCorrect(quiz)).expect(201);
     expect(perfect.body.attempt).toMatchObject({ score: 100, passed: true });
+    expect(perfect.body.results[0]).toHaveProperty('correctOptionIds');
+    expect(perfect.body.results[0]).toHaveProperty('explanation');
     const zero = await attempt(agent, quiz.id, allWrong(quiz)).expect(201);
     expect(zero.body.attempt).toMatchObject({
       score: 0,

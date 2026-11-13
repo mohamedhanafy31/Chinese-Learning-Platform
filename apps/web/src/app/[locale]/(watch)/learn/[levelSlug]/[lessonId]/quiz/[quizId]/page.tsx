@@ -11,6 +11,7 @@ import { QuizSheet } from '@/components/quiz/quiz-sheet';
 import { WriteOn } from '@/components/motion/write-on';
 import { pick } from '@/lib/localized';
 import { formatPercent, numberFormat } from '@/lib/numbers';
+import { getPlayback } from '@/lib/learning';
 import { getAttempts, getQuiz } from '@/lib/quiz';
 import { getCurrentUser } from '@/lib/session';
 
@@ -66,6 +67,20 @@ export default async function QuizPage({
   const t = await getTranslations('Quiz');
   const nf = numberFormat(locale);
   const attempts = await getAttempts(quizId);
+  const playback = await getPlayback(lessonId);
+  const playbackData =
+    playback.status === 'ok' || playback.status === 'no-video'
+      ? playback.data
+      : null;
+  const lessonIndex =
+    playbackData?.siblings.findIndex((sibling) => sibling.id === lessonId) ??
+    -1;
+  const nextSibling =
+    lessonIndex >= 0 ? playbackData?.siblings[lessonIndex + 1] : undefined;
+  const nextLessonHref =
+    nextSibling && nextSibling.access !== 'locked'
+      ? `/${locale}/learn/${levelSlug}/${nextSibling.id}`
+      : null;
   const title = pick(quiz.title, locale);
   const description = quiz.description ? pick(quiz.description, locale) : null;
 
@@ -100,6 +115,8 @@ export default async function QuizPage({
           <QuizSheet
             quiz={quiz}
             lessonHref={lessonPath}
+            nextLessonHref={nextLessonHref}
+            levelHref={`/${locale}/levels/${levelSlug}`}
             loginHref={`/${locale}/login?${new URLSearchParams({ next: here })}`}
           />
         </div>

@@ -15,6 +15,7 @@ import { ErrorGate, SignInGate } from '@/components/quiz/quiz-gates';
 import { WriteOn } from '@/components/motion/write-on';
 import { formatDateTime } from '@/lib/format';
 import { pick } from '@/lib/localized';
+import { getPlayback } from '@/lib/learning';
 import { getAttempt, getAttempts, getQuiz } from '@/lib/quiz';
 import { reviewFromAttempt } from '@/lib/quiz-review';
 import { getCurrentUser } from '@/lib/session';
@@ -69,6 +70,20 @@ export default async function AttemptPage({
   const t = await getTranslations('Quiz');
   const quiz = await getQuiz(quizId);
   const attempts = await getAttempts(quizId);
+  const playback = await getPlayback(lessonId);
+  const playbackData =
+    playback.status === 'ok' || playback.status === 'no-video'
+      ? playback.data
+      : null;
+  const lessonIndex =
+    playbackData?.siblings.findIndex((sibling) => sibling.id === lessonId) ??
+    -1;
+  const nextSibling =
+    lessonIndex >= 0 ? playbackData?.siblings[lessonIndex + 1] : undefined;
+  const nextLessonHref =
+    nextSibling && nextSibling.access !== 'locked'
+      ? `/${locale}/learn/${levelSlug}/${nextSibling.id}`
+      : null;
   const title =
     quiz.status === 'ok' ? pick(quiz.quiz.title, locale) : t('quizFallback');
 
@@ -93,9 +108,26 @@ export default async function AttemptPage({
           <AttemptResult model={reviewFromAttempt(detail)} />
         </div>
         <div className="mt-12 flex flex-wrap items-center gap-x-6 gap-y-3">
-          <Link href={quizPath} className={primaryButtonClass}>
-            {t('tryAgain')}
-          </Link>
+          {detail.attempt.passed ? (
+            <Link
+              href={nextLessonHref ?? `/${locale}/levels/${levelSlug}`}
+              className={primaryButtonClass}
+            >
+              {nextLessonHref ? t('nextLesson') : t('backToLevel')}
+            </Link>
+          ) : (
+            <Link href={quizPath} className={primaryButtonClass}>
+              {t('tryAgain')}
+            </Link>
+          )}
+          {detail.attempt.passed ? (
+            <Link
+              href={quizPath}
+              className="inline-flex min-h-11 items-center text-sm text-cobalt underline decoration-wash-strong underline-offset-4 hover:text-deep"
+            >
+              {t('tryAgain')}
+            </Link>
+          ) : null}
           <Link href={lessonPath} className={secondaryLinkClass}>
             {t('backToLesson')}
           </Link>
