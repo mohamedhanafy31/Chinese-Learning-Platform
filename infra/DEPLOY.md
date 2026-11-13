@@ -297,8 +297,29 @@ dc ps && curl -ks https://<domain>/api/v1/ready
 mv .deployed-sha.new .deployed-sha
 ```
 
-Take a manual backup immediately before an update that contains migrations:
-`dc exec backup /opt/backup/pg-backup.sh`.
+Before every update, back up both the database and uploads; this is mandatory, including updates without migrations:
+
+```sh
+dc exec backup /opt/backup/pg-backup.sh  # writes both the database dump and uploads tarball
+```
+
+The backup fails loudly if the configured uploads volume is missing; set `UPLOADS_DIR=""` only when intentionally skipping the uploads archive.
+
+### Never lose videos
+
+- Never run `dc down -v`; uploads and the database are persistent data.
+- `UPLOADS_DIR` must point at the Compose `uploads` volume.
+- After every deploy, check `/api/v1/admin/diagnostics/video` and confirm `missingLocalFiles` is `0`.
+- After configuring Bunny, confirm the diagnostics page reports embed tokens as `enforced`.
+- Local video storage is development-only; production must use Bunny Stream.
+
+### Scaling
+
+The API is supported as a single container: Bunny reconciliation, pending-delete retries, orphan cleanup and billing expiry timers run per instance, so multiple instances duplicate external calls even though the jobs are idempotent. Do not set `deploy.replicas` or scale the API above one until a leader lock is added.
+
+### Migration rehearsal
+
+To rehearse the legacy data-integrity migration against the guarded test database server, run `pnpm --filter @app/api test:migration-rehearsal`. It creates and drops scratch databases ending in `_test`.
 
 **Zero-surprise rollback.** Before updating, tag the images that are running:
 

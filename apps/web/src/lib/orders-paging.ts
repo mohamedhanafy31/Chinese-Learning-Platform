@@ -15,11 +15,17 @@ export function parseOrderStatus(
 
 export function ordersHref(
   locale: Locale,
-  input: { page?: number; q?: string; status?: OrderStatus },
+  input: {
+    page?: number;
+    q?: string;
+    status?: OrderStatus;
+    refundedWithAccess?: boolean;
+  },
 ): string {
   const query = new URLSearchParams();
   if (input.q) query.set('q', input.q);
   if (input.status) query.set('status', input.status);
+  if (input.refundedWithAccess) query.set('refundedWithAccess', 'true');
   if (input.page && input.page > 1) query.set('page', String(input.page));
   const suffix = query.toString();
   return `/${locale}/admin/orders${suffix ? `?${suffix}` : ''}`;

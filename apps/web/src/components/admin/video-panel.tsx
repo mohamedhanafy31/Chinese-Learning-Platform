@@ -18,6 +18,7 @@ import {
   secondaryButton,
 } from '@/components/admin/controls';
 import { FormAlert } from '@/components/auth/form-controls';
+import { BunnyVideoPreview } from '@/components/admin/bunny-video-preview';
 import { adminErrorKey } from '@/lib/admin-errors';
 import { failureKey } from '@/lib/admin-client';
 import { apiFetch } from '@/lib/api-client';
@@ -240,13 +241,7 @@ export function VideoPanel({
         {video ? (
           <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,20rem)]">
             {video.status === 'READY' && video.provider === 'BUNNY' ? (
-              <p
-                data-testid="video-bunny-note"
-                className="flex items-center gap-3 rounded-2xl bg-glaze-shade px-5 py-8 text-cobalt"
-              >
-                <Film aria-hidden="true" className="size-6 shrink-0" />
-                {t('bunny.previewNote')}
-              </p>
+              <BunnyVideoPreview lessonId={lessonId} video={video} />
             ) : video.status === 'READY' ? (
               <div className="overflow-hidden rounded-2xl bg-deep">
                 <video

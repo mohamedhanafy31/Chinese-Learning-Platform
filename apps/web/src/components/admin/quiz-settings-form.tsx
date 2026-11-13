@@ -21,7 +21,7 @@ import {
 } from '@/components/admin/controls';
 import { useQuizErrorText } from '@/components/admin/use-quiz-error';
 import type { FieldErrors } from '@/lib/admin-forms';
-import { apiFetch, jsonRequest } from '@/lib/api-client';
+import { apiFetchParsed, jsonRequest } from '@/lib/api-client';
 import { quizFailureKey } from '@/lib/quiz-errors';
 import { buildQuizPayload, quizFormValues } from '@/lib/quiz-forms';
 
@@ -80,10 +80,11 @@ export function QuizSettingsForm({
     }
     setErrors({});
     setPending(true);
-    const result = await apiFetch<unknown>(
+    const result = await apiFetchParsed(
       isEdit
         ? `/api/v1/admin/quizzes/${quiz.id}`
         : `/api/v1/admin/lessons/${lessonId}/quizzes`,
+      adminQuizSummarySchema,
       jsonRequest(built.payload, { method: isEdit ? 'PATCH' : 'POST' }),
     );
     setPending(false);
@@ -96,9 +97,8 @@ export function QuizSettingsForm({
       setFormError(errorText(key));
       return;
     }
-    const saved = adminQuizSummarySchema.safeParse(result.data);
-    if (!isEdit && saved.success) {
-      router.push(`/${locale}/admin/quizzes/${saved.data.id}`);
+    if (!isEdit) {
+      router.push(`/${locale}/admin/quizzes/${result.data.id}`);
       router.refresh();
       return;
     }

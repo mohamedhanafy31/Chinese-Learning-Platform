@@ -5,6 +5,7 @@ import { getTranslations, setRequestLocale } from 'next-intl/server';
 import type { Locale } from '@app/shared';
 
 import { LogoutButton } from '@/components/auth/logout-button';
+import { RefundedAccessWarning } from '@/components/admin/refunded-access-warning';
 import { Notice } from '@/components/ui/notice';
 import { getAdminOverview } from '@/lib/admin-api';
 import { overviewStats, overviewWarnings } from '@/lib/overview-format';
@@ -41,7 +42,11 @@ export default async function AdminPage({
   const tNav = await getTranslations('Admin.nav');
   const overview = await getAdminOverview();
   const stats = overview ? overviewStats(overview, locale) : [];
-  const warnings = overview ? overviewWarnings(overview) : [];
+  const warnings = overview
+    ? overviewWarnings(overview).filter(
+        (warning) => warning !== 'refundedAccess',
+      )
+    : [];
 
   return (
     <section className="mx-auto max-w-[1100px] px-4 py-20 sm:px-8 lg:py-24">
@@ -62,6 +67,14 @@ export default async function AdminPage({
               {tOverview(`warnings.${warning}.body`)}
             </Notice>
           ))}
+        </div>
+      ) : null}
+      {overview ? (
+        <div className="mt-4 max-w-[44rem]">
+          <RefundedAccessWarning
+            locale={locale}
+            count={overview.refundedWithAccess}
+          />
         </div>
       ) : null}
 

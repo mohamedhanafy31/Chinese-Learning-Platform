@@ -6,13 +6,9 @@ import { useTranslations } from 'next-intl';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 
-import {
-  checkoutResponseSchema,
-  type CheckoutResponse,
-  type Locale,
-} from '@app/shared';
+import { checkoutResponseSchema, type Locale } from '@app/shared';
 
-import { apiFetch, jsonRequest } from '@/lib/api-client';
+import { apiFetchParsed, jsonRequest } from '@/lib/api-client';
 
 type CheckoutError =
   | 'generic'
@@ -55,18 +51,13 @@ export function BuyLevel({
     if (pending) return;
     setPending(true);
     setError(null);
-    const result = await apiFetch<CheckoutResponse>(
+    const result = await apiFetchParsed(
       '/api/v1/billing/checkout',
+      checkoutResponseSchema,
       jsonRequest({ levelId, locale }, { method: 'POST' }),
     );
     if (result.ok) {
-      const parsed = checkoutResponseSchema.safeParse(result.data);
-      if (parsed.success) {
-        window.location.assign(parsed.data.checkoutUrl);
-        return;
-      }
-      setError('generic');
-      setPending(false);
+      window.location.assign(result.data.checkoutUrl);
       return;
     }
 

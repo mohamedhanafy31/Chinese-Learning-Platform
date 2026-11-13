@@ -65,9 +65,10 @@ export function overviewStats(
 /** Which honest warnings the overview shows. */
 export function overviewWarnings(
   overview: AdminOverview,
-): Array<'payments' | 'video'> {
-  const warnings: Array<'payments' | 'video'> = [];
+): Array<'payments' | 'video' | 'refundedAccess'> {
+  const warnings: Array<'payments' | 'video' | 'refundedAccess'> = [];
   if (!overview.payments.available) warnings.push('payments');
   if (overview.video.active === 'LOCAL') warnings.push('video');
+  if (overview.refundedWithAccess > 0) warnings.push('refundedAccess');
   return warnings;
 }

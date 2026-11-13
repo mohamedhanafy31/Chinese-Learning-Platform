@@ -33,6 +33,7 @@ import { PrismaService } from '../../../prisma/prisma.service';
 import { sanitizeOriginalName } from '../original-name';
 import type { VideoAssetRef } from '../video-provider';
 import { VideoProviders } from '../video-providers';
+import { PendingVideoDeleteService } from '../pending-video-delete.service';
 
 /** An UPLOADING asset is only polled once its browser upload should be over. */
 const UPLOADING_GRACE_MS = 15 * 60 * 1000;
@@ -83,6 +84,8 @@ export class BunnyVideoService implements OnModuleInit, OnModuleDestroy {
     @Inject(BunnyClient) private readonly client: BunnyClient,
     @Inject(BunnyProvider) private readonly provider: BunnyProvider,
     @Inject(VideoProviders) private readonly providers: VideoProviders,
+    @Inject(PendingVideoDeleteService)
+    private readonly pendingDeletes: PendingVideoDeleteService,
   ) {}
 
   onModuleInit(): void {
@@ -90,6 +93,7 @@ export class BunnyVideoService implements OnModuleInit, OnModuleDestroy {
     if (seconds <= 0 || !this.config.settings) return;
     this.timer = setInterval(() => {
       void this.reconcileOnce();
+      void this.pendingDeletes.retryDue();
     }, seconds * 1000);
     this.timer.unref();
   }

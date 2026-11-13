@@ -305,6 +305,22 @@ describe('local video (e2e)', () => {
 
   // ----- boot, access and validation (no ffmpeg needed) ----------------------
 
+  it('rejects a missing lesson before writing multipart bytes', async () => {
+    const before = await files();
+    const missingLessonId = '11111111-1111-4111-8111-111111111111';
+    await call(
+      admin,
+      'post',
+      `/api/v1/admin/lessons/${missingLessonId}/videos/local`,
+    )
+      .attach('file', Buffer.from('upload body'), {
+        filename: 'video.mp4',
+        contentType: 'video/mp4',
+      })
+      .expect(404);
+    expect(await files()).toEqual(before);
+  });
+
   it('creates the private videos directory at boot and never serves it', async () => {
     expect(existsSync(videosDir)).toBe(true);
     await writeFile(path.join(videosDir, 'probe.mp4'), Buffer.from('x'));
@@ -429,8 +445,16 @@ describe('local video (e2e)', () => {
       active: 'LOCAL',
       devOnly: false,
       // Added in M7 (the diagnostics page).
-      counts: { local: 0, bunny: 0, processing: 0, failed: 0 },
+      counts: {
+        local: 0,
+        bunny: 0,
+        processing: 0,
+        failed: 0,
+        pendingDeletes: 0,
+      },
       lastWebhookAt: null,
+      missingLocalFiles: 0,
+      embedTokens: { status: 'not-configured', checkedAt: null },
     });
     expect(response.headers['cache-control']).toBe('private, no-store');
   });

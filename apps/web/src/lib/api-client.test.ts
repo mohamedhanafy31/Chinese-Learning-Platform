@@ -1,6 +1,11 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import { apiFetch, resetApiClientForTests } from '@/lib/api-client';
+import {
+  apiFetch,
+  apiFetchParsed,
+  resetApiClientForTests,
+} from '@/lib/api-client';
+import { z } from 'zod';
 
 describe('apiFetch', () => {
   afterEach(() => {
@@ -8,11 +13,16 @@ describe('apiFetch', () => {
     resetApiClientForTests();
   });
 
-  it('shares one refresh across concurrent 401 responses and retries once', async () => {
+  it('shares one locked refresh across concurrent 401 responses', async () => {
     let releaseRefresh: ((response: Response) => void) | undefined;
     const refreshResponse = new Promise<Response>((resolve) => {
       releaseRefresh = resolve;
     });
+    const lockRequest = vi.fn(
+      async (_name: string, callback: () => Promise<Response | null>) =>
+        callback(),
+    );
+    vi.stubGlobal('navigator', { locks: { request: lockRequest } });
     let protectedCalls = 0;
     const fetchMock = vi.fn((input: RequestInfo | URL) => {
       const path = String(input);
@@ -39,6 +49,10 @@ describe('apiFetch', () => {
       expect.objectContaining({ ok: true, data: { ok: true } }),
       expect.objectContaining({ ok: true, data: { ok: true } }),
     ]);
+    expect(lockRequest).toHaveBeenCalledWith(
+      'auth-refresh',
+      expect.any(Function),
+    );
     expect(
       fetchMock.mock.calls.filter(
         ([input]) => String(input) === '/api/v1/auth/refresh',
@@ -47,9 +61,27 @@ describe('apiFetch', () => {
     expect(protectedCalls).toBe(4);
   });
 
-  it('returns unauthenticated when refresh fails', async () => {
+  it('accepts a successful /me check after a refresh 401', async () => {
     const fetchMock = vi
       .fn()
+      .mockResolvedValueOnce(new Response(null, { status: 401 }))
+      .mockResolvedValueOnce(Response.json({ user: { role: 'STUDENT' } }));
+    vi.stubGlobal('fetch', fetchMock);
+
+    await expect(apiFetch('/api/v1/auth/refresh')).resolves.toMatchObject({
+      ok: true,
+      data: { user: { role: 'STUDENT' } },
+    });
+    expect(fetchMock.mock.calls.map(([input]) => String(input))).toEqual([
+      '/api/v1/auth/refresh',
+      '/api/v1/auth/me',
+    ]);
+  });
+
+  it('returns unauthenticated when refresh and /me both fail', async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(new Response(null, { status: 401 }))
       .mockResolvedValueOnce(new Response(null, { status: 401 }))
       .mockResolvedValueOnce(new Response(null, { status: 401 }));
     vi.stubGlobal('fetch', fetchMock);
@@ -58,6 +90,73 @@ describe('apiFetch', () => {
       ok: false,
       kind: 'unauthenticated',
       status: 401,
+    });
+  });
+
+  it('refreshes and retries an unauthenticated session check', async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(new Response(null, { status: 401 }))
+      .mockResolvedValueOnce(new Response(null, { status: 200 }))
+      .mockResolvedValueOnce(Response.json({ user: { id: 'user-1' } }));
+    vi.stubGlobal('fetch', fetchMock);
+
+    await expect(apiFetch('/api/v1/auth/me')).resolves.toMatchObject({
+      ok: true,
+      data: { user: { id: 'user-1' } },
+    });
+    expect(fetchMock.mock.calls.map(([input]) => String(input))).toEqual([
+      '/api/v1/auth/me',
+      '/api/v1/auth/refresh',
+      '/api/v1/auth/me',
+    ]);
+  });
+});
+
+describe('apiFetchParsed', () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    resetApiClientForTests();
+  });
+
+  const schema = z.object({ id: z.string() });
+
+  it('returns parsed data and reports an invalid body without throwing', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue(Response.json({ id: 'a' })),
+    );
+    await expect(apiFetchParsed('/api/data', schema)).resolves.toMatchObject({
+      ok: true,
+      data: { id: 'a' },
+    });
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(Response.json({ id: 1 })));
+    await expect(apiFetchParsed('/api/data', schema)).resolves.toMatchObject({
+      ok: false,
+      kind: 'invalid',
+      status: 200,
+    });
+  });
+
+  it('refreshes after 401 and validates the retried body', async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(new Response(null, { status: 401 }))
+      .mockResolvedValueOnce(new Response(null, { status: 200 }))
+      .mockResolvedValueOnce(Response.json({ id: 'fresh' }));
+    vi.stubGlobal('fetch', fetchMock);
+    await expect(apiFetchParsed('/api/data', schema)).resolves.toMatchObject({
+      ok: true,
+      data: { id: 'fresh' },
+    });
+  });
+
+  it('returns network failures', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('offline')));
+    await expect(apiFetchParsed('/api/data', schema)).resolves.toMatchObject({
+      ok: false,
+      kind: 'error',
+      status: 0,
     });
   });
 });

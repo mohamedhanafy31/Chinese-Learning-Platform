@@ -12,8 +12,10 @@ import { ZodValidationPipe } from '../src/common/validation/zod-validation.pipe'
 import { IdentityClockService } from '../src/identity/identity-clock.service';
 import { MAIL_SERVICE } from '../src/identity/identity.constants';
 import { IdentityService } from '../src/identity/identity.service';
+import { ProgressService } from '../src/progress/progress.service';
 import { InMemoryMailService } from '../src/identity/mail.service';
 import { BunnyVideoService } from '../src/media/video/bunny/bunny-video.service';
+import { PendingVideoDeleteService } from '../src/media/video/pending-video-delete.service';
 import { BillingExpiryService } from '../src/billing/billing-expiry.service';
 import { serveUploadedImages } from '../src/media/serve-media';
 import { enableDevVideoUploadCors } from '../src/media/video/dev-cors';
@@ -43,8 +45,11 @@ interface TestMessage {
     | 'mail:clear'
     | 'mail:get'
     | 'billing:expire'
-    | 'video:reconcile';
+    | 'video:reconcile'
+    | 'video:retry-deletes'
+    | 'progress:reevaluate';
   userId?: string;
+  lessonId?: string;
 }
 
 async function bootstrap(): Promise<void> {
@@ -68,7 +73,9 @@ async function bootstrap(): Promise<void> {
   const clock = app.get(IdentityClockService);
   const identity = app.get(IdentityService);
   const bunnyVideos = app.get(BunnyVideoService);
+  const pendingVideoDeletes = app.get(PendingVideoDeleteService);
   const billingExpiry = app.get(BillingExpiryService);
+  const progress = app.get(ProgressService);
   const systemNow = IdentityClockService.prototype.now.bind(clock);
 
   process.on('message', (message: TestMessage) => {
@@ -103,6 +110,15 @@ async function bootstrap(): Promise<void> {
             result: await bunnyVideos.reconcileOnce(),
           });
           break;
+        case 'video:retry-deletes':
+          process.send?.({
+            type: 'video:deletes-retried',
+            requestId: message.requestId,
+            result: await pendingVideoDeletes.retryDue(
+              message.now ? new Date(message.now) : new Date(),
+            ),
+          });
+          break;
         case 'billing:expire':
           process.send?.({
             type: 'billing:expired',
@@ -118,6 +134,16 @@ async function bootstrap(): Promise<void> {
           }
           await identity.deactivateUser(message.userId);
           process.send?.({ type: 'ok', requestId: message.requestId });
+          break;
+        case 'progress:reevaluate':
+          if (!message.userId || !message.lessonId) {
+            throw new Error('progress:reevaluate requires userId and lessonId');
+          }
+          await progress.reevaluate(message.userId, message.lessonId);
+          process.send?.({
+            type: 'progress:reevaluated',
+            requestId: message.requestId,
+          });
           break;
       }
     })().catch((error: unknown) => {

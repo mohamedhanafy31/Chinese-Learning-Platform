@@ -6,7 +6,11 @@ import type { PendingVideo } from '@app/shared';
 import { PENDING_POLL_MS, usePendingVideo } from './use-pending-video';
 
 const apiFetch = vi.hoisted(() => vi.fn());
-vi.mock('@/lib/api-client', () => ({ apiFetch }));
+vi.mock('@/lib/api-client', () => ({
+  apiFetch,
+  apiFetchParsed: (path: string, _schema: unknown, init?: RequestInit) =>
+    init === undefined ? apiFetch(path) : apiFetch(path, init),
+}));
 
 const LESSON_ID = '3f2b8c1e-6d1a-4a53-9c1d-2f2d7a9b0c11';
 const ASSET_ID = '7a1c4a8e-1d0f-4c36-8d7b-0a5b7c9d2e44';

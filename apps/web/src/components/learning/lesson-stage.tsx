@@ -15,7 +15,7 @@ import {
   LessonPlayer,
   VideoPlaceholder,
 } from '@/components/video/lesson-player';
-import { apiFetch, jsonRequest } from '@/lib/api-client';
+import { apiFetchParsed, jsonRequest } from '@/lib/api-client';
 import { useLessonProgress } from '@/lib/use-lesson-progress';
 
 /**
@@ -78,19 +78,18 @@ export function LessonStage({
   useEffect(() => {
     if (!reportsOpening) return;
     let active = true;
-    void apiFetch<unknown>(
+    void apiFetchParsed(
       `/api/v1/lessons/${encodeURIComponent(lessonId)}/progress`,
+      progressReportResponseSchema,
       jsonRequest({ segments: [], positionSec: 0 }, { method: 'POST' }),
     ).then((result) => {
       if (!active || !result.ok) return;
-      const parsed = progressReportResponseSchema.safeParse(result.data);
-      if (!parsed.success) return;
       setProgress((current) =>
         current
           ? {
               ...current,
-              complete: parsed.data.complete,
-              nextLessonId: parsed.data.nextLessonId,
+              complete: result.data.complete,
+              nextLessonId: result.data.nextLessonId,
             }
           : current,
       );
@@ -110,6 +109,7 @@ export function LessonStage({
       {video ? (
         <LessonPlayer
           label={label}
+          lessonId={lessonId}
           video={video}
           poster={poster}
           unsupported={t('unsupported')}

@@ -255,12 +255,26 @@ export const providerReadinessSchema = z.object({
 
 export const videoDiagnosticsSchema = providerReadinessSchema.extend({
   devOnly: z.boolean(),
+  missingLocalFiles: z.number().int().min(0).default(0),
+  embedTokens: z
+    .object({
+      status: z.enum([
+        'enforced',
+        'not-enforced',
+        'unknown',
+        'no-video',
+        'not-configured',
+      ]),
+      checkedAt: z.string().nullable(),
+    })
+    .default({ status: 'not-configured', checkedAt: null }),
   /** Asset counts by provider and state; no secrets, no ids. */
   counts: z.object({
     local: z.number().int().min(0),
     bunny: z.number().int().min(0),
     processing: z.number().int().min(0),
     failed: z.number().int().min(0),
+    pendingDeletes: z.number().int().min(0).default(0),
   }),
   /** When Bunny last called the webhook, or null if it never has. */
   lastWebhookAt: z.string().nullable(),
@@ -597,6 +611,7 @@ export const ownOrdersResponseSchema = z.object({
 });
 
 export const adminOrderSummarySchema = orderSummarySchema.extend({
+  hasActiveAccess: z.boolean().default(false),
   user: z.object({
     id: z.uuid(),
     name: z.string(),
@@ -610,6 +625,16 @@ export const adminOrdersResponseSchema = z.object({
   page: z.number().int().min(1),
   pageSize: z.number().int().min(1),
   total: z.number().int().min(0),
+});
+
+export const adminOrdersQuerySchema = z.object({
+  status: z.enum(OrderStatus).optional(),
+  q: z.string().trim().max(200).optional(),
+  page: z.coerce.number().int().min(1).default(1),
+  refundedWithAccess: z.preprocess(
+    (value) => value === 'true' || value === true,
+    z.boolean().optional(),
+  ),
 });
 
 export const adminPaymentTransactionSchema = z.object({
@@ -754,6 +779,7 @@ export const adminOverviewSchema = z.object({
   revenueLast30dMinor: z.number().int().min(0),
   pendingOrders: z.number().int().min(0),
   failedCallbacksLast24h: z.number().int().min(0),
+  refundedWithAccess: z.number().int().min(0).default(0),
   video: z.object({
     active: z.enum(['LOCAL', 'BUNNY']),
     devOnly: z.boolean(),

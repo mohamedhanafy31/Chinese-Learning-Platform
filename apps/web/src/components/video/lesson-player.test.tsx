@@ -3,6 +3,10 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { LessonPlayer, PLAYERJS_SRC } from './lesson-player';
 
+vi.mock('next/navigation', () => ({
+  useRouter: () => ({ refresh: vi.fn() }),
+}));
+
 // next/script only matters here for its `src` and `onReady`, which fires once
 // the (pinned) script is loaded.
 vi.mock('next/script', async () => {
@@ -56,6 +60,10 @@ describe('LessonPlayer', () => {
       />,
     );
     const frame = screen.getByTestId('lesson-embed');
+    expect(frame.parentElement?.parentElement).toHaveAttribute(
+      'data-reveal',
+      '',
+    );
     expect(frame.tagName).toBe('IFRAME');
     expect(frame).toHaveAttribute('src', embedUrl);
     expect(frame).toHaveAttribute('title', 'Greetings');

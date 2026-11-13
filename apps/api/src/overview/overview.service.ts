@@ -30,6 +30,7 @@ export class OverviewService {
       purchases,
       revenue,
       pendingOrders,
+      refundedWithAccess,
       callbacks,
     ] = await Promise.all([
       this.prisma.user.count({ where: { role: Role.STUDENT } }),
@@ -45,6 +46,12 @@ export class OverviewService {
       this.prisma.order.count({
         where: { status: OrderStatus.PENDING, expiresAt: { gt: now } },
       }),
+      this.prisma.order.count({
+        where: {
+          status: OrderStatus.REFUNDED,
+          enrollments: { some: { revokedAt: null } },
+        },
+      }),
       this.report.last24Hours(now),
     ]);
     return {
@@ -55,6 +62,7 @@ export class OverviewService {
       },
       revenueLast30dMinor: toMinorTotal(revenue._sum.amountMinor),
       pendingOrders,
+      refundedWithAccess,
       // A callback that failed validation, or that matched no order.
       failedCallbacksLast24h:
         callbacks.callbacksWithMismatches +

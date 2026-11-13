@@ -1,10 +1,18 @@
 import { describe, expect, it } from 'vitest';
 
-import type { LessonAccess } from '@app/shared';
+import { lessonAccessSchema, type LessonAccess } from '@app/shared';
 
 import { accessById, pathStateFor, progressSegments } from './lesson-access';
 
 describe('pathStateFor', () => {
+  it('maps every access state emitted by the shared API contract', () => {
+    for (const access of lessonAccessSchema.options) {
+      expect(pathStateFor({ isFreePreview: false }, access)).toBeDefined();
+      expect(
+        progressSegments([{ id: access, access }])[0]?.state,
+      ).toBeDefined();
+    }
+  });
   it.each([
     [true, 'open', 'open'],
     [false, 'open', 'open'],

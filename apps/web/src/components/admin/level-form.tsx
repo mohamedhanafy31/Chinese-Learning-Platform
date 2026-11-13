@@ -32,7 +32,7 @@ import {
   type TopicRow,
 } from '@/lib/admin-forms';
 import { failureKey } from '@/lib/admin-client';
-import { apiFetch, jsonRequest } from '@/lib/api-client';
+import { apiFetchParsed, jsonRequest } from '@/lib/api-client';
 import { emptyLocalizedInput, toLocalizedInput } from '@/lib/localized';
 import { priceToInput } from '@/lib/price';
 
@@ -138,8 +138,9 @@ export function LevelForm({
 
     setPending(true);
     const { slug, ...rest } = built.payload;
-    const result = await apiFetch<unknown>(
+    const result = await apiFetchParsed(
       isEdit ? `/api/v1/admin/levels/${level.id}` : '/api/v1/admin/levels',
+      adminLevelSchema,
       jsonRequest(isEdit && slugLocked ? rest : { slug, ...rest }, {
         method: isEdit ? 'PATCH' : 'POST',
       }),
@@ -149,9 +150,7 @@ export function LevelForm({
     if (!result.ok) {
       const key = await failureKey(result);
       if (key === 'unauthenticated') {
-        router.replace(
-          `/${locale}/login?next=${encodeURIComponent(pathname)}`,
-        );
+        router.replace(`/${locale}/login?next=${encodeURIComponent(pathname)}`);
         return;
       }
       setFormError(tErrors(key));
@@ -159,9 +158,8 @@ export function LevelForm({
       return;
     }
 
-    const saved = adminLevelSchema.safeParse(result.data);
-    if (!isEdit && saved.success) {
-      router.push(`/${locale}/admin/levels/${saved.data.id}`);
+    if (!isEdit) {
+      router.push(`/${locale}/admin/levels/${result.data.id}`);
       router.refresh();
       return;
     }

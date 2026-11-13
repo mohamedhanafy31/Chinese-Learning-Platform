@@ -6,16 +6,17 @@ import { useEffect } from 'react';
 const SELECTOR = '[data-write], [data-reveal]';
 
 /**
- * Watches every write-on and reveal element and marks it `data-inview` the
- * first time it enters the viewport. Mounted once in the locale layout; it
- * re-scans after client navigation.
+ * Watches write-on and reveal elements and marks them `data-inview` the first
+ * time they enter the viewport. It scans after client navigation and observes
+ * elements added later by client-side rendering.
  */
 export function MotionObserver(): null {
   const pathname = usePathname();
 
   useEffect(() => {
     const root = document.documentElement;
-    (window as unknown as { __motionObserver?: boolean }).__motionObserver = true;
+    (window as unknown as { __motionObserver?: boolean }).__motionObserver =
+      true;
     if (root.dataset.motion !== 'ready') return;
 
     const observer = new IntersectionObserver(
@@ -30,11 +31,35 @@ export function MotionObserver(): null {
       { rootMargin: '0px 0px -12% 0px', threshold: 0.15 },
     );
 
+    const observeElement = (element: Element): void => {
+      if (element.matches(SELECTOR) && !element.hasAttribute('data-inview')) {
+        observer.observe(element);
+      }
+      for (const descendant of element.querySelectorAll<HTMLElement>(
+        SELECTOR,
+      )) {
+        if (!descendant.hasAttribute('data-inview'))
+          observer.observe(descendant);
+      }
+    };
+
     for (const element of document.querySelectorAll<HTMLElement>(SELECTOR)) {
       if (!element.dataset.inview) observer.observe(element);
     }
 
-    return () => observer.disconnect();
+    const mutations = new MutationObserver((records) => {
+      for (const record of records) {
+        for (const node of record.addedNodes) {
+          if (node.nodeType === 1) observeElement(node as Element);
+        }
+      }
+    });
+    mutations.observe(document.body, { childList: true, subtree: true });
+
+    return () => {
+      mutations.disconnect();
+      observer.disconnect();
+    };
   }, [pathname]);
 
   return null;

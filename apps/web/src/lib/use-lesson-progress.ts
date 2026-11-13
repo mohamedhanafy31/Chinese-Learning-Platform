@@ -7,7 +7,7 @@ import {
   type ProgressReportResponse,
 } from '@app/shared';
 
-import { apiFetch, jsonRequest } from '@/lib/api-client';
+import { apiFetchParsed, jsonRequest } from '@/lib/api-client';
 import { WatchTracker } from '@/lib/watch-tracker';
 
 export const FLUSH_INTERVAL_MS = 10_000;
@@ -72,8 +72,9 @@ export function useLessonProgress(options: {
       }
       lastSentRef.current = now;
       const duration = durationRef.current;
-      const result = await apiFetch<unknown>(
+      const result = await apiFetchParsed(
         `/api/v1/lessons/${encodeURIComponent(lessonId)}/progress`,
+        progressReportResponseSchema,
         jsonRequest(
           {
             segments: report.segments,
@@ -85,8 +86,7 @@ export function useLessonProgress(options: {
       );
       if (result.ok) {
         lastPositionRef.current = report.positionSec;
-        const parsed = progressReportResponseSchema.safeParse(result.data);
-        if (parsed.success) resultRef.current?.(parsed.data);
+        resultRef.current?.(result.data);
         return;
       }
       // Network trouble, throttling or a server error: try again next time.

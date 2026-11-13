@@ -8,7 +8,7 @@ import {
   type PendingVideo,
 } from '@app/shared';
 
-import { apiFetch } from '@/lib/api-client';
+import { apiFetchParsed } from '@/lib/api-client';
 
 export const PENDING_POLL_MS = 5000;
 
@@ -65,14 +65,15 @@ export function usePendingVideo(options: {
     const timer = setInterval(() => {
       if (inFlight) return;
       inFlight = true;
-      void apiFetch<unknown>(`/api/v1/admin/lessons/${lessonId}`)
+      void apiFetchParsed(
+        `/api/v1/admin/lessons/${lessonId}`,
+        adminLessonSchema,
+      )
         .then((result) => {
           if (cancelled || !result.ok) return;
-          const parsed = adminLessonSchema.safeParse(result.data);
-          if (!parsed.success) return;
           const next = {
-            video: parsed.data.video,
-            pending: parsed.data.pendingVideo,
+            video: result.data.video,
+            pending: result.data.pendingVideo,
           };
           setState(next);
           if (!next.pending) onReady.current?.();

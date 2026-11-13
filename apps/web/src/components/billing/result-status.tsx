@@ -15,7 +15,7 @@ import {
 
 import { WriteOn } from '@/components/motion/write-on';
 import { Seal } from '@/components/porcelain/seal';
-import { apiFetch } from '@/lib/api-client';
+import { apiFetchParsed } from '@/lib/api-client';
 import { formatDateTime } from '@/lib/format';
 import { pick } from '@/lib/localized';
 import { formatEgp } from '@/lib/price';
@@ -71,16 +71,14 @@ export function ResultStatus({
         return;
       }
 
-      const result = await apiFetch<unknown>(
+      const result = await apiFetchParsed(
         `/api/v1/billing/orders/${encodeURIComponent(initialOrder.id)}`,
+        orderSummarySchema,
       );
       if (!mountedRef.current || generation !== generationRef.current) return;
       if (result.ok) {
-        const parsed = orderSummarySchema.safeParse(result.data);
-        if (parsed.success) {
-          setOrder(parsed.data);
-          if (isTerminal(parsed.data.status)) return;
-        }
+        setOrder(result.data);
+        if (isTerminal(result.data.status)) return;
       }
       timerRef.current = setTimeout(
         () => void poll(generation),
@@ -154,17 +152,17 @@ export function ResultStatus({
   useEffect(() => {
     if (order.status !== OrderStatus.PAID || startHref) return;
     let cancelled = false;
-    void apiFetch<unknown>('/api/v1/me/levels').then((result) => {
-      if (cancelled || !result.ok) return;
-      const parsed = myLevelsResponseSchema.safeParse(result.data);
-      const next = parsed.success
-        ? parsed.data.levels.find((level) => level.slug === order.levelSlug)
-            ?.progress.nextLessonId
-        : null;
-      if (next) {
-        setStartHref(`/${locale}/learn/${order.levelSlug}/${next}`);
-      }
-    });
+    void apiFetchParsed('/api/v1/me/levels', myLevelsResponseSchema).then(
+      (result) => {
+        if (cancelled || !result.ok) return;
+        const next = result.data.levels.find(
+          (level) => level.slug === order.levelSlug,
+        )?.progress.nextLessonId;
+        if (next) {
+          setStartHref(`/${locale}/learn/${order.levelSlug}/${next}`);
+        }
+      },
+    );
     return () => {
       cancelled = true;
     };

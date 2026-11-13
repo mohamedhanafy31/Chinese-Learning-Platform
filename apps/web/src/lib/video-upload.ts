@@ -1,3 +1,5 @@
+import { apiFetch } from './api-client';
+
 export type UploadOutcome =
   | { kind: 'success'; status: number; data: unknown }
   | { kind: 'http-error'; status: number }
@@ -36,8 +38,11 @@ function parseBody(text: string): unknown {
  * API origin; the browser adds `Origin`, which the API's origin guard checks.
  */
 export function startVideoUpload(options: VideoUploadOptions): VideoUpload {
-  const request = new XMLHttpRequest();
+  let request: XMLHttpRequest | null = null;
   let settled = false;
+  let aborted = false;
+  let attempt = 0;
+  let sentReported = false;
   let finish: (outcome: UploadOutcome) => void = () => undefined;
 
   const promise = new Promise<UploadOutcome>((resolve) => {
@@ -48,46 +53,89 @@ export function startVideoUpload(options: VideoUploadOptions): VideoUpload {
     };
   });
 
-  request.open('POST', options.url);
-  request.withCredentials = true;
-  request.responseType = 'text';
-
-  request.upload.addEventListener('progress', (event) => {
-    if (event.lengthComputable && event.total > 0) {
-      options.onProgress?.(Math.min(1, event.loaded / event.total));
+  const body = (): FormData => {
+    const form = new FormData();
+    if (options.durationSec !== undefined) {
+      form.append('durationSec', String(Math.round(options.durationSec)));
     }
-  });
-  request.upload.addEventListener('load', () => {
-    options.onProgress?.(1);
-    options.onSent?.();
-  });
-  request.addEventListener('load', () => {
-    if (request.status >= 200 && request.status < 300) {
-      finish({
-        kind: 'success',
-        status: request.status,
-        data: parseBody(request.responseText),
-      });
-    } else {
-      finish({ kind: 'http-error', status: request.status });
-    }
-  });
-  request.addEventListener('error', () => finish({ kind: 'network-error' }));
-  request.addEventListener('timeout', () => finish({ kind: 'network-error' }));
-  request.addEventListener('abort', () => finish({ kind: 'aborted' }));
+    // The file goes last so the API sees the text field before the bytes.
+    form.append('file', options.file);
+    return form;
+  };
 
-  const body = new FormData();
-  if (options.durationSec !== undefined) {
-    body.append('durationSec', String(Math.round(options.durationSec)));
-  }
-  // The file goes last so the API sees the text field before the bytes.
-  body.append('file', options.file);
-  request.send(body);
+  const send = (): void => {
+    if (settled || aborted) {
+      finish({ kind: 'aborted' });
+      return;
+    }
+    const xhr = new XMLHttpRequest();
+    request = xhr;
+    attempt += 1;
+    xhr.open('POST', options.url);
+    xhr.withCredentials = true;
+    xhr.responseType = 'text';
+    xhr.upload.addEventListener('progress', (event) => {
+      if (event.lengthComputable && event.total > 0) {
+        options.onProgress?.(Math.min(1, event.loaded / event.total));
+      }
+    });
+    xhr.upload.addEventListener('load', () => {
+      options.onProgress?.(1);
+      if (!sentReported) {
+        sentReported = true;
+        options.onSent?.();
+      }
+    });
+    xhr.addEventListener('load', () => {
+      if (xhr.status === 401 && attempt === 1) {
+        void apiFetch('/api/v1/auth/me')
+          .then((session) => {
+            if (aborted) {
+              finish({ kind: 'aborted' });
+            } else if (session.ok) {
+              send();
+            } else {
+              finish({ kind: 'http-error', status: 401 });
+            }
+          })
+          .catch(() => finish({ kind: 'http-error', status: 401 }));
+        return;
+      }
+      if (xhr.status >= 200 && xhr.status < 300) {
+        finish({
+          kind: 'success',
+          status: xhr.status,
+          data: parseBody(xhr.responseText),
+        });
+      } else {
+        finish({ kind: 'http-error', status: xhr.status });
+      }
+    });
+    xhr.addEventListener('error', () => finish({ kind: 'network-error' }));
+    xhr.addEventListener('timeout', () => finish({ kind: 'network-error' }));
+    xhr.addEventListener('abort', () => finish({ kind: 'aborted' }));
+    xhr.send(body());
+  };
+
+  void apiFetch('/api/v1/auth/me')
+    .then((session) => {
+      if (aborted) {
+        finish({ kind: 'aborted' });
+      } else if (!session.ok && session.kind === 'unauthenticated') {
+        finish({ kind: 'http-error', status: 401 });
+      } else {
+        send();
+      }
+    })
+    .catch(send);
 
   return {
     promise,
     abort: () => {
-      if (!settled) request.abort();
+      if (settled) return;
+      aborted = true;
+      request?.abort();
+      finish({ kind: 'aborted' });
     },
   };
 }

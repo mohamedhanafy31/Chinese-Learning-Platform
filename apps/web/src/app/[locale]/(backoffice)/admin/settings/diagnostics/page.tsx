@@ -5,6 +5,8 @@ import { getTranslations, setRequestLocale } from 'next-intl/server';
 import type { Locale } from '@app/shared';
 
 import { CopyButton } from '@/components/admin/copy-button';
+import { EmbedTokenDiagnostics } from '@/components/admin/embed-token-diagnostics';
+import { PendingVideoDeleteNotice } from '@/components/admin/pending-video-delete-notice';
 import { getVideoDiagnostics } from '@/lib/admin-api';
 import { numberFormat } from '@/lib/numbers';
 import { requireUser } from '@/lib/protected-session';
@@ -81,6 +83,8 @@ export default async function DiagnosticsPage({
               {t('devOnly')}
             </p>
           ) : null}
+
+          <PendingVideoDeleteNotice count={diagnostics.counts.pendingDeletes} />
 
           <div className="grid gap-6 md:grid-cols-2">
             <section aria-labelledby="diag-provider" className={card}>
@@ -163,6 +167,8 @@ export default async function DiagnosticsPage({
               </p>
             </section>
           </div>
+
+          <EmbedTokenDiagnostics status={diagnostics.embedTokens.status} />
 
           <section aria-labelledby="diag-webhook" className={card}>
             <h2 id="diag-webhook" className="text-xl font-semibold text-deep">

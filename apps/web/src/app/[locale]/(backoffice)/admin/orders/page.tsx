@@ -12,6 +12,7 @@ import {
   secondaryLinkClass,
 } from '@/components/admin/classes';
 import { OrderStatusBadge } from '@/components/billing/order-status';
+import { RefundedAccessBadge } from '@/components/admin/refunded-access-badge';
 import { getAdminOrders, getBillingReport } from '@/lib/billing';
 import { formatDate, formatDateTime } from '@/lib/format';
 import { pick } from '@/lib/localized';
@@ -50,14 +51,21 @@ export default async function AdminOrdersPage({
   const qRaw = Array.isArray(raw.q) ? raw.q[0] : raw.q;
   const q = (qRaw ?? '').trim().slice(0, 200);
   const status = parseOrderStatus(raw.status);
+  const refundedWithAccess =
+    (Array.isArray(raw.refundedWithAccess)
+      ? raw.refundedWithAccess[0]
+      : raw.refundedWithAccess) === 'true';
   const page = parseOrdersPage(raw.page);
   const [t, result, report] = await Promise.all([
     getTranslations('Admin.orders'),
-    getAdminOrders({ page, q, status }),
+    getAdminOrders({ page, q, status, refundedWithAccess }),
     getBillingReport(),
   ]);
   const pages = orderPages(result.total, result.pageSize);
-  if (page > pages) redirect(ordersHref(locale, { q, status, page: pages }));
+  if (page > pages)
+    redirect(
+      ordersHref(locale, { q, status, refundedWithAccess, page: pages }),
+    );
   const nf = numberFormat(locale);
 
   const anomalies = [
@@ -131,6 +139,9 @@ export default async function AdminOrdersPage({
         action={`/${locale}/admin/orders`}
         className="mt-10 grid gap-4 md:grid-cols-[minmax(0,1fr)_14rem_auto] md:items-end"
       >
+        {refundedWithAccess ? (
+          <input type="hidden" name="refundedWithAccess" value="true" />
+        ) : null}
         <div>
           <label
             htmlFor="orders-q"
@@ -257,6 +268,10 @@ export default async function AdminOrdersPage({
                       status={order.status}
                       label={t(`status.${order.status}`)}
                     />
+                    {order.hasActiveAccess &&
+                    order.status === OrderStatus.REFUNDED ? (
+                      <RefundedAccessBadge />
+                    ) : null}
                   </td>
                   <td className="px-3 py-4 text-sm text-cobalt tabular">
                     {order.paidAt
@@ -278,7 +293,12 @@ export default async function AdminOrdersPage({
           {page > 1 ? (
             <Link
               rel="prev"
-              href={ordersHref(locale, { q, status, page: page - 1 })}
+              href={ordersHref(locale, {
+                q,
+                status,
+                refundedWithAccess,
+                page: page - 1,
+              })}
               className={secondaryLinkClass}
             >
               <ChevronLeft
@@ -296,7 +316,12 @@ export default async function AdminOrdersPage({
           {page < pages ? (
             <Link
               rel="next"
-              href={ordersHref(locale, { q, status, page: page + 1 })}
+              href={ordersHref(locale, {
+                q,
+                status,
+                refundedWithAccess,
+                page: page + 1,
+              })}
               className={secondaryLinkClass}
             >
               {t('next')}

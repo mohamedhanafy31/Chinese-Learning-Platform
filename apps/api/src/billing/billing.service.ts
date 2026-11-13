@@ -283,6 +283,12 @@ export class BillingService {
   }> {
     const where: Prisma.OrderWhereInput = {
       status: query.status,
+      ...(query.refundedWithAccess
+        ? {
+            status: OrderStatus.REFUNDED,
+            enrollments: { some: { revokedAt: null } },
+          }
+        : {}),
       ...(query.q
         ? {
             user: {
@@ -301,6 +307,7 @@ export class BillingService {
         include: {
           user: { select: { id: true, name: true, email: true, phone: true } },
           level: { select: { slug: true, title: true } },
+          enrollments: { where: { revokedAt: null }, select: { id: true } },
         },
         orderBy: { createdAt: 'desc' },
         skip: (query.page - 1) * PAGE_SIZE,
@@ -311,6 +318,7 @@ export class BillingService {
     return {
       orders: rows.map((row) => ({
         ...mapOrder(row),
+        hasActiveAccess: row.enrollments.length > 0,
         user: row.user,
       })),
       page: query.page,

@@ -148,22 +148,25 @@ export class ProgressService {
    */
   async reevaluate(userId: string, lessonId: string): Promise<void> {
     const context = await this.context(this.prisma, lessonId);
-    await this.prisma.lessonProgress.upsert({
-      where: { userId_lessonId: { userId, lessonId } },
-      create: { userId, lessonId },
-      update: {},
-    });
-    const row = await this.prisma.lessonProgress.findUniqueOrThrow({
-      where: { userId_lessonId: { userId, lessonId } },
-    });
-    if (row.completedAt !== null) return;
-    const passed = await this.passedCount(this.prisma, userId, context.quizIds);
-    if (this.isComplete(row, context, passed)) {
-      await this.prisma.lessonProgress.update({
+    await this.prisma.$transaction(async (tx) => {
+      await tx.lessonProgress.upsert({
         where: { userId_lessonId: { userId, lessonId } },
-        data: { completedAt: new Date() },
+        create: { userId, lessonId },
+        update: {},
       });
-    }
+      await tx.$queryRaw`SELECT 1 FROM "LessonProgress" WHERE "userId" = ${userId}::uuid AND "lessonId" = ${lessonId}::uuid FOR UPDATE`;
+      const row = await tx.lessonProgress.findUniqueOrThrow({
+        where: { userId_lessonId: { userId, lessonId } },
+      });
+      if (row.completedAt !== null) return;
+      const passed = await this.passedCount(tx, userId, context.quizIds);
+      if (this.isComplete(row, context, passed)) {
+        await tx.lessonProgress.update({
+          where: { userId_lessonId: { userId, lessonId } },
+          data: { completedAt: new Date() },
+        });
+      }
+    });
   }
 
   // ----- reading -----------------------------------------------------------

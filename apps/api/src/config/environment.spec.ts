@@ -15,8 +15,9 @@ describe('Bunny environment', () => {
     const env = validateEnvironment({ ...base, BUNNY_API_BASE: '' });
     expect(env.BUNNY_API_BASE).toBe('https://video.bunnycdn.com');
     expect(env.BUNNY_EMBED_BASE).toBe('https://iframe.mediadelivery.net');
-    expect(env.BUNNY_EMBED_TTL_SEC).toBe(7200);
+    expect(env.BUNNY_EMBED_TTL_SEC).toBe(900);
     expect(env.VIDEO_RECONCILE_INTERVAL_SEC).toBe(300);
+    expect(env.VIDEO_ORPHAN_SWEEP_INTERVAL_SEC).toBe(3600);
     expect(env.BUNNY_LIBRARY_ID).toBeUndefined();
   });
 
@@ -26,10 +27,12 @@ describe('Bunny environment', () => {
       BUNNY_LIBRARY_ID: '12345',
       BUNNY_CDN_HOST: 'vz-abc123.b-cdn.net',
       VIDEO_RECONCILE_INTERVAL_SEC: '0',
+      VIDEO_ORPHAN_SWEEP_INTERVAL_SEC: '0',
     });
     expect(env.BUNNY_LIBRARY_ID).toBe('12345');
     expect(env.BUNNY_CDN_HOST).toBe('vz-abc123.b-cdn.net');
     expect(env.VIDEO_RECONCILE_INTERVAL_SEC).toBe(0);
+    expect(env.VIDEO_ORPHAN_SWEEP_INTERVAL_SEC).toBe(0);
   });
 
   it.each([
@@ -38,6 +41,7 @@ describe('Bunny environment', () => {
     ['BUNNY_CDN_HOST', 'vz.b-cdn.net/path'],
     ['BUNNY_API_BASE', 'not a url'],
     ['VIDEO_RECONCILE_INTERVAL_SEC', '-1'],
+    ['VIDEO_ORPHAN_SWEEP_INTERVAL_SEC', '-1'],
   ])('rejects %s=%s', (key, value) => {
     expect(() => validateEnvironment({ ...base, [key]: value })).toThrow(
       /Invalid environment/,
@@ -80,6 +84,7 @@ describe('production environment', () => {
   const production = {
     ...base,
     NODE_ENV: 'production',
+    UPLOADS_DIR: '/app/uploads',
     APP_URL: 'https://school.example.com',
     JWT_ACCESS_SECRET: 'A'.repeat(48),
     JWT_REFRESH_SECRET: 'B'.repeat(48),
@@ -113,6 +118,13 @@ describe('production environment', () => {
     }
     throw new Error('Expected the environment to be rejected');
   }
+
+  it('requires UPLOADS_DIR in production', () => {
+    expect(() =>
+      validateEnvironment({ ...production, UPLOADS_DIR: undefined }),
+    ).toThrow(/UPLOADS_DIR/);
+    expect(() => validateEnvironment(production)).not.toThrow();
+  });
 
   it('boots with strong distinct secrets and complete optional groups', () => {
     expect(() => validateEnvironment(production)).not.toThrow();

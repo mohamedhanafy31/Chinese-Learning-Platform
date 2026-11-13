@@ -355,7 +355,11 @@
           "video-missing": "Bunny 上已找不到该视频",
           "unknown": "原因未知"
         },
-        "previewNote": "Bunny 视频在课程页面自带的播放器中播放。"
+        "previewNote": "此视频暂时无法使用 Bunny 预览。",
+        "previewLoading": "正在加载 Bunny 预览…",
+        "previewError": "无法加载 Bunny 预览。",
+        "previewRetry": "重试",
+        "previewTitle": "课程视频预览"
       }
     },
     "form": {
@@ -585,7 +589,8 @@
       "previous": "上一页",
       "next": "下一页",
       "pageInfo": "第 {page} 页，共 {pages} 页",
-      "emptyAction": "前往级别"
+      "emptyAction": "前往级别",
+      "accessStillActive": "访问权限仍有效"
     },
     "order": {
       "back": "全部订单",
@@ -660,7 +665,20 @@
       "copyFailed": "无法复制。请选中地址后手动复制。",
       "devOnly": "视频保存在服务器本机磁盘上，仅用于开发。上线前请配置 Bunny Stream。",
       "unavailableTitle": "诊断信息暂不可用",
-      "unavailableBody": "视频服务没有响应。请稍后再试。"
+      "unavailableBody": "视频服务没有响应。请稍后再试。",
+      "embedTokens": {
+        "title": "Bunny 嵌入令牌身份验证",
+        "enforced": "无效的嵌入令牌会被拒绝。令牌身份验证已启用。",
+        "notEnforcedTitle": "嵌入令牌身份验证未启用",
+        "notEnforcedBody": "无需有效链接即可播放课程视频。请在 Bunny 媒体库的 Security 设置中启用“Embed View Token Authentication”。",
+        "unknown": "无法验证嵌入令牌身份验证，请稍后重试。",
+        "no-video": "没有可供检查的就绪 Bunny 视频。",
+        "not-configured": "请配置 Bunny Stream 以检查嵌入令牌身份验证。"
+      },
+      "pendingDeletesWarning": {
+        "title": "Bunny 视频删除正在等待重试",
+        "body": "有 {count} 个 Bunny 视频等待删除。删除完成前，这些视频可能仍保存在 Bunny 并产生费用。"
+      }
     },
     "quiz": {
       "errors": {
@@ -780,6 +798,11 @@
         "video": {
           "title": "视频存放在本服务器上",
           "body": "尚未配置 Bunny Stream，课程使用仅限开发的本地视频存储。上线前请先设置 Bunny。"
+        },
+        "refundedAccess": {
+          "title": "已退款但仍有访问权限的订单",
+          "body": "部分已退款订单仍有有效的课程注册。",
+          "link": "查看相关订单"
         }
       }
     },

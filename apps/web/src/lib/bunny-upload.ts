@@ -2,7 +2,7 @@ import * as tus from 'tus-js-client';
 
 import { bunnyUploadTicketSchema, type BunnyUploadTicket } from '@app/shared';
 
-import { apiFetch, jsonRequest } from '@/lib/api-client';
+import { apiFetch, apiFetchParsed, jsonRequest } from '@/lib/api-client';
 import type { UploadOutcome, VideoUpload } from '@/lib/video-upload';
 
 /** 50 MB per PATCH keeps retries cheap on a flaky connection. */
@@ -22,9 +22,10 @@ export interface BunnyUploadOptions {
 
 /** Maps a failed API call onto the outcomes the panel already understands. */
 function failureOutcome(result: {
-  kind: 'error' | 'unauthenticated';
+  kind: 'error' | 'unauthenticated' | 'invalid';
   status: number;
 }): UploadOutcome {
+  if (result.kind === 'invalid') return { kind: 'http-error', status: 502 };
   if (result.kind === 'unauthenticated') {
     return { kind: 'http-error', status: 401 };
   }
@@ -63,8 +64,9 @@ export function startBunnyUpload(options: BunnyUploadOptions): VideoUpload {
   });
 
   async function run(): Promise<void> {
-    const created = await apiFetch<unknown>(
+    const created = await apiFetchParsed(
       `/api/v1/admin/lessons/${options.lessonId}/videos`,
+      bunnyUploadTicketSchema,
       {
         method: 'POST',
         ...jsonRequest({
@@ -78,9 +80,7 @@ export function startBunnyUpload(options: BunnyUploadOptions): VideoUpload {
     );
     if (aborted) return finish({ kind: 'aborted' });
     if (!created.ok) return finish(failureOutcome(created));
-    const parsed = bunnyUploadTicketSchema.safeParse(created.data);
-    if (!parsed.success) return finish({ kind: 'http-error', status: 502 });
-    const ticket: BunnyUploadTicket = parsed.data;
+    const ticket: BunnyUploadTicket = created.data;
 
     upload = new tus.Upload(options.file, {
       endpoint: ticket.tus.endpoint,

@@ -91,6 +91,7 @@ services:
     logging: *default-logging
 
   api:
+    # single instance: background timers
     <<: *hardening
     build:
       context: ..

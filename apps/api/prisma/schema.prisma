@@ -14,20 +14,20 @@ enum Role {
 }
 
 model User {
-  id                 String          @id @default(uuid()) @db.Uuid
-  email              String          @unique
+  id                 String           @id @default(uuid()) @db.Uuid
+  email              String           @unique
   passwordHash       String
   name               String
   phone              String
-  role               Role            @default(STUDENT)
-  isActive           Boolean         @default(true)
-  createdAt          DateTime        @default(now())
-  updatedAt          DateTime        @updatedAt
+  role               Role             @default(STUDENT)
+  isActive           Boolean          @default(true)
+  createdAt          DateTime         @default(now())
+  updatedAt          DateTime         @updatedAt
   sessions           Session[]
   passwordResets     PasswordReset[]
-  enrollments        Enrollment[]    @relation("EnrollmentStudent")
-  grantedEnrollments Enrollment[]    @relation("EnrollmentGrantedBy")
-  revokedEnrollments Enrollment[]    @relation("EnrollmentRevokedBy")
+  enrollments        Enrollment[]     @relation("EnrollmentStudent")
+  grantedEnrollments Enrollment[]     @relation("EnrollmentGrantedBy")
+  revokedEnrollments Enrollment[]     @relation("EnrollmentRevokedBy")
   quizAttempts       QuizAttempt[]
   orders             Order[]
   lessonProgress     LessonProgress[]
@@ -111,24 +111,24 @@ model Level {
 }
 
 model Lesson {
-  id               String       @id @default(uuid()) @db.Uuid
-  levelId          String       @db.Uuid
+  id               String           @id @default(uuid()) @db.Uuid
+  levelId          String           @db.Uuid
   title            Json
   description      Json?
   hanzi            String?
   sortOrder        Int
-  isPublished      Boolean      @default(false)
-  isFreePreview    Boolean      @default(false)
+  isPublished      Boolean          @default(false)
+  isFreePreview    Boolean          @default(false)
   firstPublishedAt DateTime?
   archivedAt       DateTime?
-  thumbnailId      String?      @db.Uuid
-  activeVideoId    String?      @unique @db.Uuid
-  createdAt        DateTime     @default(now())
-  updatedAt        DateTime     @updatedAt
-  level            Level        @relation(fields: [levelId], references: [id], onDelete: Restrict)
-  thumbnail        MediaAsset?  @relation(fields: [thumbnailId], references: [id], onDelete: SetNull)
-  activeVideo      VideoAsset?  @relation("ActiveVideo", fields: [activeVideoId], references: [id], onDelete: SetNull)
-  videos           VideoAsset[] @relation("LessonVideos")
+  thumbnailId      String?          @db.Uuid
+  activeVideoId    String?          @unique @db.Uuid
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
+  level            Level            @relation(fields: [levelId], references: [id], onDelete: Restrict)
+  thumbnail        MediaAsset?      @relation(fields: [thumbnailId], references: [id], onDelete: SetNull)
+  activeVideo      VideoAsset?      @relation("ActiveVideo", fields: [activeVideoId], references: [id], onDelete: NoAction)
+  videos           VideoAsset[]     @relation("LessonVideos")
   quizzes          Quiz[]
   progress         LessonProgress[]
 
@@ -168,6 +168,18 @@ model VideoAsset {
   activeFor      Lesson?       @relation("ActiveVideo")
 
   @@index([lessonId])
+}
+
+model PendingVideoDelete {
+  id             String   @id @default(uuid()) @db.Uuid
+  bunnyVideoId   String   @unique
+  bunnyLibraryId String?
+  attempts       Int      @default(0)
+  lastError      String?  @db.VarChar(500)
+  nextAttemptAt  DateTime
+  createdAt      DateTime @default(now())
+
+  @@index([nextAttemptAt])
 }
 
 enum WebhookProvider {

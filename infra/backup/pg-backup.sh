@@ -53,10 +53,21 @@ chmod 0600 "$db_file.partial"
 mv "$db_file.partial" "$db_file"
 log "wrote $db_file ($(wc -c < "$db_file") bytes)"
 
-if [ -n "$uploads_dir" ] && [ -d "$uploads_dir" ]; then
+if [ -z "$uploads_dir" ]; then
+  log "uploads archive skipped on purpose (UPLOADS_DIR is empty)"
+else
+  if [ ! -d "$uploads_dir" ]; then
+    echo "UPLOADS_DIR is set to '$uploads_dir' but the directory does not exist" >&2
+    exit 1
+  fi
   log "archiving $uploads_dir (images and any local dev videos)"
   tar -C "$uploads_dir" -czf "$uploads_file.partial" .
   gzip -t "$uploads_file.partial"
+  if [ -n "$(find "$uploads_dir" -mindepth 1 -type f -print -quit)" ] &&
+    [ -z "$(tar -tzf "$uploads_file.partial" | sed -n '1p')" ]; then
+    echo "UPLOADS_DIR contains files but the archive has no entries" >&2
+    exit 1
+  fi
   chmod 0600 "$uploads_file.partial"
   mv "$uploads_file.partial" "$uploads_file"
   log "wrote $uploads_file ($(wc -c < "$uploads_file") bytes)"

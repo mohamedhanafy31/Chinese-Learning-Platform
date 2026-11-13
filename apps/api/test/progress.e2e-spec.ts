@@ -175,6 +175,24 @@ describe('progress and sequential unlocking (e2e)', () => {
       .send(answers(quiz, true))
       .expect(201);
 
+  function reevaluate(userId: string, lessonId: string): Promise<void> {
+    const requestId = randomUUID();
+    return new Promise((resolve, reject) => {
+      const onMessage = (message: {
+        type: string;
+        requestId?: string;
+        error?: string;
+      }) => {
+        if (message.requestId !== requestId) return;
+        child.off('message', onMessage);
+        if (message.type === 'error') reject(new Error(message.error));
+        else resolve();
+      };
+      child.on('message', onMessage);
+      child.send({ type: 'progress:reevaluate', requestId, userId, lessonId });
+    });
+  }
+
   const grant = (studentId: string, levelId: string) =>
     call(admin, 'post', `/api/v1/admin/students/${studentId}/enrollments`)
       .send({ levelId })
@@ -620,6 +638,28 @@ describe('progress and sequential unlocking (e2e)', () => {
     ).toMatchObject({ complete: false, quizzes: { total: 1, passed: 0 } });
     await playback(student, b.id).expect(403);
     await passQuiz(student, quiz);
+    await prisma.lessonProgress.update({
+      where: { userId_lessonId: { userId: studentId, lessonId: a.id } },
+      data: { completedAt: null },
+    });
+    await Promise.all([
+      reevaluate(studentId, a.id),
+      reevaluate(studentId, a.id),
+    ]);
+    const completedAt = (
+      await prisma.lessonProgress.findUniqueOrThrow({
+        where: { userId_lessonId: { userId: studentId, lessonId: a.id } },
+      })
+    ).completedAt;
+    expect(completedAt).not.toBeNull();
+    await passQuiz(student, quiz);
+    expect(
+      (
+        await prisma.lessonProgress.findUniqueOrThrow({
+          where: { userId_lessonId: { userId: studentId, lessonId: a.id } },
+        })
+      ).completedAt?.getTime(),
+    ).toBe(completedAt?.getTime());
     expect(
       (await playback(student, a.id).expect(404)).body.progress.complete,
     ).toBe(true);
