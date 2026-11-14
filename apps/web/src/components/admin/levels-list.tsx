@@ -97,7 +97,7 @@ export function LevelsList({
                     />
                     <span className="tabular">
                       {t('lessonsMeta', {
-                        count: nf.format(level.lessonCount),
+                        count: level.lessonCount,
                       })}
                     </span>
                   </div>

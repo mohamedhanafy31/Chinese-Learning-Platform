@@ -336,8 +336,9 @@ test.describe
     await watchToTheEnd(page.getByTestId('lesson-video'));
     const complete = page.getByTestId('lesson-complete');
     await expect(complete).toBeVisible({ timeout: 20_000 });
-    await expect(complete).toContainText('أنهيت كل دروس هذا المستوى.');
-    await expect(complete.getByRole('link')).toHaveCount(0);
+    await expect(complete).toContainText('تهانينا، لقد أكملت هذا المستوى.');
+    // No wrap-around "next lesson"; only the level-complete links remain.
+    await expect(complete.getByRole('link')).toHaveCount(2);
 
     await open(page, '/ar/dashboard', () =>
       expect(card.getByTestId('level-complete')).toBeVisible({ timeout: 3000 }),

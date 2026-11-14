@@ -82,7 +82,6 @@ test.describe.serial('open access: learn, grant, revoke', () => {
   let admin: Page;
   let studentContext: BrowserContext;
   let page: Page;
-  let studentUrl = '';
 
   test.beforeAll(async ({ browser }) => {
     api = await playwrightRequest.newContext({
@@ -119,7 +118,7 @@ test.describe.serial('open access: learn, grant, revoke', () => {
     await api?.dispose();
   });
 
-  test('a new student opens a published level without a grant; admin can still grant', async () => {
+  test('a new student opens a published level without any grant', async () => {
     // ----- the student registers: every published level is already theirs --
     await page.goto('/ar/register');
     await page.getByLabel('الاسم الكامل').fill(student.name);
@@ -135,7 +134,7 @@ test.describe.serial('open access: learn, grant, revoke', () => {
     ).toBeVisible();
     const card = page.locator(`[data-level="${slug}"]`);
     await expect(card).toContainText(levelTitle);
-    await expect(card).toContainText('٢ دروس');
+    await expect(card).toContainText('درسان');
 
     // The level page opens with the account: the preview stays free and the
     // first regular lesson is the single next one. No buy or unlock button.
@@ -154,69 +153,6 @@ test.describe.serial('open access: learn, grant, revoke', () => {
     await expect(lessons.nth(0)).toContainText('مجاني');
     await expect(lessons.nth(1)).toContainText(lessonBeta);
     await expect(lessons.nth(1)).toContainText('التالي');
-
-    // ----- admin searches the student and grants the level --------------------
-    // Grants still matter: they keep an archived level readable (below).
-    await admin.goto('/ar/admin/students');
-    await expect(
-      admin.getByRole('heading', { name: 'الطلاب', level: 1 }),
-    ).toBeVisible();
-    await admin.getByLabel('ابحث في الطلاب').fill(student.email.toUpperCase());
-    await admin.getByRole('button', { name: 'بحث' }).click();
-    await expect(admin).toHaveURL(/\/ar\/admin\/students\?query=/);
-    const row = admin.getByRole('link', { name: student.name });
-    await expect(row).toBeVisible();
-    await expect(
-      admin.getByRole('status').filter({ hasText: /^١ طلاب/ }),
-    ).toBeVisible();
-    await row.click();
-    await expect(admin).toHaveURL(/\/ar\/admin\/students\/[0-9a-f-]{36}$/);
-    studentUrl = admin.url();
-    await expect(
-      admin.getByRole('heading', { name: student.name, level: 1 }),
-    ).toBeVisible();
-
-    await admin.getByLabel('المستوى', { exact: true }).selectOption({
-      label: `学习 · ${levelTitle}`,
-    });
-    await admin.getByRole('button', { name: 'امنح المستوى' }).click();
-    await expect(
-      admin.getByRole('status').filter({ hasText: 'تم منح المستوى.' }),
-    ).toBeVisible();
-    const enrollment = admin.locator(`[data-enrollment="${slug}"]`);
-    await expect(enrollment).toContainText('فعّال');
-    await expect(enrollment).toContainText('منحه مسؤول');
-
-    await page.goto('/ar/dashboard');
-    await card.getByRole('link', { name: /اذهب إلى المستوى/ }).click();
-    await expect(page).toHaveURL(new RegExp(`/ar/levels/${slug}$`));
-  });
-
-  test('revoking a grant keeps a published level open to the account', async () => {
-    expect(studentUrl).not.toBe('');
-    await admin.goto(studentUrl);
-    const enrollment = admin.locator(`[data-enrollment="${slug}"]`);
-    await expect(enrollment).toContainText('فعّال');
-    await enrollment.getByRole('button', { name: /سحب/ }).click();
-    const dialog = admin.getByRole('dialog');
-    await expect(dialog).toBeVisible();
-    await dialog.getByLabel('السبب (اختياري)').fill('منح بالخطأ');
-    await dialog.getByRole('button', { name: 'سحب الوصول' }).click();
-    await expect(dialog).toBeHidden();
-    await expect(enrollment).toContainText('مسحوب');
-    await expect(enrollment).toContainText('السبب: منح بالخطأ');
-    await expect(enrollment.getByRole('button', { name: /سحب/ })).toHaveCount(
-      0,
-    );
-
-    await page.goto(`/ar/levels/${slug}`);
-    await expect(page.getByTestId('level-enrolled')).toBeVisible();
-    await expect(
-      page
-        .getByRole('list', { name: 'دروس هذا المستوى' })
-        .getByRole('listitem')
-        .nth(1),
-    ).toContainText('التالي');
   });
 
   test('an archived level stays readable for the learner who owns it', async () => {

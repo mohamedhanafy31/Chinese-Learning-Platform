@@ -217,13 +217,14 @@ test.describe
     await expect(panel.getByTestId('video-details')).toHaveCount(0);
   });
 
-  test('an anonymous visitor plays the free preview lesson', async ({
+  test('a free preview still asks anonymous visitors to sign in', async ({
     page,
   }) => {
     await uploadViaApi(lessons.beta);
 
-    // The level page links open and free lessons, never locked ones. The
-    // public catalog is cached for up to a minute, so retry until it shows.
+    // A preview skips the lesson order, not the login: the public level page
+    // links no lesson to a signed-out visitor. The public catalog is cached
+    // for up to a minute, so retry until it shows.
     await expect(async () => {
       await page.goto(`/en/levels/${slug}`);
       await expect(
@@ -233,35 +234,20 @@ test.describe
     const rows = page.getByRole('list', { name: 'Lessons in this level' });
     await expect(
       rows.getByRole('link', { name: new RegExp(lessonAlpha) }),
-    ).toHaveAttribute('href', `/en/learn/${slug}/${lessons.alpha}`);
-    await expect(
-      rows.getByRole('link', { name: new RegExp(lessonBeta) }),
     ).toHaveCount(0);
 
-    await rows.getByRole('link', { name: new RegExp(lessonAlpha) }).click();
-    await expect(page).toHaveURL(`/en/learn/${slug}/${lessons.alpha}`);
+    await page.goto(`/en/learn/${slug}/${lessons.alpha}`);
     await expect(
-      page.getByRole('heading', { name: lessonAlpha, level: 1 }),
+      page
+        .getByTestId('lesson-gate')
+        .getByRole('heading', { name: 'Sign in to watch this lesson' }),
     ).toBeVisible();
-    await expect(page.getByText(`About ${lessonAlpha}`)).toBeVisible();
-
-    const video = page.getByTestId('lesson-video');
-    await expect(video).toBeVisible();
-    await expect(video).toHaveAttribute('controlslist', 'nodownload');
-    await metadataLoaded(video);
-
-    // The current lesson is marked in the side list; the locked one is not a link.
-    const path = page.getByRole('list', { name: 'Lessons in this level' });
-    await expect(path.locator('[aria-current="page"]')).toContainText(
-      lessonAlpha,
-    );
-    await expect(
-      path.getByRole('link', { name: new RegExp(lessonBeta) }),
-    ).toHaveCount(0);
-    await expect(page.locator('meta[name="robots"]')).toHaveAttribute(
-      'content',
-      /noindex/,
-    );
+    await expect(page.getByTestId('lesson-video')).toHaveCount(0);
+    const status = await page.evaluate(async (id) => {
+      const playback = await fetch(`/api/v1/lessons/${id}/playback`);
+      return playback.status;
+    }, lessons.alpha);
+    expect(status).toBe(401);
   });
 
   test('a locked lesson asks anonymous visitors to sign in', async ({

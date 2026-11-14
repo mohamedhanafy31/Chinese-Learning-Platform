@@ -166,7 +166,7 @@ test.describe.serial('M13 admin overview, audit and student status', () => {
     await studentPage.goto('/ar/dashboard');
     await expect(studentPage).toHaveURL(/\/ar\/login\?next=/);
     await expect(
-      studentPage.getByRole('heading', { name: 'مرحباً بعودتك', level: 1 }),
+      studentPage.getByRole('heading', { name: 'دخول الطلاب', level: 1 }),
     ).toBeVisible();
   });
 

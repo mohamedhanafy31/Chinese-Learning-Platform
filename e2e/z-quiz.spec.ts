@@ -290,9 +290,10 @@ test.describe.serial('quizzes: build, take, review, history', () => {
     await expect(page.getByTestId('pass-seal')).toHaveCount(0);
     const review = result.getByTestId('review-question');
     await expect(review.nth(0)).toContainText('ليست صحيحة تماماً');
-    await expect(review.nth(0)).toContainText('إجابتك');
-    await expect(review.nth(0)).toContainText('الإجابة الصحيحة');
-    await expect(review.nth(0)).toContainText(explanation);
+    // A failed attempt shows what was chosen, never the key or explanation.
+    await expect(review.nth(0)).toContainText('اخترتَ');
+    await expect(review.nth(0)).not.toContainText('الإجابة الصحيحة');
+    await expect(review.nth(0)).not.toContainText(explanation);
     await expect(review.nth(1)).toContainText('إجابة صحيحة');
 
     // try again and answer everything correctly
@@ -340,23 +341,19 @@ test.describe.serial('quizzes: build, take, review, history', () => {
     await expect(page.getByTestId('attempt-result')).toContainText(
       'لم تنجح بعد: درجة النجاح ٧٠٪',
     );
-    await expect(page.getByTestId('attempt-result')).toContainText(explanation);
+    await expect(page.getByTestId('attempt-result')).not.toContainText(
+      explanation,
+    );
     await expect(page.getByTestId('pass-seal')).toHaveCount(0);
   });
 
-  test('anonymous visitor sees the quiz list on a free preview and is sent to login', async () => {
+  test('anonymous visitor is asked to sign in, even on a free preview', async () => {
     const page = await anonymousContext.newPage();
-    await open(page, `/ar/learn/${slug}/${lessonId}`, () =>
-      expect(page.getByRole('heading', { name: 'اختبر فهمك' })).toBeVisible({
-        timeout: 3000,
-      }),
-    );
-    const row = page.getByTestId('quiz-row');
-    await expect(row).toContainText(quizTitle);
-    await row.getByRole('link', { name: /ابدأ/ }).click();
-    await expect(page).toHaveURL(/\/ar\/login\?next=/);
-    expect(
-      decodeURIComponent(new URL(page.url()).searchParams.get('next') ?? ''),
-    ).toMatch(new RegExp(`/ar/learn/${slug}/${lessonId}/quiz/[0-9a-f-]{36}$`));
+    await page.goto(`/ar/learn/${slug}/${lessonId}`);
+    const gate = page.getByTestId('lesson-gate');
+    await expect(gate).toBeVisible();
+    await expect(page.getByTestId('quiz-row')).toHaveCount(0);
+    const login = gate.getByRole('link').first();
+    await expect(login).toHaveAttribute('href', /\/ar\/login\?next=/);
   });
 });

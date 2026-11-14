@@ -112,7 +112,7 @@ export default async function DashboardPage({
                       </h3>
                       <p className="mt-1 text-sm text-cobalt tabular">
                         {t('lessonsCount', {
-                          count: nf.format(level.lessonCount),
+                          count: level.lessonCount,
                         })}
                       </p>
                       {progress.total > 0 ? (

@@ -26,7 +26,8 @@ export async function archivePublishableContent(
   api: APIRequestContext,
   quizId: string,
 ): Promise<void> {
-  expect(
-    (await api.post(`/api/v1/admin/quizzes/${quizId}/archive`)).status(),
-  ).toBe(200);
+  // Deleted (not archived) so it does not show up in the lesson's quiz list.
+  expect((await api.delete(`/api/v1/admin/quizzes/${quizId}`)).status()).toBe(
+    204,
+  );
 }

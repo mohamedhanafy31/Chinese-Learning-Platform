@@ -1,13 +1,17 @@
 import { deflateSync } from 'node:zlib';
 
-import { expect, test, type Page } from '@playwright/test';
+import {
+  expect,
+  request as playwrightRequest,
+  test,
+  type Page,
+} from '@playwright/test';
 import {
   archivePublishableContent,
   makeLessonPublishable,
 } from './publishable-content';
 
 const runId = `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`;
-const slug = `e2e-${runId}`;
 const arabicTitle = `خطواتك الأولى ${runId}`;
 const lessonAlpha = `E2E Lesson Alpha ${runId}`;
 const lessonBeta = `E2E Lesson Beta ${runId}`;
@@ -77,6 +81,7 @@ const english = {
 
 test.describe.serial('catalog admin and public catalog', () => {
   let levelUrl = '';
+  let slug = '';
 
   test('admin creates a level with lessons, publishes, reorders, and the public pages follow', async ({
     page,
@@ -97,7 +102,6 @@ test.describe.serial('catalog admin and public catalog', () => {
     await page.getByRole('link', { name: 'New level' }).first().click();
     await expect(page).toHaveURL(/\/en\/admin\/levels\/new$/);
 
-    await page.getByLabel('Slug').fill(slug);
     await page.getByLabel('Chinese name').fill('入门');
     const title = page.getByRole('group', { name: 'Title', exact: true });
     await title.getByLabel('English').fill(`E2E First steps ${runId}`);
@@ -127,6 +131,12 @@ test.describe.serial('catalog admin and public catalog', () => {
     await page.getByRole('button', { name: 'Create level' }).click();
     await expect(page).toHaveURL(/\/en\/admin\/levels\/[0-9a-f-]{36}$/);
     levelUrl = page.url();
+    // The slug is generated from the English title with a random suffix.
+    const created = await page.request.get(
+      `/api/v1/admin/levels/${levelUrl.split('/').at(-1)}`,
+    );
+    expect(created.ok()).toBe(true);
+    slug = ((await created.json()) as { slug: string }).slug;
     await expect(
       page.getByRole('heading', { name: `E2E First steps ${runId}`, level: 1 }),
     ).toBeVisible();
@@ -150,23 +160,30 @@ test.describe.serial('catalog admin and public catalog', () => {
       await page.getByRole('button', { name: 'Create lesson' }).click();
       await expect(page).toHaveURL(/\/en\/admin\/lessons\/[0-9a-f-]{36}$/);
       const lessonId = page.url().split('/').at(-1)!;
-      const quizId = await makeLessonPublishable(page.request, lessonId);
+      // Mutating API calls need the web origin and the admin's session cookie.
+      const api = await playwrightRequest.newContext({
+        baseURL: 'http://localhost:3210',
+        extraHTTPHeaders: { origin: 'http://localhost:3210' },
+        storageState: await page.context().storageState(),
+      });
+      const quizId = await makeLessonPublishable(api, lessonId);
       await page.reload();
-      await page.getByRole('button', { name: 'Publish' }).click();
+      await page.getByRole('button', { name: 'Publish', exact: true }).click();
       await expect(
         page.getByRole('status').filter({ hasText: 'Published.' }),
       ).toBeVisible();
       await expect(
         page.getByText('Published: visible to learners.'),
       ).toBeVisible();
-      await archivePublishableContent(page.request, quizId);
+      await archivePublishableContent(api, quizId);
+      await api.dispose();
     }
 
     // ----- publish the level -------------------------------------------------
     await page.goto(levelUrl);
     const lessonsList = page.getByRole('list', { name: 'Lessons in order' });
     await expect(lessonsList.getByRole('listitem')).toHaveCount(2);
-    await page.getByRole('button', { name: 'Publish' }).click();
+    await page.getByRole('button', { name: 'Publish', exact: true }).click();
     await expect(
       page.getByRole('status').filter({ hasText: 'Published.' }),
     ).toBeVisible();

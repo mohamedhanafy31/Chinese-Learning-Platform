@@ -211,7 +211,7 @@ export default async function LevelPage({
                       ? null
                       : `${tHome('levelWord')} ${nf.format(level.number)} · `}
                     {t('lessonsCount', {
-                      count: nf.format(level.lessonCount),
+                      count: level.lessonCount,
                     })}
                   </p>
                   <p className="mt-3 max-w-[40rem] text-lg leading-[1.8] text-cobalt">
