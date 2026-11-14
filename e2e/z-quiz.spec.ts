@@ -7,6 +7,10 @@ import {
   type BrowserContext,
   type Page,
 } from '@playwright/test';
+import {
+  archivePublishableContent,
+  makeLessonPublishable,
+} from './publishable-content';
 
 const webUrl = 'http://localhost:3210';
 // `localhost` so the API's session cookies are shared with the browser contexts.
@@ -93,9 +97,11 @@ test.describe.serial('quizzes: build, take, review, history', () => {
     });
     expect(lesson.status()).toBe(201);
     lessonId = ((await lesson.json()) as { id: string }).id;
+    const readinessQuiz = await makeLessonPublishable(admin, lessonId);
     expect(
       (await admin.post(`/api/v1/admin/lessons/${lessonId}/publish`)).status(),
     ).toBe(200);
+    await archivePublishableContent(admin, readinessQuiz);
     expect(
       (await admin.post(`/api/v1/admin/levels/${levelId}/publish`)).status(),
     ).toBe(200);

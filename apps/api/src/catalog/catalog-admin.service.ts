@@ -90,6 +90,10 @@ function isUniqueViolation(error: unknown): boolean {
 }
 
 const SLUG_TAKEN = 'A level with this slug already exists';
+const LEVEL_NOT_READY =
+  'level_not_ready: Publish requires at least one published, active lesson';
+const LESSON_NOT_READY =
+  'lesson_not_ready: Publish requires a ready video or a live quiz with questions';
 
 const LEVEL_AUDIT_FIELDS = [
   'slug',
@@ -605,6 +609,12 @@ export class CatalogAdminService {
     return this.prisma.$transaction(async (tx) => {
       await lockLevelRow(tx, id);
       const current = await this.findLevelOrThrow(tx, id);
+      if (action === 'level.publish') {
+        const count = await tx.lesson.count({
+          where: { levelId: id, isPublished: true, archivedAt: null },
+        });
+        if (count === 0) throw new ConflictException(LEVEL_NOT_READY);
+      }
       const row = await tx.level.update({
         where: { id },
         data: data(current),
@@ -643,6 +653,27 @@ export class CatalogAdminService {
     return this.prisma.$transaction(async (tx) => {
       await lockLessonRow(tx, id);
       const current = await this.findLessonOrThrow(tx, id);
+      if (action === 'lesson.publish') {
+        const lesson = await tx.lesson.findUniqueOrThrow({
+          where: { id },
+          select: {
+            activeVideoId: true,
+            activeVideo: { select: { status: true } },
+            quizzes: {
+              where: { archivedAt: null },
+              select: { _count: { select: { questions: true } } },
+            },
+          },
+        });
+        const playableVideo =
+          lesson.activeVideoId !== null &&
+          lesson.activeVideo?.status === 'READY';
+        const quizWithQuestions = lesson.quizzes.some(
+          (quiz) => quiz._count.questions > 0,
+        );
+        if (!playableVideo && !quizWithQuestions)
+          throw new ConflictException(LESSON_NOT_READY);
+      }
       const row = await tx.lesson.update({
         where: { id },
         data: data(current),

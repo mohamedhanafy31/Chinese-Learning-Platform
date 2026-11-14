@@ -7,6 +7,10 @@ import request from 'supertest';
 import { Role } from '@app/shared';
 
 import { PrismaClient } from '../src/generated/prisma/client';
+import {
+  makeLessonPublishable,
+  makeLevelPublishable,
+} from './publishable-content';
 
 const origin = 'http://localhost:3000';
 const password = 'initial-password';
@@ -281,6 +285,7 @@ describe('audit log, admin overview and student status (e2e)', () => {
       ),
     ).toHaveLength(0);
 
+    await makeLevelPublishable(prisma, levelId);
     for (const verb of ['publish', 'unpublish', 'archive', 'unarchive']) {
       await expectOne(
         () => post(`/api/v1/admin/levels/${levelId}/${verb}`).expect(200),
@@ -344,6 +349,7 @@ describe('audit log, admin overview and student status (e2e)', () => {
       values: { isFreePreview: { from: false, to: true } },
     });
 
+    await makeLessonPublishable(prisma, lessonId);
     for (const verb of ['publish', 'unpublish', 'archive', 'unarchive']) {
       await expectOne(
         () => post(`/api/v1/admin/lessons/${lessonId}/${verb}`).expect(200),
@@ -568,6 +574,7 @@ describe('audit log, admin overview and student status (e2e)', () => {
 
   it('records enrollment grants, revocations and reactivations against the student', async () => {
     const levelId = await createLevel('audit-enroll');
+    await makeLevelPublishable(prisma, levelId);
     await post(`/api/v1/admin/levels/${levelId}/publish`).expect(200);
     const { id: studentId } = await signIn(
       'audit-grantee@example.com',
@@ -706,6 +713,7 @@ describe('audit log, admin overview and student status (e2e)', () => {
       title: { en: 'Listed', ar: 'مُدرج' },
     });
     const lessonId = await createLesson(levelId, 'Listed lesson');
+    await makeLevelPublishable(prisma, levelId);
     await post(`/api/v1/admin/levels/${levelId}/publish`).expect(200);
     const { id: studentId } = await signIn(
       'audit-listed@example.com',
@@ -845,6 +853,7 @@ describe('audit log, admin overview and student status (e2e)', () => {
 
   it('keeps secrets and personal values out of every row', async () => {
     const levelId = await createLevel('audit-secrets');
+    await makeLevelPublishable(prisma, levelId);
     await post(`/api/v1/admin/levels/${levelId}/publish`).expect(200);
     const { id: studentId } = await signIn(
       'audit-private@example.com',
@@ -973,6 +982,8 @@ describe('audit log, admin overview and student status (e2e)', () => {
       const levelId = await createLevel('detail-level');
       const lessonA = await createLesson(levelId, 'A');
       const lessonB = await createLesson(levelId, 'B');
+      await makeLessonPublishable(prisma, lessonA);
+      await makeLessonPublishable(prisma, lessonB);
       await post(`/api/v1/admin/lessons/${lessonA}/publish`).expect(200);
       await post(`/api/v1/admin/lessons/${lessonB}/publish`).expect(200);
       await post(`/api/v1/admin/levels/${levelId}/publish`).expect(200);
@@ -1036,6 +1047,7 @@ describe('audit log, admin overview and student status (e2e)', () => {
       const levelId = await createLevel('overview-level', {
         priceMinor: 100_000,
       });
+      await makeLevelPublishable(prisma, levelId);
       await post(`/api/v1/admin/levels/${levelId}/publish`).expect(200);
       const students = [];
       for (const name of ['one', 'two', 'three']) {

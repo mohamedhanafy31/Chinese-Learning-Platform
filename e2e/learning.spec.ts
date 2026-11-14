@@ -6,6 +6,10 @@ import {
   type BrowserContext,
   type Page,
 } from '@playwright/test';
+import {
+  archivePublishableContent,
+  makeLessonPublishable,
+} from './publishable-content';
 
 const webUrl = 'http://localhost:3210';
 const apiUrl = 'http://127.0.0.1:4210';
@@ -51,9 +55,11 @@ async function createPublishedLevel(api: APIRequestContext): Promise<void> {
     lessonIds.push(((await lesson.json()) as { id: string }).id);
   }
   for (const id of lessonIds) {
+    const quizId = await makeLessonPublishable(api, id);
     expect(
       (await api.post(`/api/v1/admin/lessons/${id}/publish`)).status(),
     ).toBe(200);
+    await archivePublishableContent(api, quizId);
   }
   expect(
     (await api.post(`/api/v1/admin/levels/${level.id}/publish`)).status(),

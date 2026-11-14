@@ -10,6 +10,7 @@ import request from 'supertest';
 import { Role } from '@app/shared';
 
 import { PrismaClient } from '../src/generated/prisma/client';
+import { makeLessonPublishable } from './publishable-content';
 
 const origin = 'http://localhost:3000';
 const credentials = {
@@ -388,14 +389,15 @@ describe('media images (e2e)', () => {
     await call(undefined, 'get', '/api/v1/catalog/levels/with-cover').expect(
       404,
     );
-    await call(admin, 'post', `/api/v1/admin/levels/${levelId}/publish`).expect(
-      200,
-    );
+    await makeLessonPublishable(prisma, lessonId);
     await call(
       admin,
       'post',
       `/api/v1/admin/lessons/${lessonId}/publish`,
     ).expect(200);
+    await call(admin, 'post', `/api/v1/admin/levels/${levelId}/publish`).expect(
+      200,
+    );
 
     const list = await call(undefined, 'get', '/api/v1/catalog/levels').expect(
       200,

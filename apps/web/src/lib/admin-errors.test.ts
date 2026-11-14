@@ -13,6 +13,12 @@ describe('adminErrorKey', () => {
         'The slug cannot change once the level has been published',
       ),
     ).toBe('slugLocked');
+    expect(adminErrorKey(409, 'level_not_ready: missing lesson')).toBe(
+      'levelNotReady',
+    );
+    expect(adminErrorKey(409, 'lesson_not_ready: missing content')).toBe(
+      'lessonNotReady',
+    );
     expect(adminErrorKey(409, 'something new')).toBe('conflict');
   });
 

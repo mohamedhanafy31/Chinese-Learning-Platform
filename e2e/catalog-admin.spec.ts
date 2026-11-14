@@ -1,6 +1,10 @@
 import { deflateSync } from 'node:zlib';
 
 import { expect, test, type Page } from '@playwright/test';
+import {
+  archivePublishableContent,
+  makeLessonPublishable,
+} from './publishable-content';
 
 const runId = `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`;
 const slug = `e2e-${runId}`;
@@ -145,6 +149,9 @@ test.describe.serial('catalog admin and public catalog', () => {
       if (free) await page.getByLabel('Free preview').check();
       await page.getByRole('button', { name: 'Create lesson' }).click();
       await expect(page).toHaveURL(/\/en\/admin\/lessons\/[0-9a-f-]{36}$/);
+      const lessonId = page.url().split('/').at(-1)!;
+      const quizId = await makeLessonPublishable(page.request, lessonId);
+      await page.reload();
       await page.getByRole('button', { name: 'Publish' }).click();
       await expect(
         page.getByRole('status').filter({ hasText: 'Published.' }),
@@ -152,6 +159,7 @@ test.describe.serial('catalog admin and public catalog', () => {
       await expect(
         page.getByText('Published: visible to learners.'),
       ).toBeVisible();
+      await archivePublishableContent(page.request, quizId);
     }
 
     // ----- publish the level -------------------------------------------------

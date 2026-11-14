@@ -9,6 +9,8 @@ export type AdminErrorKey =
   | 'invalidOrder'
   | 'notStudent'
   | 'levelNotGrantable'
+  | 'levelNotReady'
+  | 'lessonNotReady'
   | 'notFound'
   | 'forbidden'
   | 'rateLimited'
@@ -30,6 +32,8 @@ export function adminErrorKey(status: number, message = ''): AdminErrorKey {
     case 404:
       return 'notFound';
     case 409:
+      if (text.includes('level_not_ready')) return 'levelNotReady';
+      if (text.includes('lesson_not_ready')) return 'lessonNotReady';
       if (text.includes('cannot be granted')) return 'levelNotGrantable';
       if (text.includes('slug already exists')) return 'slugTaken';
       if (text.includes('slug cannot change')) return 'slugLocked';

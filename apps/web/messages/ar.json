@@ -63,7 +63,7 @@
   },
   "Level": {
     "back": "كل المستويات",
-    "lessonsCount": "{count} دروس",
+    "lessonsCount": "{count, plural, zero {لا دروس} one {درس واحد} two {درسان} few {# دروس} many {# درساً} other {# درس}}",
     "createAccount": "أنشئ حساباً مجانياً",
     "signIn": "سجّل الدخول",
     "lessons": "دروس هذا المستوى",
@@ -202,7 +202,7 @@
     "logoutError": "تعذّر تسجيل خروجك. حاول مجدداً.",
     "myLevels": "مستوياتي",
     "myOrders": "طلباتي",
-    "lessonsCount": "{count} دروس",
+    "lessonsCount": "{count, plural, zero {لا دروس} one {درس واحد} two {درسان} few {# دروس} many {# درساً} other {# درس}}",
     "goToLevel": "اذهب إلى المستوى",
     "goToLevelNamed": "اذهب إلى المستوى: {title}",
     "archived": "مؤرشف · وصولك باقٍ",
@@ -280,6 +280,9 @@
       "back": "كل المستويات",
       "lessonsTitle": "دروس هذا المستوى",
       "visibilityTitle": "الظهور",
+      "publishLessonRequired": "درس منشور واحد على الأقل",
+      "publishCover": "صورة الغلاف",
+      "publishTopics": "الموضوعات",
       "newIntro": "املأ البيانات. يبقى المستوى مسودة حتى تنشره."
     },
     "lessons": {
@@ -298,7 +301,10 @@
       "backToLevel": "العودة إلى المستوى",
       "newIntro": "أضف درساً إلى «{level}». يبقى مسودة حتى تنشره.",
       "editIntro": "ضمن «{level}».",
-      "visibilityTitle": "الظهور"
+      "visibilityTitle": "الظهور",
+      "publishContentRequired": "فيديو جاهز أو اختبار يتضمن أسئلة",
+      "publishDescription": "الوصف",
+      "publishThumbnail": "الصورة المصغرة"
     },
     "video": {
       "title": "الفيديو",
@@ -413,7 +419,7 @@
       "lessonHanzi": "العنوان بالصينية",
       "lessonHanziHelper": "اختياري. يظهر بجانب عنوان الدرس.",
       "freePreviewLabel": "معاينة مجانية",
-      "freePreviewHelper": "يمكن لأي طالب مسجل الدخول فتح هذا الدرس دون اشتراك.",
+      "freePreviewHelper": "يمكن لأي شخص فتح هذا الدرس، حتى دون حساب، ولا يلزم إكمال الدروس السابقة أولاً.",
       "previewAlt": "معاينة الصورة المختارة"
     },
     "fieldErrors": {
@@ -441,7 +447,9 @@
       "rateLimited": "طلبات كثيرة. انتظر دقيقة ثم حاول مجدداً.",
       "retry": "حدث خطأ ما. تحقّق من اتصالك وحاول مجدداً.",
       "notStudent": "يمكن تسجيل الطلاب فقط في المستويات.",
-      "levelNotGrantable": "لا يمكن منح إلا المستويات المنشورة أو المؤرشفة."
+      "levelNotGrantable": "لا يمكن منح إلا المستويات المنشورة أو المؤرشفة.",
+      "levelNotReady": "انشر درساً واحداً نشطاً على الأقل قبل نشر هذا المستوى.",
+      "lessonNotReady": "أضف فيديو جاهزاً أو اختباراً يتضمن سؤالاً واحداً على الأقل قبل نشر هذا الدرس."
     },
     "lifecycle": {
       "publish": "انشر",
@@ -463,7 +471,11 @@
       "deleteBodyLesson": "سيُحذف «{title}» نهائياً مع جميع اختباراته ومحاولاته وتقدّم الطلاب والفيديوهات. لا يمكن التراجع عن ذلك.",
       "confirmDelete": "احذف نهائياً",
       "deleting": "جارٍ الحذف…",
-      "cancel": "إلغاء"
+      "cancel": "إلغاء",
+      "readyTitle": "جاهز للنشر",
+      "required": "مطلوب",
+      "recommended": "مستحسن",
+      "publishBlocked": "أكمل العنصر المطلوب لتفعيل النشر."
     },
     "students": {
       "title": "الطلاب",

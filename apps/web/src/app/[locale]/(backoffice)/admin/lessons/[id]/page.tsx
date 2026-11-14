@@ -19,6 +19,7 @@ import {
 import { pick } from '@/lib/localized';
 import { requireUser } from '@/lib/protected-session';
 import { videoUploadOrigin } from '@/lib/video-origin';
+import { lessonPublishReadiness } from '@/lib/publish-readiness';
 
 export async function generateMetadata({
   params,
@@ -50,6 +51,7 @@ export default async function EditLessonPage({
     getRecentAudit('Lesson', id),
   ]);
   const title = pick(lesson.title, locale);
+  const readiness = lessonPublishReadiness(lesson, quizzes);
 
   return (
     <section className="mx-auto max-w-[1100px] px-4 py-14 sm:px-8 lg:py-20">
@@ -78,6 +80,16 @@ export default async function EditLessonPage({
           isPublished={lesson.isPublished}
           archivedAt={lesson.archivedAt}
           afterDeleteHref={`/${locale}/admin/levels/${level.id}`}
+          checklist={{
+            required: {
+              met: readiness.required,
+              label: t('publishContentRequired'),
+            },
+            recommended: [
+              { met: readiness.recommended[0], label: t('publishDescription') },
+              { met: readiness.recommended[1], label: t('publishThumbnail') },
+            ],
+          }}
         />
       </div>
 

@@ -6,6 +6,11 @@ import request, { type Response } from 'supertest';
 import { Role } from '@app/shared';
 
 import { PrismaClient } from '../src/generated/prisma/client';
+import {
+  archivePublishableContent,
+  makeLessonPublishable,
+  makeLevelPublishable,
+} from './publishable-content';
 
 const execFileAsync = promisify(execFile);
 const origin = 'http://localhost:3000';
@@ -94,9 +99,17 @@ describe('catalog API (e2e)', () => {
     id: string,
     verb: 'publish' | 'unpublish' | 'archive' | 'unarchive',
   ): Promise<Response> {
-    return call(admin, 'post', `/api/v1/admin/${kind}/${id}/${verb}`).expect(
-      200,
-    );
+    const quizId =
+      kind === 'lessons' && verb === 'publish'
+        ? await makeLessonPublishable(prisma, id)
+        : null;
+    const response = await call(
+      admin,
+      'post',
+      `/api/v1/admin/${kind}/${id}/${verb}`,
+    ).expect(200);
+    if (quizId) await archivePublishableContent(prisma, quizId);
+    return response;
   }
 
   const publicLevels = () => call(undefined, 'get', '/api/v1/catalog/levels');
@@ -306,24 +319,25 @@ describe('catalog API (e2e)', () => {
     const third = await createLevel('third');
     expect((await publicLevels().expect(200)).body).toEqual({ levels: [] });
 
-    await action('levels', first.id as string, 'publish');
-    await action('levels', second.id as string, 'publish');
-    await action('levels', third.id as string, 'publish');
-
     const l1 = await createLesson(second.id as string, 'One');
     const l2 = await createLesson(second.id as string, 'Two');
     const l3 = await createLesson(second.id as string, 'Three');
     await action('lessons', l1.id as string, 'publish');
     await action('lessons', l3.id as string, 'publish');
     // l2 stays unpublished inside a published level.
+    await makeLevelPublishable(prisma, first.id as string);
+    await makeLevelPublishable(prisma, third.id as string);
+    await action('levels', first.id as string, 'publish');
+    await action('levels', second.id as string, 'publish');
+    await action('levels', third.id as string, 'publish');
 
     let body = (await publicLevels().expect(200)).body;
     expect(
       body.levels.map((l: Json) => [l.slug, l.number, l.lessonCount]),
     ).toEqual([
-      ['first', 1, 0],
+      ['first', 1, 1],
       ['second', 2, 2],
-      ['third', 3, 0],
+      ['third', 3, 1],
     ]);
     let detail = (
       await call(undefined, 'get', '/api/v1/catalog/levels/second').expect(200)
@@ -376,6 +390,78 @@ describe('catalog API (e2e)', () => {
     expect(archivedTwice.body.archivedAt).toBe(archivedOnce.body.archivedAt);
   });
 
+  it('enforces publish readiness while leaving unpublish and archive unrestricted', async () => {
+    const level = await createLevel('publish-policy');
+    const levelId = level.id as string;
+    await call(admin, 'post', `/api/v1/admin/levels/${levelId}/publish`)
+      .expect(409)
+      .expect(({ body }: Response) =>
+        expect(body.message).toContain('level_not_ready'),
+      );
+
+    const empty = await createLesson(levelId, 'Empty lesson');
+    const emptyId = empty.id as string;
+    await call(admin, 'post', `/api/v1/admin/lessons/${emptyId}/publish`)
+      .expect(409)
+      .expect(({ body }: Response) =>
+        expect(body.message).toContain('lesson_not_ready'),
+      );
+    await call(
+      admin,
+      'post',
+      `/api/v1/admin/lessons/${emptyId}/unpublish`,
+    ).expect(200);
+    await call(
+      admin,
+      'post',
+      `/api/v1/admin/lessons/${emptyId}/archive`,
+    ).expect(200);
+    await call(
+      admin,
+      'post',
+      `/api/v1/admin/levels/${levelId}/unpublish`,
+    ).expect(200);
+    await call(admin, 'post', `/api/v1/admin/levels/${levelId}/archive`).expect(
+      200,
+    );
+
+    const quizLesson = await createLesson(levelId, 'Quiz lesson');
+    await makeLessonPublishable(prisma, quizLesson.id as string);
+    await call(
+      admin,
+      'post',
+      `/api/v1/admin/lessons/${quizLesson.id as string}/publish`,
+    ).expect(200);
+    await call(
+      admin,
+      'post',
+      `/api/v1/admin/levels/${levelId}/unarchive`,
+    ).expect(200);
+    await call(admin, 'post', `/api/v1/admin/levels/${levelId}/publish`).expect(
+      200,
+    );
+
+    const videoLesson = await createLesson(levelId, 'Video lesson');
+    const video = await prisma.videoAsset.create({
+      data: {
+        lessonId: videoLesson.id as string,
+        provider: 'LOCAL',
+        localKey: 'ready-readiness.mp4',
+        status: 'READY',
+        originalName: 'ready.mp4',
+      },
+    });
+    await prisma.lesson.update({
+      where: { id: videoLesson.id as string },
+      data: { activeVideoId: video.id },
+    });
+    await call(
+      admin,
+      'post',
+      `/api/v1/admin/lessons/${videoLesson.id as string}/publish`,
+    ).expect(200);
+  });
+
   it('keeps published slugs immutable and permanently deletes complete content trees', async () => {
     const level = await createLevel('draft-level');
     const levelId = level.id as string;
@@ -384,6 +470,7 @@ describe('catalog API (e2e)', () => {
       .expect(200)
       .expect(({ body }: Response) => expect(body.slug).toBe('renamed-level'));
 
+    await makeLevelPublishable(prisma, levelId);
     await action('levels', levelId, 'publish');
     await call(admin, 'patch', `/api/v1/admin/levels/${levelId}`)
       .send({ slug: 'again' })
@@ -449,7 +536,9 @@ describe('catalog API (e2e)', () => {
       `/api/v1/admin/lessons/${publishedLesson.id as string}`,
     ).expect(204);
     expect(
-      await prisma.lesson.count({ where: { id: publishedLesson.id as string } }),
+      await prisma.lesson.count({
+        where: { id: publishedLesson.id as string },
+      }),
     ).toBe(0);
     expect(await prisma.quiz.count({ where: { id: lessonQuizId } })).toBe(0);
     expect(
@@ -654,12 +743,12 @@ describe('catalog API (e2e)', () => {
       priceMinor: 99_900,
     });
     const levelId = level.id as string;
-    await action('levels', levelId, 'publish');
     const lesson = await createLesson(levelId, 'Public lesson', {
       hanzi: '你好',
       isFreePreview: true,
     });
     await action('lessons', lesson.id as string, 'publish');
+    await action('levels', levelId, 'publish');
     const hidden = await createLesson(levelId, 'Hidden');
     await action('lessons', hidden.id as string, 'publish');
     await action('lessons', hidden.id as string, 'archive');

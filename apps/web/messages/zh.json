@@ -63,7 +63,7 @@
   },
   "Level": {
     "back": "全部级别",
-    "lessonsCount": "{count} 课",
+    "lessonsCount": "{count, plural, other {# 课}}",
     "createAccount": "创建免费账号",
     "signIn": "登录",
     "lessons": "本级别课程",
@@ -202,7 +202,7 @@
     "logoutError": "暂时无法退出，请重试。",
     "myLevels": "我的级别",
     "myOrders": "我的订单",
-    "lessonsCount": "{count} 课",
+    "lessonsCount": "{count, plural, other {# 课}}",
     "goToLevel": "进入级别",
     "goToLevelNamed": "进入级别：{title}",
     "archived": "已归档 · 仍可学习",
@@ -280,6 +280,9 @@
       "back": "全部级别",
       "lessonsTitle": "本级别的课程",
       "visibilityTitle": "可见性",
+      "publishLessonRequired": "至少一节已发布的课程",
+      "publishCover": "封面图片",
+      "publishTopics": "主题",
       "newIntro": "填写详情。发布之前，级别保持为草稿。"
     },
     "lessons": {
@@ -298,7 +301,10 @@
       "backToLevel": "返回级别",
       "newIntro": "向“{level}”添加课程。发布之前，课程保持为草稿。",
       "editIntro": "属于“{level}”。",
-      "visibilityTitle": "可见性"
+      "visibilityTitle": "可见性",
+      "publishContentRequired": "可播放的视频或含问题的测验",
+      "publishDescription": "描述",
+      "publishThumbnail": "缩略图"
     },
     "video": {
       "title": "视频",
@@ -413,7 +419,7 @@
       "lessonHanzi": "中文标题",
       "lessonHanziHelper": "可选，显示在课程标题旁。",
       "freePreviewLabel": "免费试看",
-      "freePreviewHelper": "任何已登录的学生都可以无需订阅打开这节课。",
+      "freePreviewHelper": "任何人都可以打开这节课，即使没有账户也可以，而且无需先完成之前的课程。",
       "previewAlt": "所选图片的预览"
     },
     "fieldErrors": {
@@ -441,7 +447,9 @@
       "rateLimited": "请求过多。请等待一分钟后再试。",
       "retry": "出错了。请检查网络后重试。",
       "notStudent": "只能为学员开通级别。",
-      "levelNotGrantable": "只能授予已发布或已归档的级别。"
+      "levelNotGrantable": "只能授予已发布或已归档的级别。",
+      "levelNotReady": "请先至少发布一节未归档的课程，再发布此级别。",
+      "lessonNotReady": "请先添加可播放的视频，或添加至少含一个问题的测验，再发布此课程。"
     },
     "lifecycle": {
       "publish": "发布",
@@ -463,7 +471,11 @@
       "deleteBodyLesson": "“{title}”及其所有测验、答题记录、学习进度和视频都将被永久删除，无法恢复。",
       "confirmDelete": "永久删除",
       "deleting": "正在删除…",
-      "cancel": "取消"
+      "cancel": "取消",
+      "readyTitle": "发布准备情况",
+      "required": "必需",
+      "recommended": "建议",
+      "publishBlocked": "完成必需项后才能发布。"
     },
     "students": {
       "title": "学员",

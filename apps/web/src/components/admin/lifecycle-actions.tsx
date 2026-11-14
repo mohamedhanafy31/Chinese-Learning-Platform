@@ -2,6 +2,7 @@
 
 import { usePathname, useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
+import { Check, Circle } from 'lucide-react';
 import { useRef, useState } from 'react';
 
 import { FormAlert } from '@/components/auth/form-controls';
@@ -25,6 +26,13 @@ interface LifecycleActionsProps {
   archivedAt: string | null;
   /** Where to go after a successful delete. */
   afterDeleteHref: string;
+  checklist: {
+    required: { met: boolean; label: string };
+    recommended: [
+      { met: boolean; label: string },
+      { met: boolean; label: string },
+    ];
+  };
 }
 
 const doneKey = {
@@ -38,6 +46,7 @@ const doneKey = {
 export function LifecycleActions({
   afterDeleteHref,
   archivedAt,
+  checklist,
   id,
   isPublished,
   kind,
@@ -107,6 +116,7 @@ export function LifecycleActions({
   }
 
   const busy = pending !== null;
+  const checklistId = `${kind}-${id}-publish-checklist`;
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center gap-3">
@@ -115,6 +125,35 @@ export function LifecycleActions({
       </div>
 
       {error ? <FormAlert>{error}</FormAlert> : null}
+
+      {!isPublished && archivedAt === null ? (
+        <div id={checklistId} className="space-y-2 text-sm text-cobalt">
+          <p className="font-semibold text-deep">{t('readyTitle')}</p>
+          <ul className="space-y-1">
+            {[checklist.required, ...checklist.recommended].map(
+              (item, index) => (
+                <li key={item.label} className="flex items-center gap-2">
+                  {item.met ? (
+                    <Check
+                      aria-hidden="true"
+                      className="size-4 shrink-0 text-deep"
+                    />
+                  ) : (
+                    <Circle aria-hidden="true" className="size-4 shrink-0" />
+                  )}
+                  <span>{item.label}</span>
+                  {index === 0 ? (
+                    <span className="text-xs">({t('required')})</span>
+                  ) : (
+                    <span className="text-xs">({t('recommended')})</span>
+                  )}
+                </li>
+              ),
+            )}
+          </ul>
+          {!checklist.required.met ? <p>{t('publishBlocked')}</p> : null}
+        </div>
+      ) : null}
 
       <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
         {archivedAt === null ? (
@@ -131,7 +170,8 @@ export function LifecycleActions({
           ) : (
             <button
               type="button"
-              disabled={busy}
+              disabled={busy || !checklist.required.met}
+              aria-describedby={checklistId}
               aria-busy={pending === 'publish'}
               onClick={() => void run('publish')}
               className={primaryButton}

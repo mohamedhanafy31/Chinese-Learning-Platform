@@ -21,12 +21,14 @@ import {
 } from '@/components/admin/image-upload';
 import {
   buildLessonPayload,
+  changedLocalizedFields,
+  clearFieldErrors,
   type FieldErrors,
   type LessonFormValues,
 } from '@/lib/admin-forms';
 import { failureKey } from '@/lib/admin-client';
 import { apiFetchParsed, jsonRequest } from '@/lib/api-client';
-import { toLocalizedInput } from '@/lib/localized';
+import { toLocalizedInput, type LocalizedInput } from '@/lib/localized';
 
 function initialValues(lesson: AdminLesson | undefined): LessonFormValues {
   return {
@@ -97,10 +99,23 @@ export function LessonForm({
     (invalid ?? alertRef.current)?.focus();
   }, [focusTick]);
 
+  useEffect(() => {
+    if (Object.keys(errors).length === 0) setFormError(null);
+  }, [errors]);
+
   function update<K extends keyof LessonFormValues>(
     key: K,
     value: LessonFormValues[K],
   ): void {
+    const fields =
+      key === 'title' || key === 'description'
+        ? changedLocalizedFields(
+            key,
+            values[key] as LocalizedInput,
+            value as LocalizedInput,
+          )
+        : [key];
+    setErrors((current) => clearFieldErrors(current, fields));
     setValues((current) => ({ ...current, [key]: value }));
   }
 

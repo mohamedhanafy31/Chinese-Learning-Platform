@@ -18,6 +18,10 @@ import request from 'supertest';
 import { Role } from '@app/shared';
 
 import { PrismaClient } from '../src/generated/prisma/client';
+import {
+  archivePublishableContent,
+  makeLessonPublishable,
+} from './publishable-content';
 
 const origin = 'http://localhost:3000';
 const password = 'initial-password';
@@ -134,9 +138,12 @@ describe('local video (e2e)', () => {
     kind: 'levels' | 'lessons',
     id: string,
   ): Promise<void> {
+    const quizId =
+      kind === 'lessons' ? await makeLessonPublishable(prisma, id) : null;
     await call(admin, 'post', `/api/v1/admin/${kind}/${id}/publish`).expect(
       200,
     );
+    if (quizId) await archivePublishableContent(prisma, quizId);
   }
 
   const uploadTo = (

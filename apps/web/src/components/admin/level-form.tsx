@@ -27,13 +27,19 @@ import {
 } from '@/components/admin/image-upload';
 import {
   buildLevelPayload,
+  changedLocalizedFields,
+  clearFieldErrors,
   type FieldErrors,
   type LevelFormValues,
   type TopicRow,
 } from '@/lib/admin-forms';
 import { failureKey } from '@/lib/admin-client';
 import { apiFetchParsed, jsonRequest } from '@/lib/api-client';
-import { emptyLocalizedInput, toLocalizedInput } from '@/lib/localized';
+import {
+  emptyLocalizedInput,
+  toLocalizedInput,
+  type LocalizedInput,
+} from '@/lib/localized';
 
 let topicCounter = 0;
 const newTopic = (values = emptyLocalizedInput): TopicRow => ({
@@ -120,10 +126,23 @@ export function LevelForm({
     (invalid ?? alertRef.current)?.focus();
   }, [focusTick]);
 
+  useEffect(() => {
+    if (Object.keys(errors).length === 0) setFormError(null);
+  }, [errors]);
+
   function update<K extends keyof LevelFormValues>(
     key: K,
     value: LevelFormValues[K],
   ): void {
+    const fields =
+      key === 'title' || key === 'summary'
+        ? changedLocalizedFields(
+            key,
+            values[key] as LocalizedInput,
+            value as LocalizedInput,
+          )
+        : [key];
+    setErrors((current) => clearFieldErrors(current, fields));
     setValues((current) => ({ ...current, [key]: value }));
   }
 

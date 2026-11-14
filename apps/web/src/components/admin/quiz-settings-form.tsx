@@ -2,7 +2,7 @@
 
 import { usePathname, useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
 import {
   adminQuizSummarySchema,
@@ -20,7 +20,11 @@ import {
   type LocaleNames,
 } from '@/components/admin/controls';
 import { useQuizErrorText } from '@/components/admin/use-quiz-error';
-import type { FieldErrors } from '@/lib/admin-forms';
+import {
+  changedLocalizedFields,
+  clearFieldErrors,
+  type FieldErrors,
+} from '@/lib/admin-forms';
 import { apiFetchParsed, jsonRequest } from '@/lib/api-client';
 import { quizFailureKey } from '@/lib/quiz-errors';
 import { buildQuizPayload, quizFormValues } from '@/lib/quiz-forms';
@@ -66,6 +70,12 @@ export function QuizSettingsForm({
     en: message(`${prefix}.en`),
     zh: message(`${prefix}.zh`),
   });
+  function clearChanged(fields: string[]): void {
+    setErrors((current) => clearFieldErrors(current, fields));
+  }
+  useEffect(() => {
+    if (Object.keys(errors).length === 0) setFormError(null);
+  }, [errors]);
 
   async function submit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -123,7 +133,10 @@ export function QuizSettingsForm({
         names={names}
         values={values.title}
         errors={localized('title')}
-        onChange={(next) => setValues((v) => ({ ...v, title: next }))}
+        onChange={(next) => {
+          clearChanged(changedLocalizedFields('title', values.title, next));
+          setValues((v) => ({ ...v, title: next }));
+        }}
       />
       {isEdit ? (
         <LocalizedFieldset
@@ -133,7 +146,12 @@ export function QuizSettingsForm({
           names={names}
           values={values.description}
           errors={localized('description')}
-          onChange={(next) => setValues((v) => ({ ...v, description: next }))}
+          onChange={(next) => {
+            clearChanged(
+              changedLocalizedFields('description', values.description, next),
+            );
+            setValues((v) => ({ ...v, description: next }));
+          }}
         />
       ) : null}
       <div className="max-w-xs">
@@ -144,9 +162,10 @@ export function QuizSettingsForm({
           value={values.passingScore}
           inputMode="numeric"
           error={message('passingScore')}
-          onChange={(value) =>
-            setValues((v) => ({ ...v, passingScore: value }))
-          }
+          onChange={(value) => {
+            clearChanged(['passingScore']);
+            setValues((v) => ({ ...v, passingScore: value }));
+          }}
         />
       </div>
       <div className="flex flex-wrap items-center gap-x-4 gap-y-3">

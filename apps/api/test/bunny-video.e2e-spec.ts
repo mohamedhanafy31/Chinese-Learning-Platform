@@ -17,6 +17,10 @@ import request from 'supertest';
 import { Role } from '@app/shared';
 
 import { PrismaClient } from '../src/generated/prisma/client';
+import {
+  archivePublishableContent,
+  makeLessonPublishable,
+} from './publishable-content';
 
 const origin = 'http://localhost:3000';
 const password = 'initial-password';
@@ -336,9 +340,12 @@ describe('bunny video (e2e)', () => {
     kind: 'levels' | 'lessons',
     id: string,
   ): Promise<void> {
+    const quizId =
+      kind === 'lessons' ? await makeLessonPublishable(prisma, id) : null;
     await call(admin, 'post', `/api/v1/admin/${kind}/${id}/publish`).expect(
       200,
     );
+    if (quizId) await archivePublishableContent(prisma, quizId);
   }
 
   /** A published level with a free preview, a locked and an unpublished lesson. */
@@ -1169,11 +1176,13 @@ describe('bunny video (e2e)', () => {
   it('deleting a published lesson deletes its Bunny videos', async () => {
     const { lessonId } = await bareLesson();
     const pending = await processing(lessonId);
+    const quizId = await makeLessonPublishable(prisma, lessonId);
     await call(
       admin,
       'post',
       `/api/v1/admin/lessons/${lessonId}/publish`,
     ).expect(200);
+    await archivePublishableContent(prisma, quizId);
     await call(admin, 'delete', `/api/v1/admin/lessons/${lessonId}`).expect(
       204,
     );

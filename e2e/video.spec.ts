@@ -9,6 +9,10 @@ import {
   type Locator,
   type Page,
 } from '@playwright/test';
+import {
+  archivePublishableContent,
+  makeLessonPublishable,
+} from './publishable-content';
 
 const webUrl = 'http://localhost:3210';
 // `localhost` (not 127.0.0.1) so the session cookies the API sets are shared
@@ -119,11 +123,13 @@ test.describe
       );
       expect(lesson.status()).toBe(201);
       lessons[key] = ((await lesson.json()) as { id: string }).id;
+      const quizId = await makeLessonPublishable(admin, lessons[key]);
       expect(
         (
           await admin.post(`/api/v1/admin/lessons/${lessons[key]}/publish`)
         ).status(),
       ).toBe(200);
+      await archivePublishableContent(admin, quizId);
     }
     expect(
       (await admin.post(`/api/v1/admin/levels/${levelId}/publish`)).status(),

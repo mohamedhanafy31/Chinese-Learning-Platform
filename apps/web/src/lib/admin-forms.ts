@@ -13,14 +13,32 @@ import {
 } from '@/lib/localized';
 
 export type FieldErrorCode =
-  | 'required'
-  | 'tooLong'
-  | 'invalid'
-  | 'slugInvalid'
-  | 'hanziTooLong';
+  'required' | 'tooLong' | 'invalid' | 'slugInvalid' | 'hanziTooLong';
 
 /** Keys look like "slug", "title.en", "topics.2.en". */
 export type FieldErrors = Record<string, FieldErrorCode>;
+
+export function clearFieldErrors(
+  errors: FieldErrors,
+  fields: readonly string[],
+): FieldErrors {
+  return Object.fromEntries(
+    Object.entries(errors).filter(
+      ([path]) =>
+        !fields.some((field) => path === field || path.startsWith(`${field}.`)),
+    ),
+  );
+}
+
+export function changedLocalizedFields(
+  prefix: string,
+  before: LocalizedInput,
+  after: LocalizedInput,
+): string[] {
+  return (['ar', 'en', 'zh'] as const)
+    .filter((locale) => before[locale] !== after[locale])
+    .map((locale) => `${prefix}.${locale}`);
+}
 
 export interface TopicRow extends LocalizedInput {
   key: string;
@@ -44,15 +62,18 @@ export interface LessonFormValues {
 }
 
 export type BuildResult<T> =
-  | { ok: true; payload: T }
-  | { ok: false; errors: FieldErrors };
+  { ok: true; payload: T } | { ok: false; errors: FieldErrors };
 
 interface Issue {
   path: PropertyKey[];
   code: string;
 }
 
-function issueCode(path: string, issue: Issue, hanziBlank: boolean): FieldErrorCode {
+function issueCode(
+  path: string,
+  issue: Issue,
+  hanziBlank: boolean,
+): FieldErrorCode {
   if (path === 'slug') return 'slugInvalid';
   if (path === 'hanzi') return hanziBlank ? 'required' : 'hanziTooLong';
   if (issue.code === 'too_small') return 'required';

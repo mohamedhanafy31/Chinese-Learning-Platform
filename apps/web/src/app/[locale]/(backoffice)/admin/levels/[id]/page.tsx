@@ -11,6 +11,7 @@ import { LifecycleActions } from '@/components/admin/lifecycle-actions';
 import { getAdminLevel, getRecentAudit } from '@/lib/admin-api';
 import { pick } from '@/lib/localized';
 import { requireUser } from '@/lib/protected-session';
+import { levelPublishReadiness } from '@/lib/publish-readiness';
 import { EmptyState } from '@/components/ui/empty-state';
 
 export async function generateMetadata({
@@ -42,6 +43,7 @@ export default async function EditLevelPage({
   ]);
   const title = pick(level.title, locale);
   const { lessons, ...levelOnly } = level;
+  const readiness = levelPublishReadiness(level);
 
   return (
     <section className="mx-auto max-w-[1100px] px-4 py-14 sm:px-8 lg:py-20">
@@ -76,6 +78,16 @@ export default async function EditLevelPage({
           isPublished={level.isPublished}
           archivedAt={level.archivedAt}
           afterDeleteHref={`/${locale}/admin/levels`}
+          checklist={{
+            required: {
+              met: readiness.required,
+              label: t('publishLessonRequired'),
+            },
+            recommended: [
+              { met: readiness.recommended[0], label: t('publishCover') },
+              { met: readiness.recommended[1], label: t('publishTopics') },
+            ],
+          }}
         />
       </div>
 

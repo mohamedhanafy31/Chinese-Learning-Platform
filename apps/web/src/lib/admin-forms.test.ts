@@ -1,11 +1,27 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+  changedLocalizedFields,
+  clearFieldErrors,
   buildLessonPayload,
   buildLevelPayload,
   type LessonFormValues,
   type LevelFormValues,
 } from './admin-forms';
+
+describe('field error clearing', () => {
+  it('clears only the changed localized field', () => {
+    const errors = { 'title.en': 'required', 'title.ar': 'required' } as const;
+    const fields = changedLocalizedFields(
+      'title',
+      { ar: '', en: '', zh: '' },
+      { ar: '', en: 'Title', zh: '' },
+    );
+    expect(clearFieldErrors(errors, fields)).toEqual({
+      'title.ar': 'required',
+    });
+  });
+});
 
 const blank = { ar: '', en: '', zh: '' };
 
@@ -70,9 +86,7 @@ describe('buildLevelPayload', () => {
   });
 
   it('flags an over-long hanzi', () => {
-    const result = buildLevelPayload(
-      level({ hanzi: '一二三四五六七八九' }),
-    );
+    const result = buildLevelPayload(level({ hanzi: '一二三四五六七八九' }));
     expect(result).toMatchObject({
       ok: false,
       errors: { hanzi: 'hanziTooLong' },

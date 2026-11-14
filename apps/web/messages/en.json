@@ -63,7 +63,7 @@
   },
   "Level": {
     "back": "All levels",
-    "lessonsCount": "{count} lessons",
+    "lessonsCount": "{count, plural, one {# lesson} other {# lessons}}",
     "createAccount": "Create a free account",
     "signIn": "Sign in",
     "lessons": "Lessons in this level",
@@ -202,7 +202,7 @@
     "logoutError": "We could not log you out. Try again.",
     "myLevels": "My levels",
     "myOrders": "My orders",
-    "lessonsCount": "{count} lessons",
+    "lessonsCount": "{count, plural, one {# lesson} other {# lessons}}",
     "goToLevel": "Go to level",
     "goToLevelNamed": "Go to level: {title}",
     "archived": "Archived · you keep access",
@@ -280,6 +280,9 @@
       "back": "All levels",
       "lessonsTitle": "Lessons in this level",
       "visibilityTitle": "Visibility",
+      "publishLessonRequired": "At least one published lesson",
+      "publishCover": "Cover image",
+      "publishTopics": "Topics",
       "newIntro": "Fill in the details. The level stays a draft until you publish it."
     },
     "lessons": {
@@ -298,7 +301,10 @@
       "backToLevel": "Back to the level",
       "newIntro": "Add a lesson to “{level}”. It stays a draft until you publish it.",
       "editIntro": "Part of “{level}”.",
-      "visibilityTitle": "Visibility"
+      "visibilityTitle": "Visibility",
+      "publishContentRequired": "A ready video or a quiz with questions",
+      "publishDescription": "Description",
+      "publishThumbnail": "Thumbnail"
     },
     "video": {
       "title": "Video",
@@ -413,7 +419,7 @@
       "lessonHanzi": "Chinese title",
       "lessonHanziHelper": "Optional. Shown beside the lesson title.",
       "freePreviewLabel": "Free preview",
-      "freePreviewHelper": "Any signed-in student can open this lesson without a subscription.",
+      "freePreviewHelper": "Anyone, even without an account, can open this lesson. They do not need to finish earlier lessons first.",
       "previewAlt": "Preview of the selected image"
     },
     "fieldErrors": {
@@ -441,7 +447,9 @@
       "rateLimited": "Too many requests. Wait a minute, then try again.",
       "retry": "Something went wrong. Check your connection and try again.",
       "notStudent": "Only students can be enrolled in a level.",
-      "levelNotGrantable": "Only published or archived levels can be granted."
+      "levelNotGrantable": "Only published or archived levels can be granted.",
+      "levelNotReady": "Publish at least one active lesson before publishing this level.",
+      "lessonNotReady": "Add a ready video or a quiz with at least one question before publishing this lesson."
     },
     "lifecycle": {
       "publish": "Publish",
@@ -463,7 +471,11 @@
       "deleteBodyLesson": "“{title}” and all of its quizzes, attempts, progress and videos will be removed permanently. This cannot be undone.",
       "confirmDelete": "Delete permanently",
       "deleting": "Deleting…",
-      "cancel": "Cancel"
+      "cancel": "Cancel",
+      "readyTitle": "Ready to publish",
+      "required": "required",
+      "recommended": "recommended",
+      "publishBlocked": "Complete the required item to enable publishing."
     },
     "students": {
       "title": "Students",

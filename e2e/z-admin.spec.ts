@@ -8,6 +8,10 @@ import {
   type BrowserContext,
   type Page,
 } from '@playwright/test';
+import {
+  archivePublishableContent,
+  makeLessonPublishable,
+} from './publishable-content';
 
 const webUrl = 'http://localhost:3210';
 // Use localhost like the web origin so API-set cookies carry into the browser.
@@ -75,6 +79,19 @@ test.describe.serial('M13 admin overview, audit and student status', () => {
     });
     expect(createdLevel.status()).toBe(201);
     levelId = ((await createdLevel.json()) as { id: string }).id;
+    const lesson = await adminApi.post(
+      `/api/v1/admin/levels/${levelId}/lessons`,
+      { data: { title: { en: 'Audit readiness' } } },
+    );
+    expect(lesson.status()).toBe(201);
+    const lessonId = ((await lesson.json()) as { id: string }).id;
+    const quizId = await makeLessonPublishable(adminApi, lessonId);
+    expect(
+      (
+        await adminApi.post(`/api/v1/admin/lessons/${lessonId}/publish`)
+      ).status(),
+    ).toBe(200);
+    await archivePublishableContent(adminApi, quizId);
 
     studentApi = await playwrightRequest.newContext({
       baseURL: apiUrl,

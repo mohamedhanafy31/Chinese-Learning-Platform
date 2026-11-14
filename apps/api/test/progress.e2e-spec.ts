@@ -8,6 +8,10 @@ import request from 'supertest';
 import { Role } from '@app/shared';
 
 import { PrismaClient } from '../src/generated/prisma/client';
+import {
+  archivePublishableContent,
+  makeLessonPublishable,
+} from './publishable-content';
 
 const origin = 'http://localhost:3000';
 const password = 'initial-password';
@@ -88,11 +92,23 @@ describe('progress and sequential unlocking (e2e)', () => {
     return response.body.id as string;
   }
 
-  const verb = (
+  const verb = async (
     kind: 'levels' | 'lessons',
     id: string,
     action: 'publish' | 'unpublish' | 'archive' | 'unarchive',
-  ) => call(admin, 'post', `/api/v1/admin/${kind}/${id}/${action}`).expect(200);
+  ) => {
+    const quizId =
+      kind === 'lessons' && action === 'publish'
+        ? await makeLessonPublishable(prisma, id)
+        : null;
+    const response = await call(
+      admin,
+      'post',
+      `/api/v1/admin/${kind}/${id}/${action}`,
+    ).expect(200);
+    if (quizId) await archivePublishableContent(prisma, quizId);
+    return response;
+  };
 
   /** A lesson, published, with an optional READY LOCAL video row and file. */
   async function createLesson(
