@@ -419,7 +419,7 @@
       "lessonHanzi": "中文标题",
       "lessonHanziHelper": "可选，显示在课程标题旁。",
       "freePreviewLabel": "免费试看",
-      "freePreviewHelper": "任何人都可以打开这节课，即使没有账户也可以，而且无需先完成之前的课程。",
+      "freePreviewHelper": "任何已登录的学员都可以打开这节课，无需先完成之前的课程。",
       "previewAlt": "所选图片的预览"
     },
     "fieldErrors": {

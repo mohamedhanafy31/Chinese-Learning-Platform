@@ -49,11 +49,16 @@ export function AccountLink({
     href: `/${locale}/login`,
     label: loginLabel,
   });
+  // Hide the login label until the session check settles, so a signed-in
+  // visitor never sees "Log in" flash.
+  const [resolved, setResolved] = useState(false);
 
   useEffect(() => {
     let active = true;
     void loadCurrentUser().then((user) => {
-      if (active && user) {
+      if (!active) return;
+      setResolved(true);
+      if (user) {
         setAccount({
           href:
             user.role === Role.ADMIN
@@ -70,7 +75,10 @@ export function AccountLink({
   }, [accountLabel, adminLabel, locale]);
 
   return (
-    <Link href={account.href} className={`min-w-24 ${className}`}>
+    <Link
+      href={account.href}
+      className={`min-w-24 transition-opacity ${resolved ? '' : 'opacity-0'} ${className}`}
+    >
       {account.label}
     </Link>
   );

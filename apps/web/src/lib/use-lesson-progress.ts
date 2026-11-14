@@ -10,7 +10,7 @@ import {
 import { apiFetchParsed, jsonRequest } from '@/lib/api-client';
 import { WatchTracker } from '@/lib/watch-tracker';
 
-export const FLUSH_INTERVAL_MS = 10_000;
+export const FLUSH_INTERVAL_MS = 5_000;
 /** Reports closer together than this wait for the next flush, unless forced. */
 const MIN_GAP_MS = 1000;
 
@@ -31,7 +31,7 @@ export interface LessonProgressController {
 }
 
 /**
- * Collects what the player plays and reports it to the API: every 10 s while
+ * Collects what the player plays and reports it to the API: every 5 s while
  * playing, and on pause, end, hidden tab and page close. A report that fails
  * for a transient reason is put back and goes out with the next one. The API
  * is the authority: it clamps what a report may add (see ProgressService).

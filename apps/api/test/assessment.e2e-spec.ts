@@ -930,10 +930,10 @@ describe('assessment API (e2e)', () => {
       ['id', 'text'],
       ['id', 'text'],
     ]);
-    // Option order is the stored order.
-    expect(first!.options.map((o: Json) => o.text.en)).toEqual([
-      'Hello',
+    // Options of 3+ choice questions are shuffled, so only the set is fixed.
+    expect(first!.options.map((o: Json) => o.text.en).sort()).toEqual([
       'Goodbye',
+      'Hello',
       'Thanks',
     ]);
     expect(response.body.questions.map((q: Json) => q.type)).toEqual([

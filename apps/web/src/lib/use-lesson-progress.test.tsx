@@ -74,7 +74,7 @@ describe('useLessonProgress', () => {
     expect(onResult).toHaveBeenCalledWith(answer);
   });
 
-  it('flushes every 10 seconds while playing, and stops when paused', async () => {
+  it('flushes on the interval while playing, and stops when paused', async () => {
     const { result } = renderHook(() =>
       useLessonProgress({ lessonId, enabled: true }),
     );

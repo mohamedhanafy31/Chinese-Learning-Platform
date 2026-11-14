@@ -743,15 +743,9 @@ describe('progress and sequential unlocking (e2e)', () => {
       Role.STUDENT,
     );
 
-    // Anyone may open the preview lesson; a signed-in visitor's progress is
-    // kept without changing the normal sequence.
-    const anonymous = await playback(undefined, b.id).expect(200);
-    expect(accessMap(anonymous.body)).toEqual({
-      [a.id]: 'locked',
-      [b.id]: 'preview',
-      [c.id]: 'locked',
-    });
-    expect(anonymous.body.progress).toBeNull();
+    // A preview never removes the login requirement; a signed-in visitor's
+    // progress is kept without changing the normal sequence.
+    await playback(undefined, b.id).expect(401);
     await report(undefined, b.id, { segments: [], positionSec: 0 }).expect(401);
     await playback(student, a.id).expect(200);
     await report(student, b.id, {

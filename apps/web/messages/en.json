@@ -419,7 +419,7 @@
       "lessonHanzi": "Chinese title",
       "lessonHanziHelper": "Optional. Shown beside the lesson title.",
       "freePreviewLabel": "Free preview",
-      "freePreviewHelper": "Anyone, even without an account, can open this lesson. They do not need to finish earlier lessons first.",
+      "freePreviewHelper": "Any signed-in student can open this lesson without finishing earlier lessons first.",
       "previewAlt": "Preview of the selected image"
     },
     "fieldErrors": {

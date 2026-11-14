@@ -122,11 +122,26 @@ export function toLearnerQuestion(row: QuestionRow): LearnerQuestion {
     hanzi: row.hanzi,
     image: toQuestionImage(row.image),
     points: row.points,
-    options: row.options.map((option) => ({
+    options: shuffled(row.options).map((option) => ({
       id: option.id,
       text: parseLocalizedText(option.text),
     })),
   });
+}
+
+/**
+ * Learners see choices in a random order so the position of the right answer
+ * cannot be memorised across attempts. Two-option questions keep their
+ * authored order (e.g. true/false); grading and snapshots use option ids.
+ */
+function shuffled<T>(items: readonly T[]): T[] {
+  const result = [...items];
+  if (result.length <= 2) return result;
+  for (let i = result.length - 1; i > 0; i -= 1) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [result[i], result[j]] = [result[j]!, result[i]!];
+  }
+  return result;
 }
 
 /** DB JSON is never trusted: the stored snapshot is parsed on the way out. */

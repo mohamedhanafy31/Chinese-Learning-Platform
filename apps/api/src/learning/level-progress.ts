@@ -54,6 +54,8 @@ export function continueAfter(
   completed: ReadonlySet<string>,
   lessonId: string,
 ): string | null {
+  // A finished level has nowhere left to continue.
+  if (lessons.every(({ id }) => completed.has(id))) return null;
   const states = sequenceState(
     lessons,
     completed,
